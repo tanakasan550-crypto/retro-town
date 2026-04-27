@@ -2,23 +2,63 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>山田ラーメン</title>
+<title>山崎ラーメン</title>
 
 <style>
 body {
-  background: #f4ecd8;
+  background: #efe3c2;
   font-family: "Hiragino Mincho ProN", serif;
+  margin: 0;
   color: #3a2e1f;
-  text-align: center;
 }
+
+/* ヘッダー */
 .header {
   background: #7a1f1f;
   color: white;
   padding: 20px;
   font-size: 28px;
+  text-align: center;
 }
-.section {
+
+/* メイン画像 */
+.hero {
+  text-align: center;
   padding: 20px;
+}
+
+.hero img {
+  width: 80%;
+  border: 5px solid #8b6b3f;
+}
+
+/* セクション */
+.section {
+  margin: 20px;
+  padding: 20px;
+  background: #fff8e6;
+  border: 2px solid #b89b6a;
+}
+
+/* メニュー */
+.menu {
+  display: flex;
+  justify-content: space-around;
+}
+
+.item {
+  width: 30%;
+  text-align: center;
+}
+
+.item img {
+  width: 100%;
+}
+
+/* 戻る */
+.back {
+  text-align: center;
+  margin: 30px;
 }
 </style>
 
@@ -26,17 +66,44 @@ body {
 
 <body>
 
-<div class="header">山田ラーメン</div>
+<div class="header">
+山崎ラーメン
+</div>
 
-<div class="section">
-<p>昭和45年創業。変わらぬ味。</p>
+<div class="hero">
+<img src="ramen.jpg">
 </div>
 
 <div class="section">
-<p>🍜 ラーメン 120円</p>
+<h2>なつかしいのに、あたらしい。</h2>
+<p>昭和の味を守り続ける一杯。</p>
+</div>
+
+<div class="section menu">
+
+<div class="item">
+<img src="ramen1.jpg">
+<p>中華そば 600円</p>
+</div>
+
+<div class="item">
+<img src="ramen2.jpg">
+<p>チャーシュー麺 850円</p>
+</div>
+
+<div class="item">
+<img src="ramen3.jpg">
+<p>焼きめし 600円</p>
+</div>
+
 </div>
 
 <div class="section">
+<h3>店内のご案内</h3>
+<p>木のぬくもりを感じる昔ながらの店内。</p>
+</div>
+
+<div class="back">
 <a href="index.html">← 商店街に戻る</a>
 </div>
 
