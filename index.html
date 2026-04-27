@@ -2,66 +2,882 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>日立レトロ商店街</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日立レトロ横丁 ｜ 昭和三十年の商店街</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
-body {
-  margin: 0;
-  font-family: "Hiragino Mincho ProN", serif;
-}
+  :root {
+    --cream:   #f5ead6;
+    --paper:   #ede0c4;
+    --ink:     #2a1a0e;
+    --red:     #9b1c1c;
+    --gold:    #c8922a;
+    --dark:    #140d08;
+    --night:   #0e0905;
+    --lantern: #e8661a;
+  }
 
-/* マップ背景 */
-.map {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  background: url("map.jpg") center/cover no-repeat;
-}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* 店（クリックできる画像） */
-.shop {
-  position: absolute;
-  width: 180px;
-  border: 3px solid #fff;
-  box-shadow: 3px 3px 0 #000;
-}
+  html { scroll-behavior: smooth; }
 
-/* タイトル */
-.title {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background: #7a1f1f;
-  color: white;
-  padding: 10px 20px;
-  font-size: 24px;
-}
+  body {
+    background: var(--dark);
+    color: var(--cream);
+    font-family: 'Noto Sans JP', sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── ノイズ・テクスチャ ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* ════════════════════════════
+     ① ヘッダー（タイトル看板）
+  ════════════════════════════ */
+  header {
+    position: relative;
+    background: var(--dark);
+    border-bottom: 3px solid var(--gold);
+    padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 100;
+  }
+  .site-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    font-weight: 900;
+    color: var(--cream);
+    letter-spacing: 0.12em;
+    text-shadow: 2px 2px 0 var(--ink);
+  }
+  .site-title span {
+    color: var(--gold);
+  }
+  .site-subtitle {
+    font-size: 0.72rem;
+    color: var(--gold);
+    letter-spacing: 0.3em;
+    margin-top: 4px;
+  }
+  nav a {
+    color: var(--cream);
+    text-decoration: none;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    margin-left: 24px;
+    opacity: 0.75;
+    transition: opacity 0.2s, color 0.2s;
+  }
+  nav a:hover { opacity: 1; color: var(--gold); }
+
+  /* ════════════════════════════
+     ② HERO（日立駅前・夕暮れ）
+  ════════════════════════════ */
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(175deg, #1a0f08 0%, #2d1505 40%, #0e0603 100%);
+  }
+
+  /* 街灯ライト */
+  .hero-lights {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 200px 400px at 20% 60%, rgba(232,102,26,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 200px 400px at 80% 55%, rgba(232,102,26,0.10) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 300px at 50% 20%, rgba(200,146,42,0.08) 0%, transparent 60%);
+  }
+
+  /* 地面のライン */
+  .hero-ground {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 40%;
+    background: linear-gradient(to top, rgba(20,10,4,0.95) 0%, transparent 100%);
+  }
+
+  /* アーチ看板 */
+  .hero-arch {
+    position: relative; z-index: 10;
+    text-align: center;
+    padding: 0 20px;
+  }
+  .hero-arch .era-badge {
+    display: inline-block;
+    border: 1px solid var(--gold);
+    padding: 6px 24px;
+    font-size: 0.72rem;
+    letter-spacing: 0.5em;
+    color: var(--gold);
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 1s 0.3s forwards;
+  }
+  .hero-arch h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(2.8rem, 8vw, 6.5rem);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1.1;
+    text-shadow: 4px 4px 0 rgba(20,10,4,0.8);
+    opacity: 0;
+    animation: fadeUp 1s 0.6s forwards;
+  }
+  .hero-arch h1 .accent { color: var(--lantern); }
+  .hero-arch .sub {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    color: var(--cream);
+    opacity: 0;
+    letter-spacing: 0.3em;
+    margin-top: 20px;
+    line-height: 2;
+    animation: fadeUp 1s 0.9s forwards;
+  }
+  .hero-arch .sub span { opacity: 0.55; }
+
+  .scroll-hint {
+    position: absolute; bottom: 36px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    opacity: 0;
+    animation: fadeUp 1s 1.5s forwards, bounce 2s 2.5s infinite;
+  }
+
+  /* 提灯 */
+  .lantern {
+    position: absolute;
+    width: 28px; height: 44px;
+    background: radial-gradient(ellipse at 50% 40%, #f07a30, #c84010);
+    border-radius: 50% 50% 48% 48% / 40% 40% 60% 60%;
+    box-shadow: 0 0 18px 6px rgba(220,100,30,0.5);
+    top: 0;
+  }
+  .lantern::before, .lantern::after {
+    content: ''; position: absolute;
+    left: 50%; transform: translateX(-50%);
+    background: #8a2a08;
+  }
+  .lantern::before { top: -10px; width: 4px; height: 12px; border-radius: 2px; }
+  .lantern::after  { bottom: -10px; width: 3px; height: 14px; border-radius: 2px; }
+
+  .lantern-row {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 80px; display: flex; justify-content: space-around;
+    align-items: flex-start; padding: 0 40px;
+    z-index: 5;
+  }
+  .lantern-string {
+    display: flex; flex-direction: column; align-items: center;
+    animation: sway 4s ease-in-out infinite;
+  }
+  .lantern-string:nth-child(2) { animation-delay: 0.5s; }
+  .lantern-string:nth-child(3) { animation-delay: 1s; }
+  .lantern-string:nth-child(4) { animation-delay: 1.5s; }
+  .lantern-string:nth-child(5) { animation-delay: 0.8s; }
+  .lantern-string:nth-child(6) { animation-delay: 1.3s; }
+  .lantern-string:nth-child(7) { animation-delay: 0.3s; }
+  .lantern-wire {
+    width: 1px; height: 30px; background: rgba(200,146,42,0.4);
+  }
+
+  /* ════════════════════════════
+     ③ 平和通り（桜ゾーン）
+  ════════════════════════════ */
+  .sakura-zone {
+    position: relative;
+    background: linear-gradient(180deg, #0e0603 0%, #1f1008 30%, #2a1a10 100%);
+    padding: 100px 32px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .sakura-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 600px 300px at 50% 0%, rgba(180,100,120,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 800px 200px at 50% 100%, rgba(200,120,40,0.06) 0%, transparent 70%);
+  }
+
+  /* 桜の花びら（CSS） */
+  .petals { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .petal {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(255,200,210,0.7), rgba(220,160,180,0.3));
+    border-radius: 0 50% 0 50%;
+    animation: fall linear infinite;
+  }
+  .petal:nth-child(1)  { left:  5%; animation-duration: 8s;  animation-delay: 0s;   width: 6px; height: 6px; }
+  .petal:nth-child(2)  { left: 15%; animation-duration: 10s; animation-delay: 2s;   width: 9px; height: 9px; }
+  .petal:nth-child(3)  { left: 25%; animation-duration: 7s;  animation-delay: 4s; }
+  .petal:nth-child(4)  { left: 35%; animation-duration: 9s;  animation-delay: 1s;   width: 5px; height: 5px; }
+  .petal:nth-child(5)  { left: 45%; animation-duration: 11s; animation-delay: 3s; }
+  .petal:nth-child(6)  { left: 55%; animation-duration: 8s;  animation-delay: 5s;   width: 7px; height: 7px; }
+  .petal:nth-child(7)  { left: 65%; animation-duration: 9s;  animation-delay: 0.5s; width: 10px; height: 10px; }
+  .petal:nth-child(8)  { left: 75%; animation-duration: 7s;  animation-delay: 2.5s; }
+  .petal:nth-child(9)  { left: 85%; animation-duration: 10s; animation-delay: 1.5s; width: 6px; height: 6px; }
+  .petal:nth-child(10) { left: 92%; animation-duration: 8s;  animation-delay: 3.5s; }
+
+  .sakura-label {
+    position: relative; z-index: 2;
+    display: inline-block;
+    border: 1px solid rgba(200,160,140,0.4);
+    padding: 6px 24px;
+    font-size: 0.7rem;
+    letter-spacing: 0.5em;
+    color: rgba(200,160,140,0.8);
+    margin-bottom: 32px;
+  }
+  .sakura-heading {
+    position: relative; z-index: 2;
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(1.8rem, 5vw, 3.5rem);
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.5;
+    letter-spacing: 0.05em;
+  }
+  .sakura-heading .pink { color: #e8a0b0; }
+  .sakura-body {
+    position: relative; z-index: 2;
+    max-width: 640px; margin: 24px auto 0;
+    font-size: 1rem; line-height: 2.2;
+    color: rgba(245,234,214,0.65);
+    letter-spacing: 0.05em;
+  }
+
+  /* ════════════════════════════
+     ④ 商店街（メイン）
+  ════════════════════════════ */
+  .shotengai {
+    background: linear-gradient(180deg, #1a0d06 0%, #110905 100%);
+    padding: 80px 0;
+  }
+  .section-header {
+    text-align: center;
+    padding: 0 32px 56px;
+  }
+  .section-badge {
+    display: inline-block;
+    background: var(--red);
+    color: var(--cream);
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    padding: 5px 20px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: var(--cream);
+  }
+  .section-title .gold { color: var(--gold); }
+
+  /* 商店カード */
+  .shops-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2px;
+  }
+  .shop-card {
+    position: relative;
+    background: #1c0f08;
+    border: 1px solid rgba(200,146,42,0.15);
+    padding: 32px 28px;
+    text-decoration: none;
+    color: var(--cream);
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s, background 0.3s;
+    cursor: pointer;
+  }
+  .shop-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(200,146,42,0.05), transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .shop-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(200,146,42,0.5);
+    background: #241408;
+  }
+  .shop-card:hover::before { opacity: 1; }
+
+  .shop-noren {
+    width: 48px; height: 6px;
+    background: var(--red);
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .shop-noren::after {
+    content: '';
+    position: absolute; left: 0; top: 6px;
+    width: 100%; height: 20px;
+    background: linear-gradient(180deg, rgba(155,28,28,0.4), transparent);
+  }
+
+  .shop-category {
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .shop-name {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 12px;
+  }
+  .shop-tagline {
+    font-size: 0.8rem;
+    color: rgba(245,234,214,0.55);
+    line-height: 1.8;
+    letter-spacing: 0.05em;
+  }
+  .shop-year {
+    margin-top: 20px;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: rgba(200,146,42,0.5);
+    border-top: 1px solid rgba(200,146,42,0.15);
+    padding-top: 12px;
+  }
+  .shop-arrow {
+    position: absolute; right: 24px; bottom: 28px;
+    font-size: 1.2rem; color: rgba(200,146,42,0.4);
+    transition: color 0.3s, transform 0.3s;
+  }
+  .shop-card:hover .shop-arrow {
+    color: var(--gold);
+    transform: translateX(4px);
+  }
+
+  /* 実店舗バッジ */
+  .real-badge {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--red);
+    color: var(--cream);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    padding: 3px 10px;
+    border-radius: 1px;
+  }
+
+  /* ════════════════════════════
+     ⑤ 夜エリア
+  ════════════════════════════ */
+  .night-zone {
+    position: relative;
+    background: linear-gradient(180deg, #110905 0%, #080402 100%);
+    padding: 80px 32px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .neon-signs {
+    display: flex; flex-wrap: wrap;
+    justify-content: center; gap: 16px;
+    max-width: 800px; margin: 48px auto 0;
+  }
+  .neon-sign {
+    border: 1px solid;
+    padding: 10px 24px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    border-radius: 2px;
+    animation: neonFlicker 6s infinite;
+  }
+  .neon-sign:nth-child(1) { color: #ff7ba8; border-color: rgba(255,123,168,0.4); box-shadow: 0 0 10px rgba(255,123,168,0.2); animation-delay: 0s; }
+  .neon-sign:nth-child(2) { color: #7bc8ff; border-color: rgba(123,200,255,0.4); box-shadow: 0 0 10px rgba(123,200,255,0.2); animation-delay: 1s; }
+  .neon-sign:nth-child(3) { color: #ffdd7b; border-color: rgba(255,221,123,0.4); box-shadow: 0 0 10px rgba(255,221,123,0.2); animation-delay: 2s; }
+  .neon-sign:nth-child(4) { color: #b07bff; border-color: rgba(176,123,255,0.4); box-shadow: 0 0 10px rgba(176,123,255,0.2); animation-delay: 0.5s; }
+  .neon-sign:nth-child(5) { color: #ff9b7b; border-color: rgba(255,155,123,0.4); box-shadow: 0 0 10px rgba(255,155,123,0.2); animation-delay: 1.5s; }
+  .neon-sign:nth-child(6) { color: #7bffb8; border-color: rgba(123,255,184,0.4); box-shadow: 0 0 10px rgba(123,255,184,0.2); animation-delay: 2.5s; }
+
+  /* ════════════════════════════
+     ⑥ ストーリー
+  ════════════════════════════ */
+  .story-section {
+    background: #0d0804;
+    padding: 100px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .story-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 800px 400px at 50% 50%, rgba(200,146,42,0.04), transparent);
+  }
+  .story-inner {
+    position: relative; z-index: 2;
+    max-width: 760px; margin: 0 auto; text-align: center;
+  }
+  .story-deco {
+    width: 40px; height: 1px; background: var(--gold);
+    display: inline-block; margin: 0 12px; vertical-align: middle;
+    opacity: 0.5;
+  }
+  .story-inner h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(1.5rem, 4vw, 2.8rem);
+    font-weight: 900;
+    line-height: 1.6;
+    color: var(--cream);
+    margin: 32px 0;
+    letter-spacing: 0.08em;
+  }
+  .story-inner p {
+    font-size: 0.95rem;
+    line-height: 2.6;
+    color: rgba(245,234,214,0.6);
+    letter-spacing: 0.08em;
+  }
+  .story-note {
+    margin-top: 40px;
+    display: inline-block;
+    border: 1px solid rgba(200,146,42,0.25);
+    padding: 12px 32px;
+    font-size: 0.75rem;
+    color: rgba(200,146,42,0.7);
+    letter-spacing: 0.2em;
+  }
+
+  /* ════════════════════════════
+     ⑦ 出店募集（CTA）
+  ════════════════════════════ */
+  .cta-section {
+    background: linear-gradient(160deg, #1f0d07, #2d1408);
+    padding: 100px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .cta-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+    align-items: center;
+  }
+  @media (max-width: 700px) { .cta-inner { grid-template-columns: 1fr; } }
+
+  .cta-left h2 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.6rem);
+    font-weight: 900;
+    line-height: 1.5;
+    color: var(--cream);
+  }
+  .cta-left h2 .gold { color: var(--gold); }
+  .cta-left p {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    line-height: 2.2;
+    color: rgba(245,234,214,0.6);
+  }
+
+  .cta-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(200,146,42,0.25);
+    padding: 36px;
+  }
+  .price-big {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: var(--gold);
+  }
+  .price-big span { font-size: 1rem; color: var(--cream); opacity: 0.6; margin-left: 4px; }
+  .price-note {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: rgba(245,234,214,0.45);
+    margin-top: 4px;
+    margin-bottom: 24px;
+  }
+  .cta-list {
+    list-style: none;
+    margin-bottom: 32px;
+  }
+  .cta-list li {
+    font-size: 0.85rem;
+    color: rgba(245,234,214,0.7);
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(200,146,42,0.1);
+    letter-spacing: 0.05em;
+  }
+  .cta-list li::before { content: '◆ '; color: var(--gold); opacity: 0.6; }
+  .cta-btn {
+    display: block;
+    width: 100%;
+    background: var(--red);
+    color: var(--cream);
+    border: none;
+    padding: 16px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+    text-decoration: none;
+    text-align: center;
+  }
+  .cta-btn:hover { background: #c22828; transform: translateY(-2px); }
+
+  /* ════════════════════════════
+     フッター
+  ════════════════════════════ */
+  footer {
+    background: var(--night);
+    border-top: 1px solid rgba(200,146,42,0.1);
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .footer-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+    letter-spacing: 0.3em;
+    margin-bottom: 12px;
+  }
+  .footer-sub {
+    font-size: 0.72rem;
+    color: rgba(245,234,214,0.3);
+    letter-spacing: 0.2em;
+    line-height: 2;
+  }
+  footer nav { margin-top: 20px; }
+  footer nav a {
+    font-size: 0.72rem;
+    color: rgba(245,234,214,0.35);
+    text-decoration: none;
+    margin: 0 12px;
+    letter-spacing: 0.15em;
+    transition: color 0.2s;
+  }
+  footer nav a:hover { color: var(--gold); }
+
+  /* ════════════════════════════
+     アニメーション
+  ════════════════════════════ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(8px); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-3deg); }
+    50%       { transform: rotate(3deg); }
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.6; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+  @keyframes neonFlicker {
+    0%, 95%, 100% { opacity: 1; }
+    96%            { opacity: 0.4; }
+    97%            { opacity: 1; }
+    98%            { opacity: 0.2; }
+    99%            { opacity: 1; }
+  }
+
+  /* ── scroll reveal ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s, transform 0.8s;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
 </style>
-
 </head>
-
 <body>
 
-<div class="map">
+<!-- ━━━ ヘッダー ━━━ -->
+<header>
+  <div>
+    <div class="site-title"><span>日立</span>レトロ横丁</div>
+    <div class="site-subtitle">HITACHI RETRO YOKOCHO　／　昭和三十年代の商店街</div>
+  </div>
+  <nav>
+    <a href="#shotengai">お店</a>
+    <a href="#story">この街について</a>
+    <a href="#join">出店する</a>
+  </nav>
+</header>
 
-<div class="title">日立レトロ商店街</div>
+<!-- ━━━ HERO ━━━ -->
+<section class="hero">
+  <div class="hero-lights"></div>
 
-<!-- ラーメン -->
-<a href="ramen.html">
-  <img src="ramen.jpg" class="shop" style="top:60%; left:20%;">
-</a>
+  <!-- 提灯列 -->
+  <div class="lantern-row">
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+    <div class="lantern-string"><div class="lantern-wire"></div><div class="lantern"></div></div>
+  </div>
 
-<!-- 電気屋 -->
-<a href="denki.html">
-  <img src="denki.jpg" class="shop" style="top:40%; left:50%;">
-</a>
+  <div class="hero-arch">
+    <div class="era-badge">昭 和 三 十 年 ・ 日 立</div>
+    <h1>日立レトロ<br><span class="accent">横丁</span></h1>
+    <p class="sub">
+      駅前ロータリーを抜けると、<br>
+      <span>そこには提灯の灯りが並ぶ商店街があった。</span>
+    </p>
+  </div>
 
-<!-- 駄菓子 -->
-<a href="dagashi.html">
-  <img src="dagashi.jpg" class="shop" style="top:70%; left:70%;">
-</a>
+  <div class="hero-ground"></div>
+  <div class="scroll-hint">↓ 街に入る</div>
+</section>
 
-</div>
+<!-- ━━━ 平和通り・桜ゾーン ━━━ -->
+<section class="sakura-zone">
+  <div class="petals">
+    <div class="petal"></div><div class="petal"></div><div class="petal"></div>
+    <div class="petal"></div><div class="petal"></div><div class="petal"></div>
+    <div class="petal"></div><div class="petal"></div><div class="petal"></div>
+    <div class="petal"></div>
+  </div>
+  <div class="sakura-label">平 和 通 り</div>
+  <h2 class="sakura-heading reveal">
+    春になれば、<br>
+    この通りは<span class="pink">桜</span>で埋まる。
+  </h2>
+  <p class="sakura-body reveal">
+    日立駅前ロータリーから続く平和通り。<br>
+    昭和三十年代、まだ街に活気があった頃。<br>
+    人々は夜遅くまで賑わっていた。
+  </p>
+</section>
 
+<!-- ━━━ 商店街（メイン） ━━━ -->
+<section class="shotengai" id="shotengai">
+  <div class="section-header reveal">
+    <div class="section-badge">商 店 街</div>
+    <h2 class="section-title">腹が減ったら、<br><span class="gold">この通りに来ればいい。</span></h2>
+  </div>
+
+  <div class="shops-grid">
+
+    <!-- 実店舗サンプル（赤バッジ付き） -->
+    <a class="shop-card reveal" href="#">
+      <div class="real-badge">実 店 舗</div>
+      <div class="shop-noren"></div>
+      <div class="shop-category">飲 食 ・ ラ ー メ ン</div>
+      <div class="shop-name">山崎ラーメン</div>
+      <div class="shop-tagline">昭和の味、変わらぬうまさ。<br>鶏ガラと豚骨をじっくり煮込んだ<br>コクのあるスープを一杯どうぞ。</div>
+      <div class="shop-year">創業 昭和三十五年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">電 気 ・ 家 電</div>
+      <div class="shop-name">山崎電気商会</div>
+      <div class="shop-tagline">くらしによりそう、<br>家電のあるしあわせ。<br>テレビ・洗濯機・ラジオ一式。</div>
+      <div class="shop-year">創業 昭和三十五年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">自 転 車 ・ 修 理</div>
+      <div class="shop-name">山崎自転車店</div>
+      <div class="shop-tagline">こぐよろこび、風をきる。<br>通学・通勤・お買い物に。<br>しっかり丈夫な国産自転車。</div>
+      <div class="shop-year">創業 昭和三十五年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">食 堂 ・ 定 食</div>
+      <div class="shop-name">大衆食堂みやこ</div>
+      <div class="shop-tagline">毎日食べても飽きない味。<br>白いご飯に合うおかずを、<br>真心こめてお出しします。</div>
+      <div class="shop-year">創業 昭和三十二年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">喫 茶 ・ コ ー ヒ ー</div>
+      <div class="shop-name">喫茶ひかり</div>
+      <div class="shop-tagline">ゆっくりと時間が流れる場所。<br>ブレンドコーヒーとトースト。<br>常連さんの憩いの場です。</div>
+      <div class="shop-year">創業 昭和三十八年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">理 容 ・ 床 屋</div>
+      <div class="shop-name">理容ナカムラ</div>
+      <div class="shop-tagline">腕に自信あり。<br>床屋の椅子に座れば、<br>街の話が全部わかる。</div>
+      <div class="shop-year">創業 昭和三十一年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">青 果 ・ 八 百 屋</div>
+      <div class="shop-name">八百屋たなか</div>
+      <div class="shop-tagline">朝一番の野菜をどうぞ。<br>新鮮な旬のものを、<br>毎朝仕入れてお待ちしてます。</div>
+      <div class="shop-year">創業 昭和二十八年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <a class="shop-card reveal" href="#">
+      <div class="shop-noren"></div>
+      <div class="shop-category">焼 鳥 ・ 居 酒 屋</div>
+      <div class="shop-name">焼き鳥たかし</div>
+      <div class="shop-tagline">炭火でじっくり焼いた串を。<br>仕事終わりの一杯は、<br>ここに限る。</div>
+      <div class="shop-year">創業 昭和三十六年</div>
+      <div class="shop-arrow">→</div>
+    </a>
+
+    <!-- 出店募集カード -->
+    <a class="shop-card reveal" href="#join" style="border-style: dashed; border-color: rgba(200,146,42,0.3); background: rgba(200,146,42,0.03);">
+      <div style="text-align:center; padding: 20px 0;">
+        <div style="font-size: 2.5rem; color: rgba(200,146,42,0.4); margin-bottom: 16px;">＋</div>
+        <div style="font-family: 'Noto Serif JP', serif; font-size: 1rem; color: rgba(200,146,42,0.7); letter-spacing: 0.2em;">
+          あなたのお店も<br>この商店街に
+        </div>
+        <div style="margin-top: 16px; font-size: 0.72rem; color: rgba(200,146,42,0.4); letter-spacing: 0.2em;">
+          出店申し込みはこちら →
+        </div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<!-- ━━━ 夜エリア ━━━ -->
+<section class="night-zone">
+  <div class="section-badge reveal" style="display:inline-block; margin-bottom: 16px;">夜 の 横 丁</div>
+  <h2 class="sakura-heading reveal" style="font-size: clamp(1.5rem, 4vw, 2.8rem);">
+    夜になると、<br>この街は少し賑やかになる。
+  </h2>
+  <div class="neon-signs reveal">
+    <div class="neon-sign">スナック順子</div>
+    <div class="neon-sign">居酒屋よしの</div>
+    <div class="neon-sign">小料理さくら</div>
+    <div class="neon-sign">バーすずらん</div>
+    <div class="neon-sign">焼き鳥たかし</div>
+    <div class="neon-sign">ラーメン深夜版</div>
+  </div>
+</section>
+
+<!-- ━━━ ストーリー ━━━ -->
+<section class="story-section" id="story">
+  <div class="story-inner">
+    <span class="story-deco"></span>
+    <span style="font-size:0.7rem; letter-spacing:0.4em; color:rgba(200,146,42,0.6);">商 店 街 の 話</span>
+    <span class="story-deco"></span>
+    <h2 class="reveal">
+      この街には、<br>まだ人の温もりが残っている。
+    </h2>
+    <p class="reveal">
+      店主の顔が見える店。常連が集まる店。<br>
+      桜の下で待ち合わせをして、夜は赤提灯の灯りに吸い込まれる。<br>
+      そんな街を、もう一度。<br><br>
+      日立レトロ横丁は、架空の昭和商店街です。<br>
+      同時に、実際の日立市の店舗をご紹介する場所でもあります。
+    </p>
+    <div class="story-note reveal">茨城県日立市 ── 昭和の面影を残す街</div>
+  </div>
+</section>
+
+<!-- ━━━ 出店募集 CTA ━━━ -->
+<section class="cta-section" id="join">
+  <div class="cta-inner">
+    <div class="cta-left">
+      <div class="section-badge" style="margin-bottom:20px;">出 店 募 集</div>
+      <h2>この商店街に、<br><span class="gold">あなたのお店も</span><br>出しませんか？</h2>
+      <p>
+        普通の掲載サイトではなく、<br>
+        お店ごとのLPとして世界観で見せる<br>
+        地域ポータルです。<br><br>
+        「うちも載せたい」と思われるデザインで、<br>
+        日立の実店舗を紹介します。<br><br>
+        <span style="color: rgba(200,146,42,0.6); font-size: 0.85rem; letter-spacing: 0.1em;">架空店舗はショーケース。実店舗がメインです。</span>
+      </p>
+    </div>
+    <div class="cta-card">
+      <div class="price-big">3,000円<span>/ 月</span></div>
+      <div class="price-note">LP制作込み ・ 掲載込み</div>
+      <ul class="cta-list">
+        <li>店舗ごとの紹介ページを制作</li>
+        <li>写真・メニュー・地図・問い合わせ掲載</li>
+        <li>昭和レトロな世界観でブランディング</li>
+        <li>初期掲載は商店街の目立つ位置に配置</li>
+        <li>実店舗には「実店舗バッジ」を表示</li>
+      </ul>
+      <a href="mailto:info@example.com" class="cta-btn">出 店 相 談 は こ ち ら</a>
+    </div>
+  </div>
+</section>
+
+<!-- ━━━ フッター ━━━ -->
+<footer>
+  <div class="footer-title">日立レトロ横丁</div>
+  <div class="footer-sub">
+    架空の昭和商店街 × 地域LP制作ショーケース<br>
+    茨城県日立市をモデルにした、もう一つの商店街。
+  </div>
+  <nav>
+    <a href="#">ホーム</a>
+    <a href="#shotengai">お店一覧</a>
+    <a href="#join">出店申込</a>
+    <a href="mailto:info@example.com">お問い合わせ</a>
+    <a href="#">特定商取引法表記</a>
+  </nav>
+  <div style="margin-top: 24px; font-size: 0.65rem; color: rgba(245,234,214,0.15); letter-spacing: 0.2em;">
+    © 日立レトロ横丁 All Rights Reserved.
+  </div>
+</footer>
+
+<script>
+// スクロールで要素を表示（reveal）
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      // 同じ親内での順番を取得して遅延
+      const siblings = entry.target.parentElement.querySelectorAll('.reveal');
+      let delay = 0;
+      siblings.forEach((el, idx) => { if (el === entry.target) delay = idx * 80; });
+      setTimeout(() => entry.target.classList.add('visible'), delay);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>
