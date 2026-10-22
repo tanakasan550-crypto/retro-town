@@ -114,6 +114,13 @@
     const now = Date.now();
     if (now - (capSeen.get(key) || 0) < gapMs) return;
     capSeen.set(key, now);
+    // 試験用の記録(直近100件)
+    try {
+      const lg = globalThis.__capLog || (globalThis.__capLog = []);
+      lg.push(text);
+      if (lg.length > 100) lg.shift();
+    } catch (e) {
+    }
     try {
       capHook(text);
     } catch (e) {
@@ -223,6 +230,14 @@
   }
   var near = (d, r) => d == null || !isFinite(d) ? 0 : Math.max(0, 1 - d / r);
   function ambUpdate(dt) {
+    ambUpdate0(dt);
+    // 場所ごとの生活音(soundscape.js)
+    if (on && ctx3 && ctx3.state === "running" && typeof ambExtra === "function") try {
+      ambExtra(st2, dt);
+    } catch (e) {
+    }
+  }
+  function ambUpdate0(dt) {
     if (!on || !ctx3 || ctx3.state !== "running") return;
     ambInit();
     const s = st2, ins = !!s.inside, o = ins ? 0.25 : 1;

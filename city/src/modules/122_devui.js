@@ -17,8 +17,10 @@
     <button class="btn item" id="dHours">\u55B6\u696D\u6642\u9593: ${S2.bypass.hours ? "\u89E3\u9664\u4E2D(\u9589\u5E97\u4E2D\u3067\u3082\u5165\u308C\u308B)" : "\u901A\u5E38\u3069\u304A\u308A"}</button>
     <button class="btn item" id="dAgeLim">\u5E74\u9F62\u306B\u3088\u308B\u5165\u9928\u5236\u9650: ${S2.bypass.age ? "\u89E3\u9664\u4E2D" : "\u901A\u5E38\u3069\u304A\u308A"}</button>
     <button class="btn item" id="dMoney">\u8CC7\u91D1: ${G4.hero.testMode?.on ? "\u8A66\u9A13\u7528\u306E\u7121\u5236\u9650(" + Math.round(TEST_MAX / 1e12) + "\u5146\u5186)" : "\u901A\u5E38"}</button>
+    <button class="btn item acc" id="dAudit">\u{1F50D} 施設監査モード(カテゴリ別・完成度・外観/入口/通り視点/各階/朝昼夜/撮影)</button>
     <button class="btn item acc" id="dList">\u5168\u65BD\u8A2D\u4E00\u89A7(\u540D\u79F0\u30FB\u7A2E\u985E\u30FB\u5730\u533A\u30FB\u5EA7\u6A19\u30FB\u968E\u6570\u30FB\u691C\u67FB\u72B6\u614B)</button>
     <button class="btn item" id="dEnd">\u8A66\u9A13\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u7D42\u4E86\u3057\u3066\u5143\u306E\u4EBA\u751F\u3078\u623B\u308B</button>` : `
+    <button class="btn item acc" id="dAudit">\u{1F50D} 施設監査モード(試験セッションで開始・元の人生とセーブは変わりません)</button>
     <button class="btn item acc" id="dStart">\u8A66\u9A13\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u958B\u59CB(\u73FE\u5728\u306E\u4EBA\u751F\u3092\u8907\u88FD)</button>
     <button class="btn item" id="dList">\u5168\u65BD\u8A2D\u4E00\u89A7(\u95B2\u89A7\u306E\u307F\u30FB\u79FB\u52D5\u306F\u8A66\u9A13\u30BB\u30C3\u30B7\u30E7\u30F3\u4E2D)</button>`}
   </div><div class="row"><button class="btn sec" id="dX">\u9589\u3058\u308B</button></div>`, (c) => {
@@ -91,6 +93,11 @@
         };
       }
       q("dList").onclick = () => facilityList(x);
+      q("dAudit").onclick = () => {
+        x.closeModal();
+        if (!isTestSession(G4) && !auditBegin()) return x.toast("この版では使えません");
+        auditModal();
+      };
     });
   }
   var PAGE = 40;

@@ -1157,6 +1157,7 @@
   }
   // 建物に隠れても分かる停留所の名札・バスの行先(最前面)
   function drawBusOverlay(R5, c, P2, hero, g) {
+    if (R5.auditFocus != null) return;
     const net = busNet(g.world.map);
     if (!net || !BUSSIM.map) return;
     const Z = P2.Z;

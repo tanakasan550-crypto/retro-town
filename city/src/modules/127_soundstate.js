@@ -30,7 +30,7 @@
         const b = g.bld(L2.b);
         return b && ["konbini", "super", "shop", "mall", "dept", "clothes"].includes(b.type) ? 2 : null;
       })();
-      return s;
+      return typeof soundExtra === "function" ? soundExtra(g, R5, s) : s;
     }
     const x = L2.x, y = L2.y, c = bset(map2);
     s.shopD = dist(c.shop, x, y, 14);
@@ -85,6 +85,6 @@
       }
     }
     s.open = s.waterD !== null || s.green > 0.5;
-    return s;
+    return typeof soundExtra === "function" ? soundExtra(g, R5, s) : s;
   }
 

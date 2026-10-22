@@ -2,7 +2,8 @@
   var NW = 560;
   var MAXD = 46;
   var FOVK = 0.92;
-  var EYE = 1.5;
+  // 目の高さ(タイル。1タイル=2m)。主人公の少し後ろ上から見る高さ(約2m)
+  var EYE = 1.02;
   var TILE_M = 2;
   var HORK = 0.4;
   var camBack = (R5) => Math.max(1.6, Math.min(6, 3.8 - 0.55 * (R5.zl || 0)));
@@ -96,6 +97,15 @@
     if (!R5.sv) initStreet(R5);
     beginFrame(8);
     const sv = R5.sv, g = R5.g, map2 = g.world.map, ctxMain = R5.ctx, CW = R5.cv.width, CH3 = R5.cv.height;
+    {
+      // 画面の大きさに合わせて内部の解像度を上げる(560〜880列)
+      const nw = Math.max(560, Math.min(880, Math.round(CW * 0.4)));
+      if (nw !== NW || sv.z.length !== nw) {
+        NW = nw;
+        sv.z = new Float32Array(NW);
+        sv.cv = null;
+      }
+    }
     R5.time += dt;
     sv.t += dt;
     const NH = Math.max(160, Math.round(NW * CH3 / CW));
@@ -344,6 +354,14 @@
               const pc = hash2(b.idx * 31 + (u * 6 | 0), 9) % 6, cols2 = ["#e2503a", "#f0c23a", "#4aa05a", "#4a7fd0", "#d070b0", "#f2f2ee"];
               ctx4.fillStyle = css(mix2(hexRGB(cols2[pc]), skyHor, fog));
               ctx4.fillRect(x, yb - (yb - yt) * 0.4, 1, (yb - yt) * 0.28);
+              // 店先のひさし(テント): 店ごとの色の縞
+              if (d < 20) {
+                const aw = ["#c8382e", "#2e7d4f", "#1f5fa8", "#d98a1c", "#7a3e8e"][hash2(b.idx, 41) % 5];
+                const stripe = (u * 10 | 0) & 1;
+                ctx4.fillStyle = css(mix2(stripe ? hexRGB(aw) : [245, 242, 232], skyHor, fog));
+                const ay = yt + (yb - yt) * 0.02;
+                ctx4.fillRect(x, ay, 1, Math.max(1, (yb - yt) * 0.16));
+              }
             } else if (!shopK && wu > 0.2 && wu < 0.8) {
               ctx4.fillStyle = css(lit ? mix2([255, 226, 150], skyHor, fog) : wcol);
               ctx4.fillRect(x, yt, 1, yb - yt);
@@ -433,14 +451,16 @@
         c.fill();
       }), 0.7, 2.6, {});
     }
+    // 人物の合成は1フレームの予算内だけ行われる。床と壁の描画で予算を使い切るので、人物用に予算を取り直す
+    beginFrame(6);
     for (const w of R5.walkers || []) {
       if (Math.abs(w.x - px2) > 30 || Math.abs(w.y - py) > 30) continue;
       const sp2 = personSprite(R5, w);
-      if (sp2) addS(w.x, w.y, sp2, 1.07, 1.55, {});
+      if (sp2) addS(w.x, w.y, sp2, 0.69, 1, {});
     }
     {
       const hs = personSprite(R5, { id: g.hero.id, dx, dy, hero: true });
-      if (hs) addS(hero.x, hero.y, hs, 1.07, 1.55, { hero: true });
+      if (hs) addS(hero.x, hero.y, hs, 0.69, 1, { hero: true });
     }
     try {
       const cars = R5.carsNow(0, hero, extras.trs || []);
@@ -472,13 +492,19 @@
     for (const sp of spots) {
       const b = sp.b;
       if (sp.d > 16) continue;
-      const px22 = Math.max(5, Math.min(10, 5 * K3 / sp.d / 6));
-      const y = hor + (EYE - 3) * K3 / sp.d * 0.9 - 0;
-      ctx4.font = `700 ${px22}px sans-serif`;
+      // 看板は店の入口の上(1階の上端)に付ける。遠いほど小さい
+      const spc = bcache.get(b.idx + ":" + year);
+      const fzT = (spc && spc.gh || 3.3) / TILE_M;
+      const px22 = Math.max(5, Math.min(14, 0.42 * K3 / sp.d));
+      const y = hor + (EYE - fzT * 0.93) * K3 / sp.d;
+      ctx4.font = `700 ${px22}px ${SIGN_FONT}`;
       const tw = ctx4.measureText(b.name).width;
-      ctx4.fillStyle = "rgba(20,24,34,0.72)";
-      ctx4.fillRect(sp.x - tw / 2 - 3, y - px22 * 0.7, tw + 6, px22 * 1.4);
-      ctx4.fillStyle = "#ffe9a6";
+      const bg = ["#7a1f1a", "#13406e", "#1d5a37", "#5c3a12", "#3d2a5c"][hash2(b.idx, 41) % 5];
+      ctx4.fillStyle = bg;
+      ctx4.fillRect(sp.x - tw / 2 - 3, y - px22 * 0.72, tw + 6, px22 * 1.44);
+      ctx4.fillStyle = "rgba(255,255,255,0.35)";
+      ctx4.fillRect(sp.x - tw / 2 - 3, y - px22 * 0.72, tw + 6, 1);
+      ctx4.fillStyle = night > 0.25 ? "#fff3c0" : "#ffffff";
       ctx4.fillText(b.name, sp.x, y);
     }
     if (night > 0.05) {

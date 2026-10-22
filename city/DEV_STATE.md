@@ -1,0 +1,31 @@
+# 再開用の開発状態(人生物語・日本モデル都市 / Claude Code)
+
+最終更新: 2026-10-22。作業ブランチ: `ccr-2a73e5bf-wii4bj`(main へはマージしない・一般公開は HOLD)。
+
+## 正本・構成
+- 正本: `original/lifestory_v11_single.html`(SHA256 は `original/SHA256SUMS`)。v11 を分割した `src/modules/NNN_*.js`(順序は `src/modules/ORDER.txt`)。
+- 単体HTMLの再生成: `python3 tools/build.py` → `dist/index.html`(画像・音・プログラム内蔵)。地図v4は `?city=4`。
+- 要求台帳: `docs/requirements_ledger.csv`(v11の258行 + 今回の指示書 C1〜C8 の行)。作業台帳: `TASKS.md`。正本と美術の確認: `docs/phase0_baseline.md`。
+
+## 試験(ヘッドレス Chromium・Pixel 7 横画面)
+- 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street
+- 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
+
+## 今回までに入ったもの(新しい順)
+- 動物園の改築(159_fac_zoo.js)・場所ごとの生活音(158_soundscape.js)
+- 店・施設への来客(157_visitors.js): 時間帯・曜日別に住民が近所や店から歩いて来て、店で過ごして帰る。人物情報に表示
+- 通り視点の改良(098_streetview.js): 解像度・人の大きさ・目の高さ・看板・ひさし・人物の合成予算
+- 施設監査モード(156_audit.js)と一括撮影(tools/audit_shots.mjs)
+- 住民の通勤・通学のバス利用・住宅地系統・途中停留所・鉄道とバスの選択・駅の中の利用者(154/034/148)
+- 路線バス v12(154_bus_net.js)・乗換案内と路線図(155_transit_trip.js)
+
+## 次の優先(指示書 第9章の順)
+1. NPCの人生ミッションと施設利用の連動(C5・C7): 学生(登校→授業→テスト→部活→卒業)・職業別の実務(医師/看護師/教師/商店主/運転士)。行動した分だけ実績が残る記録(人物IDごと・セーブに保存・二重加算なし)
+2. 住民の活動による街の発展(C4): 来客数・乗客数・子供/高齢者の数から需要を出し、増便・改装・閉店・開業を決める
+3. 人生エンディングのNPC表彰(C6): 2の実績記録だけを根拠に、決定的に選ぶ。根拠の出来事を年譜から表示
+4. バス→鉄道の乗り継ぎ通勤・休日の施設利用の拡充
+5. 80年間の統合回帰・画面監査(全施設 ALL=1 撮影)
+
+## 守ること
+追加費用0円・有料API不使用 / 公開・販売・外部アップロードは代表者の承認後 / main への無断マージ禁止 / 旧セーブ・建物ID・人物ID・旧地図v1〜v3を保護 / 未完成を完成と報告しない / テストの期待値を弱めない / Android実機は未検証と記録

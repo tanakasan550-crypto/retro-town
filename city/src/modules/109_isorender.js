@@ -1048,6 +1048,16 @@
         if (o.isB && o.sx0 < heroIt.sx1 && o.sx1 > heroIt.sx0 && o.sy0 < heroIt.sy1 && o.sy1 > heroIt.sy0) occl.add(o.b.idx);
       }
     }
+    // 施設監査: 監査中の建物を手前で隠している建物は薄く描く
+    const aOcc = /* @__PURE__ */ new Set();
+    if (R5.auditFocus != null) for (let i = 0; i < ordered.length; i++) {
+      const t = ordered[i];
+      if (!t.isB || t.b.idx !== R5.auditFocus) continue;
+      for (let j = i + 1; j < ordered.length; j++) {
+        const o = ordered[j];
+        if (o.isB && o.b.idx !== R5.auditFocus && o.sx0 < t.sx1 && o.sx1 > t.sx0 && o.sy0 < t.sy1 && o.sy1 > t.sy0) aOcc.add(o.b.idx);
+      }
+    }
     for (const [k2, e] of FA) {
       if (occl.has(k2)) e.hold = 0.3;
       else e.hold -= dtSec;
@@ -1058,7 +1068,11 @@
     for (const k2 of occl) if (!FA.has(k2)) FA.set(k2, { a: 1, hold: 0.3 });
     for (const it of ordered) {
       const e = it.isB && FA.get(it.b.idx);
-      if (e && e.a < 0.999) {
+      if (it.isB && aOcc.has(it.b.idx)) {
+        ctx4.globalAlpha = 0.22;
+        it.draw(ctx4);
+        ctx4.globalAlpha = 1;
+      } else if (e && e.a < 0.999) {
         it.fa = e.a;
         if (e.a < 0.9) hidden = true;
         const tt = Math.min(1, (1 - e.a) / 0.58);

@@ -37,7 +37,7 @@
       if (ownsCar(w, i, year)) {
         const hb = p.home[i], d = p.work[i] >= 0 ? p.work[i] : p.school[i] >= 0 ? p.school[i] : -1;
         if (hb >= 0 && d >= 0 && !w.getCommute().link(hb, d)) {
-          if (this.pending >= 4) return void 0;
+          if (this.pending >= 10) return void 0;
           const pl = this.carPlan(hb, d);
           if (pl === void 0) return void 0;
           r = pl ? d : -1;
@@ -51,7 +51,7 @@
       const k = a * 4096 + b;
       let pl = this.plans.get(k);
       if (pl !== void 0) return pl;
-      if (this.pending >= 4) return void 0;
+      if (this.pending >= 10) return void 0;
       const map2 = this.g.world.map, B2 = map2.buildings;
       const trip = carTrip(map2, a, b);
       if (!trip) {
@@ -182,10 +182,10 @@
       return t;
     }
     path(a, b) {
-      const k = a * 1e3 + b;
+      const k = a * 65536 + b;
       let r = this.pathCache.get(k);
       if (r !== void 0) return r;
-      if (this.pending >= 4) return void 0;
+      if (this.pending >= 10) return void 0;
       this.pending++;
       const B2 = this.g.world.map.buildings;
       const A2 = B2[a], T4 = B2[b];
@@ -340,6 +340,10 @@
         for (const q of estateOutdoorPeople(g, hx2, hy, radius)) if (out.length < 110) out.push(q);
       } catch (e) {
       }
+      try {
+        if (typeof visitorWalkers === "function") visitorWalkers(this, out, hx2, hy, radius);
+      } catch (e) {
+      }
       out.parked = parked;
       return out;
     }
@@ -465,6 +469,10 @@
             res.push({ id: r.id, x: I2.W - 3 + 0.5 + (I2.door.x + 0.5 - (I2.W - 3 + 0.5)) * u, y: 3 + (I2.H - 2 - 3) * u, dir: "d", role: "commuter" });
           }
         }
+      }
+      try {
+        if (typeof visitorsInside === "function" && !isUnitFloor(floor)) for (const q of visitorsInside(this, b, I2, floor)) if (!res.some((r) => r.id === q.id)) res.push(q);
+      } catch (e) {
       }
       if (bt.cat === "res") {
         if (I2.mansion && bIdx === g.hero.homeB) return mansionPeople(this, g, bIdx, I2, floor, res, personActivity, dt);
