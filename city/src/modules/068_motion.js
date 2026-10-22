@@ -342,6 +342,10 @@
         const s = score(w.x, w.y, 1.7);
         if (s != null) out.push({ kind: "npc", id: w.id, s: s - 0.2, label: g.nameOf(w.id) });
       }
+      for (const t of facOutdoorTargets(g, L2)) {
+        const s = score(t.x + 0.5, t.y + 0.5, 2);
+        if (s != null) out.push({ ...t, s: s - 0.25 });
+      }
     } else {
       const { I: I2 } = interiorOf(g, L2.b, L2.floor);
       for (const o of I2.objs) {

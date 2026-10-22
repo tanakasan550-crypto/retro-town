@@ -85,6 +85,10 @@
       return out;
     }
     if (tg.kind === "npc") return npcActions(g, tg.id);
+    if (tg.kind === "fx") {
+      facActs(g, tg, null, push);
+      return out;
+    }
     const o = tg.o, b = g.world.map.buildings[L2.b], bt = BTYPES[b.type];
     const a = g.age();
     if (facActs(g, o, b, push)) return out;
