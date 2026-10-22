@@ -8,7 +8,7 @@
   var A = null;
   var cv = $("cv");
   var U = { modal: false, dest: null, route: null, routeMode: 0, scale: 1, clockFrac: 0, last: 0, walkers: [], people: [], cwAt: -1, cwMin: 0, toastT: 0, autosaveM: -1, big: false, hintTxt: "", walkRefresh: 0, started: false, fast: null };
-  var input = { x: 0, y: 0, run: false, keys: /* @__PURE__ */ new Set() };
+  var input = { x: 0, y: 0, mag: 1, run: false, keys: /* @__PURE__ */ new Set() };
   function showModal(html, wire) {
     const m = $("modal"), c = $("card");
     c.innerHTML = html;
@@ -297,7 +297,9 @@
     U.walkers = [];
     U.people = [];
     clearInteriorCache();
-    window.NLS = { G: G3, R: R4, C, U, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) } };
+    window.NLS = { G: G3, R: R4, C, U, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, nav: { navTo, navStop, onTap, tapPick, destSheet, goHome, get NAV() {
+      return NAV;
+    } } };
     if (!loaded) {
       if (G3.S.scenario && G3.S.scenario.id) {
         toast(`${G3.age()}歳からの人生を開始しました。`, 4200);
@@ -377,6 +379,19 @@
     }
     let ix = input.x, iy = input.y;
     const ks = input.keys;
+    let navRun = false;
+    if (NAV) {
+      if (ix || iy || ks.size) navStop();
+      else {
+        const ni = navInput(dt);
+        if (ni) {
+          ix = ni.x;
+          iy = ni.y;
+          navRun = ni.run;
+        }
+      }
+    }
+    const runNow = input.run || ks.has("Shift") || navRun;
     if (ks.has("ArrowLeft") || ks.has("a")) ix -= 1;
     if (ks.has("ArrowRight") || ks.has("d")) ix += 1;
     if (ks.has("ArrowUp") || ks.has("w")) iy -= 1;
@@ -390,7 +405,7 @@
       const fw = -iy;
       ix = Math.cos(R4.sv.yaw) * fw;
       iy = Math.sin(R4.sv.yaw) * fw;
-      streetRes = moveHero(G3, ix, iy, dt, input.run || ks.has("Shift"));
+      streetRes = moveHero(G3, ix, iy, dt, runNow, input.mag);
       L2.f = facingOfYaw(R4.sv.yaw);
     }
     if (!streetRes && R4.iso && (L2.k === "out" || L2.k === "in") && (ix || iy)) {
@@ -398,10 +413,15 @@
       ix = w[0];
       iy = w[1];
     }
-    const res = streetRes || moveHero(G3, ix, iy, dt, input.run || ks.has("Shift"));
+    const res = streetRes || moveHero(G3, ix, iy, dt, runNow, NAV ? 1 : input.mag);
     if (!streetRes && R4.iso && (L2.k === "out" || L2.k === "in") && (sxIn || syIn)) L2.f = Math.abs(sxIn) > Math.abs(syIn) ? sxIn > 0 ? "r" : "l" : syIn > 0 ? "d" : "u";
     L2.moving = res.moved;
-    if (res.ui === "liftsel" && !U.modal) liftModal();
+    if (res.ui === "liftsel" && !U.modal) {
+      if (NAV && NAV.liftTo != null) {
+        const r = chooseFloor(G3, NAV.liftTo);
+        if (r && r.msg) toast(r.msg, 2e3);
+      } else liftModal();
+    }
     if (res.directory != null) {
       U.dirAt = res.directory;
       showDirectory(res.directory);
@@ -415,7 +435,7 @@
     }
     if (res.moved) {
       U.stepT = (U.stepT || 0) + dt;
-      const run = input.run || ks.has("Shift");
+      const run = runNow;
       if (U.stepT > (run ? 0.2 : 0.3)) {
         U.stepT = 0;
         sfx.step(run);
@@ -518,7 +538,7 @@
   function draw(dt) {
     if (!G3 || !R4) return;
     const L2 = G3.S.loc;
-    const hero = { x: L2.x, y: L2.y, f: L2.f, moving: !!L2.moving && (input.x || input.y || input.keys.size) };
+    const hero = { x: L2.x, y: L2.y, f: L2.f, moving: !!L2.moving && (input.x || input.y || input.keys.size || NAV) };
     try {
       U.sndAt = (U.sndAt || 0) + dt;
       if (U.sndAt > 0.2) {
@@ -726,7 +746,10 @@ ${spiritLines(G3).map(esc4).join("\n")}
       toast("\u76EE\u306E\u524D\u306B\u306F\u4F55\u3082\u3042\u308A\u307E\u305B\u3093");
       return;
     }
-    const tg = t[0];
+    actOn(t[0]);
+  }
+  function actOn(tg) {
+    if (!G3 || U.modal || U.act || G3.blocked() || !G3.canWalk()) return;
     const acts = targetActions(G3, tg);
     if (tg.kind === "door") {
       const r = tryEnter(G3, tg.b);
@@ -1430,6 +1453,19 @@ ${p.spouse[id] >= 0 ? "\u30D1\u30FC\u30C8\u30CA\u30FC: " + esc4(G3.nameOf(p.spou
   }
   function wireTaxi(c, bi) {
     const dest = G3.bld(bi), L2 = G3.S.loc;
+    {
+      const box0 = c.querySelector("#mres");
+      if (box0 && U.route) {
+        const ro = railOption(bi);
+        box0.insertAdjacentHTML("beforeend", `<div class="row"><button class="btn acc" id="walkBtn">\u{1F6B6} \u6B69\u3044\u3066\u884C\u304F(\u81EA\u52D5\u30FB\u7D04${Math.max(1, Math.round(U.route.length / WALK_TPM))}\u5206)</button>${ro ? `<button class="btn acc" id="railBtn">\u{1F683} \u96FB\u8ECA\u3067\u884C\u304F(${esc4(ro.s1.name)}\u2192${esc4(ro.s2.name)}\u30FB\u7D04${ro.mins}\u5206\u30FB\xA5${ro.fare.toLocaleString("ja-JP")})</button>` : ""}</div>`);
+        const rb = box0.querySelector("#railBtn");
+        if (rb) rb.onclick = () => railGo(bi);
+        box0.querySelector("#walkBtn").onclick = () => {
+          closeModal();
+          navTo({ kind: "bld", b: bi }, { run: U.route.length > 30 });
+        };
+      }
+    }
     if (!U.route || G3.age() < 12 && !testBypass(G3, "age")) return;
     const tiles = U.route.length, q = taxiQuote(G3, tiles);
     const box5 = c.querySelector("#mres");
@@ -1826,28 +1862,48 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   var joyId = null;
   var knob = joy.querySelector("i");
   var joyC = null;
+  var JOY_REACH = 0.6, JOY_DEAD = 0.08;
   var joyCenter = () => {
     const r = joy.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, max: r.width / 2 };
   };
+  // 360度アナログ: 円形の遊び・小さな指の動きで最高速・指が外へ出たら中心が追従(すぐ反対へ切り返せる)
   var joyMove = (e) => {
     const c = joyC || joyCenter();
     let dx = e.clientX - c.x, dy = e.clientY - c.y;
-    const max = c.max;
-    const d = Math.hypot(dx, dy);
-    if (d > max) {
-      dx = dx / d * max;
-      dy = dy / d * max;
+    let d = Math.hypot(dx, dy);
+    const reach = c.max * JOY_REACH;
+    if (joyC && d > c.max) {
+      const k = (d - c.max) / d;
+      joyC.x += dx * k;
+      joyC.y += dy * k;
+      dx = e.clientX - joyC.x;
+      dy = e.clientY - joyC.y;
+      d = Math.hypot(dx, dy);
+      if (joy.classList.contains("fl")) {
+        const ar = $("app").getBoundingClientRect();
+        joy.style.left = joyC.x - ar.left - c.max + "px";
+        joy.style.top = joyC.y - ar.top - c.max + "px";
+      }
     }
-    knob.style.transform = `translate(${dx}px,${dy}px)`;
-    input.x = Math.abs(dx) > 8 ? dx / max : 0;
-    input.y = Math.abs(dy) > 8 ? dy / max : 0;
+    const kd = Math.min(d, c.max);
+    knob.style.transform = d ? `translate(${dx / d * kd}px,${dy / d * kd}px)` : "";
+    const m = Math.min(1, d / reach);
+    if (m < JOY_DEAD) {
+      input.x = input.y = 0;
+      input.mag = 0;
+      return;
+    }
+    input.mag = Math.min(1, (m - JOY_DEAD) / (1 - JOY_DEAD) * 1.15);
+    input.x = dx / d;
+    input.y = dy / d;
   };
   var resetJoy = () => {
     joyId = null;
     joyC = null;
     input.x = 0;
     input.y = 0;
+    input.mag = 1;
     knob.style.transform = "";
     joy.classList.remove("fl");
     joy.style.left = joy.style.top = "";
@@ -1875,6 +1931,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   var cvPtrs = /* @__PURE__ */ new Map();
   var pinch0 = 0;
   var pinchZ = 0;
+  var lastTap = { t: 0, x: 0, y: 0 };
   var zoomStep = (dz) => {
     if (!R4) return;
     if (G3 && G3.S.loc && G3.S.loc.k === "in") {
@@ -1895,17 +1952,22 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   cv.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (U.modal) return;
-    cvPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    cvPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t0: performance.now(), tap: cvPtrs.size === 0 });
     if (cvPtrs.size >= 2) {
+      for (const p of cvPtrs.values()) p.tap = false;
       resetJoy();
       const [a, b] = [...cvPtrs.values()];
       pinch0 = Math.hypot(a.x - b.x, a.y - b.y) || 1;
       pinchZ = 0;
       return;
     }
+    e.preventDefault();
+    try {
+      cv.setPointerCapture(e.pointerId);
+    } catch (_) {
+    }
     const r = cv.getBoundingClientRect();
     if (e.pointerType === "mouse" || e.clientX - r.left > r.width * 0.55 || joyId != null) return;
-    e.preventDefault();
     const jr = joyCenter();
     joyId = e.pointerId;
     joyC = { x: e.clientX, y: e.clientY, max: jr.max };
@@ -1913,10 +1975,6 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     joy.classList.add("fl");
     joy.style.left = e.clientX - ar.left - jr.max + "px";
     joy.style.top = e.clientY - ar.top - jr.max + "px";
-    try {
-      cv.setPointerCapture(e.pointerId);
-    } catch (_) {
-    }
     knob.style.transform = "";
   });
   cv.addEventListener("pointermove", (e) => {
@@ -1924,6 +1982,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     if (!p) return;
     p.x = e.clientX;
     p.y = e.clientY;
+    if (p.tap && Math.hypot(p.x - p.x0, p.y - p.y0) > 14) p.tap = false;
     if (cvPtrs.size >= 2) {
       const [a, b] = [...cvPtrs.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
@@ -1937,9 +1996,17 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     if (e.pointerId === joyId && joyC) joyMove(e);
   });
   var cvUp = (e) => {
+    const p = cvPtrs.get(e.pointerId);
     cvPtrs.delete(e.pointerId);
     if (e.pointerId === joyId) resetJoy();
     if (cvPtrs.size < 2) pinch0 = 0;
+    // タップ(短く・ほぼ動かさない) → その場所・建物・人・設備へ自動移動。素早く2回で走る
+    if (e.type === "pointerup" && p && p.tap && performance.now() - p.t0 < 450) {
+      const now = performance.now(), dbl = now - lastTap.t < 380 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+      lastTap = { t: now, x: e.clientX, y: e.clientY };
+      showTapMark(e);
+      onTap({ clientX: e.clientX, clientY: e.clientY, detail: dbl ? 2 : 1 });
+    }
   };
   cv.addEventListener("pointerup", cvUp);
   cv.addEventListener("pointercancel", cvUp);
@@ -2019,5 +2086,3 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     if (document.hidden) resetAllInput();
     if (document.hidden && G3 && U.started) autosave();
   });
-  boot();
-})();

@@ -1,0 +1,23 @@
+import { startTrial, st } from './lib.mjs';
+const until = async (p, fn, maxS, label) => { for (let i = 0; i < maxS * 2; i++) { await p.waitForTimeout(500); const r = await p.evaluate(fn); if (r) return r; } const s = await st(p); console.log('TIMEOUT', label, JSON.stringify(s), JSON.stringify(await p.evaluate(() => { const N = NLS.nav.NAV; return N && { after: N.after, i: N.i, len: N.path && N.path.length, goal: N.goal }; }))); return null; };
+export default async (p, shot) => {
+  await startTrial(p);
+  const t0 = Date.now();
+  await p.evaluate(() => NLS.nav.navTo({ kind: 'exit' }));
+  await until(p, () => NLS.G.S.loc.k === 'out' && !NLS.nav.NAV, 90, 'exit');
+  console.log('exited in', (Date.now() - t0) / 1000, 's', JSON.stringify(await st(p)));
+  await shot('outside');
+  const tgt = await p.evaluate(() => { const G = NLS.G, L = G.S.loc; let best = null, bd = 1e9; for (const b of G.world.map.buildings) { if (b.type !== 'konbini') continue; const d = Math.abs(b.doorX - L.x) + Math.abs(b.doorY - L.y); if (d < bd) { bd = d; best = b; } } NLS.nav.navTo({ kind: 'bld', b: best.idx }, { run: true }); return best.idx + ' ' + best.name + ' d=' + bd; });
+  console.log('target', tgt);
+  await p.waitForTimeout(1500); await shot('walking');
+  const t1 = Date.now();
+  const r = await until(p, () => (NLS.G.S.loc.k === 'in' && !NLS.nav.NAV) || (document.getElementById('modal').classList.contains('on') && document.getElementById('card').innerText.slice(0, 100)), 120, 'konbini');
+  console.log('arrived', r, (Date.now() - t1) / 1000, 's', JSON.stringify(await st(p)));
+  await shot('konbini');
+  await p.evaluate(() => { if (NLS.U.modal) document.querySelector('#card .row .btn')?.click(); });
+  await p.evaluate(() => NLS.nav.goHome('walk'));
+  const t2 = Date.now();
+  await until(p, () => NLS.G.S.loc.k === 'in' && NLS.G.S.loc.floor === 1807 && !NLS.nav.NAV, 200, 'home');
+  console.log('home in', (Date.now() - t2) / 1000, 's', JSON.stringify(await st(p)));
+  await shot('home');
+};

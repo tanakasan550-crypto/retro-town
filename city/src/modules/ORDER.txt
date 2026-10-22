@@ -126,3 +126,5 @@
 125_diag.js
 126_i18n.js
 127_main.js
+128_autonav.js
+999_end.js

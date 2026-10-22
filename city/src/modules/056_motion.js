@@ -49,7 +49,7 @@
   function boxFreeIn(I2, s, x, y) {
     return !(blockedIn(I2, s, x - R3, y - R3 * 0.3) || blockedIn(I2, s, x + R3, y - R3 * 0.3) || blockedIn(I2, s, x - R3, y + R3 * 0.3) || blockedIn(I2, s, x + R3, y + R3 * 0.3));
   }
-  function moveHero(g, ix, iy, dt, run = false) {
+  function moveHero(g, ix, iy, dt, run = false, mag = 1) {
     const L2 = g.S.loc;
     const res = { moved: false };
     if (!g.canWalk()) return res;
@@ -61,7 +61,7 @@
     const len = Math.hypot(ix, iy);
     ix /= len;
     iy /= len;
-    const sp = heroSpeed(g) * (run ? 1.35 : 1) * dt;
+    const sp = heroSpeed(g) * (run ? 1.35 : 1) * dt * (globalThis.__NAVSPEED || 1) * (mag == null ? 1 : Math.max(0.35, Math.min(1, mag)));
     if (Math.abs(ix) > Math.abs(iy)) L2.f = ix > 0 ? "r" : "l";
     else L2.f = iy > 0 ? "d" : "u";
     const nx = L2.x + ix * sp, ny = L2.y + iy * sp;
