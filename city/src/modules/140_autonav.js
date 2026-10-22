@@ -526,7 +526,7 @@
   function navTick() {
     if (!NAV) return;
     const t = $("navtx");
-    if (t && NAV.remain != null && G3.S.loc.k === "out" && !NAV.signal) t.textContent = `🚶 ${NAV.label}へ 約${Math.max(1, Math.round(NAV.remain * 4))}m`;
+    if (t && NAV.remain != null && G3.S.loc.k === "out" && !NAV.signal) t.textContent = `🚶 ${NAV.label}へ`;
   }
   // 電車経路: 最寄り駅→目的地最寄り駅。徒歩より早いときだけ提案
   var NAV_TPM = 4.4;

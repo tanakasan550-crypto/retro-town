@@ -144,4 +144,5 @@
 149_fac_stadium.js
 150_fac_airport.js
 151_fac_hospital.js
+152_guide_hud.js
 999_end.js

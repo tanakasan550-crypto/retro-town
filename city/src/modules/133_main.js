@@ -682,6 +682,7 @@
         const sb = G3.bld(L2.b);
         return sb && I2.kind === "shop" ? { b: sb, bt: BTYPES[sb.type] } : null;
       })() });
+      drawIndoorRoute();
     }
   }
   var hudStamp = "";
