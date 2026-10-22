@@ -134,7 +134,7 @@
     ferry: { label: "\u89B3\u5149\u8239\u30BF\u30FC\u30DF\u30CA\u30EB", w: 6, h: 3, cat: "transit", enter: true, interior: "station", slots: { sailor: 6, railstaff: 3 } },
     park: { label: "\u516C\u5712", w: 6, h: 4, cat: "sight", enter: false },
     // 都市v2(mapVer 4)で追加した大型施設の本館。v1〜v3の地図には現れない(敷地・滑走路・観客席などの広がりは src/city2.js の sites が担当)
-    airport: { label: "\u7A7A\u6E2F\u30BF\u30FC\u30DF\u30CA\u30EB", w: 56, h: 10, cat: "transit", enter: true, interior: "station", floors: 3, slots: { railstaff: 20, clerk: 14, guide: 4, cleaner: 4 } },
+    airport: { label: "\u7A7A\u6E2F\u30BF\u30FC\u30DF\u30CA\u30EB", w: 56, h: 10, cat: "transit", enter: true, interior: "station", floors: 3, sells: "airport", slots: { railstaff: 20, clerk: 14, guide: 4, cleaner: 4 } },
     stadium: { label: "\u30B9\u30BF\u30B8\u30A2\u30E0", w: 40, h: 20, cat: "sight", enter: true, interior: "leisure", floors: 2, slots: { athlete: 8, coach: 4, clerk: 10, entertainer: 4 }, price: 3e3 },
     themepark: { label: "\u30C6\u30FC\u30DE\u30D1\u30FC\u30AF", w: 10, h: 5, cat: "sight", enter: true, interior: "leisure", slots: { entertainer: 16, clerk: 12, cleaner: 4 }, price: 5800 },
     zoo: { label: "\u52D5\u7269\u5712", w: 10, h: 5, cat: "sight", enter: true, interior: "leisure", slots: { zookeeper: 12, clerk: 6 }, price: 1800 }
@@ -324,5 +324,6 @@
       BTYPES[k].h = T4[k][1];
     }
     if (BTYPES.airport) BTYPES.airport.floors = (ver || 1) >= 4 ? 3 : 2;
+    if (BTYPES.hospital) BTYPES.hospital.floors = (ver || 1) >= 4 ? 4 : 2;
   }
 

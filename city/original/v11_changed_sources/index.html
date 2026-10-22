@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#14213d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>人生物語｜日本モデル都市</title>
+<style>
+:root{--bg:#10182b;--panel:#1b2744f2;--panel2:#243357;--ink:#f4f1e8;--mute:#aab4cf;--acc:#ffd54a;--acc2:#4fc3f7;--bad:#ff7a7a;--ok:#7be0a0;--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{position:fixed;inset:0}
+canvas#cv{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;background:#000}
+.hud{position:absolute;pointer-events:none;text-shadow:0 1px 2px #000,0 0 3px #000}
+#hudL{top:calc(6px);left:calc(8px + var(--safe-l));font-size:13px;line-height:1.35}
+#hudL .big{font-size:16px;font-weight:700}
+#hudL{max-width:calc(100vw - 150px - var(--safe-l) - var(--safe-r))}#hSub,#hPlace{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hPlace{color:#ffe9a6;font-weight:600}#hudR{max-width:42vw;line-height:1.25}#hudR .big{white-space:normal;word-break:keep-all}
+#hudR{top:6px;right:calc(8px + var(--safe-r));text-align:right;font-size:14px}
+#bars{display:flex;gap:5px;margin-top:4px}
+.bar{width:44px;height:7px;border-radius:4px;background:#0008;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:50%}
+.barwrap{font-size:10px;text-align:center}
+#hint{position:absolute;right:calc(18px + var(--safe-r));bottom:calc(122px + var(--safe-b));font-size:13px;background:#000a;padding:4px 8px;border-radius:6px;max-width:42vw;pointer-events:none}
+#guide{position:absolute;left:50%;transform:translateX(-50%);top:6px;font-size:12px;background:#b71c1ccc;padding:3px 10px;border-radius:12px;pointer-events:none;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast{position:absolute;left:50%;bottom:calc(64px + var(--safe-b));transform:translateX(-50%);max-width:70vw;background:#101a30f0;border:1px solid #4a5a8a;padding:8px 12px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:pre-wrap;text-align:center}
+#toast.on{opacity:1}
+#cap{position:absolute;left:8px;top:calc(96px + var(--safe-t,0px));max-width:62vw;background:#000a;color:#ffe9a8;padding:3px 9px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none}
+#cap.on{opacity:1}
+/* 下部メニュー: 画面幅に合わせて幅・余白・文字を自動調整(画面外へはみ出さない)。横画面はジョイスティック(左)とA/走る(右)の間に収め、縦画面は全幅にして操作ボタンを1段上げる */
+#menubar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(4px + var(--safe-b));display:flex;gap:clamp(2px,.9vw,5px);width:min(460px,calc(100vw - 300px - var(--safe-l) - var(--safe-r)));min-width:calc(7 * 40px);container-type:inline-size}
+#menubar button,.btn{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid #4a5a8a;border-radius:10px;padding:7px 10px;font-size:13px;min-height:36px;cursor:pointer}
+#menubar button:active,.btn:active{background:#34477a}
+.btn.acc{background:#d99a00;color:#111;border-color:#ffd54a;font-weight:700}
+.btn.sec{background:#32486f}
+.btn[disabled]{opacity:.4}
+#joy{position:absolute;left:calc(14px + var(--safe-l));bottom:calc(28px + var(--safe-b));width:128px;height:128px;border-radius:50%;background:#ffffff1a;border:2px solid #ffffff44;touch-action:none}
+#joy i{position:absolute;left:44px;top:44px;width:40px;height:40px;border-radius:50%;background:#ffffffaa}
+#zoom{position:absolute;right:calc(10px + var(--safe-r));top:46%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:5}#zoom button{width:44px;height:44px;border-radius:12px;border:2px solid #fff8;background:#000a;color:#fff;font-size:24px;font-weight:700;touch-action:manipulation;padding:0;line-height:1}#joy.fl{bottom:auto;pointer-events:none}
+#btnA,#btnB{position:absolute;border-radius:50%;border:2px solid #fff8;color:#fff;font-weight:700;font-size:20px;touch-action:none;background:#e53935cc}
+#btnA{right:calc(18px + var(--safe-r));bottom:calc(46px + var(--safe-b));width:68px;height:68px}
+#btnB{right:calc(94px + var(--safe-r));bottom:calc(30px + var(--safe-b));width:48px;height:48px;background:#1e88e5cc;font-size:14px}
+#menubar button{white-space:nowrap;flex:1 1 0;min-width:0;padding:7px clamp(1px,.7vw,6px);font-size:clamp(9px,2.9vw,12px);font-size:clamp(8px,2.7cqw,13px);overflow:hidden;text-overflow:clip}
+@media (max-aspect-ratio:1/1){#menubar{left:calc(6px + var(--safe-l));right:calc(6px + var(--safe-r));transform:none;width:auto;min-width:0;max-width:none}
+#menubar button{font-size:clamp(8px,3.1cqw,14px)}
+#joy{bottom:calc(60px + var(--safe-b))}#btnA{bottom:calc(78px + var(--safe-b))}#btnB{bottom:calc(62px + var(--safe-b))}#hint{bottom:calc(150px + var(--safe-b))}}
+@container (max-width:300px){#menubar .ic{display:none}}
+#ride{position:absolute;inset:0;background:#10141c;display:none;flex-direction:column;z-index:30}
+#ride.on{display:flex}
+#ridecv{flex:1;min-height:0;width:100%;image-rendering:pixelated}
+#rideinfo{padding:6px 12px;color:#fff;font-size:14px;line-height:1.5;background:#1b2338;border-bottom:3px solid var(--rc,#1e88e5);white-space:pre-wrap}
+#ridebar{display:flex;gap:6px;flex-wrap:wrap;padding:6px 8px calc(6px + var(--safe-b));background:#1b2338}
+#ridebar button{flex:1;min-width:84px;padding:9px 6px;border-radius:10px;border:1px solid #5a6aa0;background:#2a3558;color:#fff;font-size:14px}
+#modal{position:absolute;z-index:40;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:max(8px,env(safe-area-inset-top)) 8px 8px}
+#modal.on{display:flex}
+.card{background:var(--panel);border:1px solid #5a6aa0;border-radius:14px;padding:12px 14px;max-width:min(720px,98vw);width:100%;max-height:92vh;overflow:auto;box-shadow:0 8px 30px #000a}
+.card h2{margin:0 0 6px;font-size:18px;color:var(--acc)}
+.card h3{margin:10px 0 4px;font-size:14px;color:var(--acc2)}
+.card p,.card .tx{margin:6px 0;line-height:1.6;font-size:14.5px;white-space:pre-wrap}
+@media (orientation:landscape) and (max-height:480px){#modal{padding:4px 8px}.card{max-height:98vh;padding:8px 12px}.card h2{font-size:15px;margin-bottom:3px}.card p,.card .tx{font-size:13px;line-height:1.45;margin:3px 0}#scn svg,#scn canvas{max-height:52vh;width:auto;max-width:100%}}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.list button.item{display:block;width:100%;text-align:left;margin:4px 0}
+.small{font-size:12px;color:var(--mute)}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t td,table.t th{border-bottom:1px solid #ffffff22;padding:3px 4px;text-align:left}
+td.r{text-align:right}
+input,select{font:inherit;color:#111;background:#fff;border:1px solid #888;border-radius:6px;padding:6px 8px;max-width:100%}
+#title .card{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}#title .card .formrow,#title .card .row,#title .card .small{grid-column:auto}#title .card>.row,#title .card>.small{grid-column:1/3}@media (max-width:640px){#title .card{display:block}}
+#title{position:absolute;inset:0;z-index:30;background:linear-gradient(#1a2a5a,#0f3a5e 55%,#0d5a4a);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:10px;text-align:center;overflow:auto}
+#title h1{font-size:clamp(24px,5vw,40px);margin:0;text-shadow:0 3px 0 #0006}
+#title .brand{color:var(--acc);letter-spacing:.2em;font-size:13px}
+#title .card.setup{display:flex;flex-direction:column;margin:auto;max-height:calc(100dvh - 8px);overflow:hidden}#title .card.setup>*{flex:none}#title .card.setup>.setuprow{flex:1 1 auto;min-height:0;overflow:auto}#title{justify-content:flex-start}@media (max-height:520px){#title .brand,#title h1{display:none}#title{padding:4px;gap:2px}.setuprow{gap:6px}.pvbox{flex:0 0 78px}.pvbox canvas{width:78px;height:98px}.hairgrid{grid-template-columns:repeat(7,1fr)}.setup .small{font-size:11px;margin:1px 0}.chip{padding:3px 6px}}.steps{display:flex;gap:4px;justify-content:center;margin-bottom:4px}.steps span{flex:1;font-size:12px;padding:3px 2px;border-radius:6px;background:#1c2d5c;cursor:pointer}.steps span.on{background:#3a64c8;font-weight:700}
+.setuprow{display:flex;gap:8px;align-items:flex-start;text-align:left}.pvbox{flex:0 0 112px;text-align:center}.pvbox canvas{width:112px;height:140px;background:linear-gradient(#efe9dd 84%,#cfc7b4 84%);border-radius:8px;border:2px solid #4a5a8a;image-rendering:pixelated}.setupbody{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}.chip{font:inherit;font-size:12px;padding:5px 8px;border-radius:14px;border:1px solid #6a7ab0;background:#223466;color:#fff}.chip.sel{background:#e0a030;color:#111;border-color:#fff}.chips.tiny{justify-content:center}.chips.tiny .chip{padding:3px 6px;font-size:11px}
+.hairgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.hair{font:inherit;font-size:10px;color:#fff;background:#223466;border:2px solid #4a5a8a;border-radius:8px;padding:1px;display:flex;flex-direction:column;align-items:center}.hair.sel{border-color:#ffd24a;background:#34508e}.hair canvas{width:100%;height:auto;aspect-ratio:96/84;image-rendering:pixelated;background:#efe9dd;border-radius:6px}
+#hMoney.testmax{color:#ffd24a;text-shadow:0 0 6px #f80}@media (max-width:480px){.pvbox{flex:0 0 92px}.pvbox canvas{width:92px;height:115px}.chip{padding:4px 6px}}
+.formrow{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin:3px 0;font-size:14px}
+.sw{display:inline-block;width:26px;height:26px;border-radius:6px;border:2px solid #fff6;cursor:pointer}
+.sw.sel{border-color:#ffd54a;box-shadow:0 0 0 2px #ffd54a88}
+#mapwrap{touch-action:none;position:relative;width:100%;overflow:auto;max-height:60vh;background:#000;border-radius:8px}
+#mapcv{display:block;width:100%;image-rendering:pixelated;cursor:crosshair}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;background:#fff2;font-size:11px;margin-right:3px}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s}
+#fade.on{opacity:1}
+body.big .card p,body.big .card .tx{font-size:17px} body.big .btn{font-size:16px;min-height:44px}
+@media (max-height:420px){#hudL{font-size:11px}#hudL .big{font-size:13px}.bar{width:34px}#joy{width:108px;height:108px}#joy i{left:34px;top:34px}}
+
+#tctl{position:absolute;right:calc(10px + var(--safe-r));top:64px;display:flex;gap:3px;z-index:6}#tctl button{min-width:34px;height:30px;border-radius:9px;border:1.5px solid #fff6;background:#000a;color:#fff;font-size:15px;padding:0 4px;touch-action:manipulation}#tctl button.on{background:#d99a00;color:#111;border-color:#ffd54a}
+#awStop{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(112px + var(--safe-b));z-index:6;padding:9px 18px;border-radius:22px;border:2px solid #fff;background:#d32f2fe6;color:#fff;font-size:16px;font-weight:700;touch-action:manipulation}
+#floorBtn{position:absolute;left:calc(14px + var(--safe-l));top:132px;z-index:6;padding:6px 10px;border-radius:14px;border:1.5px solid #fff8;background:#0d47a1d9;color:#fff;font-size:13px;touch-action:manipulation}
+#goHome{position:absolute;left:calc(14px + var(--safe-l));top:96px;z-index:6;padding:6px 10px;border-radius:14px;border:1.5px solid #fff8;background:#1b5e20d9;color:#fff;font-size:13px;touch-action:manipulation}
+#dpad{position:absolute;left:calc(14px + var(--safe-l));bottom:calc(28px + var(--safe-b));width:132px;height:132px;display:none;z-index:6;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px)}#dpad button{border-radius:10px;border:2px solid #fff6;background:#ffffff22;color:#fff;font-size:20px;touch-action:none;padding:0}
+#dpad button[data-d=u]{grid-column:2;grid-row:1}#dpad button[data-d=l]{grid-column:1;grid-row:2}#dpad button[data-d=r]{grid-column:3;grid-row:2}#dpad button[data-d=d]{grid-column:2;grid-row:3}
+body.dpadmode #dpad{display:grid}body.dpadmode #joy{display:none}
+@media (max-aspect-ratio:1/1){#dpad{bottom:calc(60px + var(--safe-b))}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv"></canvas>
+  <div id="hudL" class="hud"><div class="big" id="hDate"></div><div id="hSub"></div><div id="hPlace"></div><div id="bars"></div></div>
+  <div id="hudR" class="hud"><div id="hMoney" class="big"></div><div id="hWeather"></div></div>
+  <div id="guide" style="display:none"></div>
+  <div id="hint"></div>
+  <div id="toast"></div><div id="cap" aria-live="polite"></div>
+  <div id="joy"><i></i></div>
+  <div id="dpad"><button data-d="u">▲</button><button data-d="l">◀</button><button data-d="r">▶</button><button data-d="d">▼</button></div>
+  <div id="tctl"><button data-s="0" title="時間停止">⏸</button><button data-s="0.25" title="低速">🐢</button><button data-s="1" title="通常">▶</button><button data-s="3" title="高速">⏩</button></div>
+  <button id="awStop" style="display:none">■ 止まる</button><button id="goHome">🏠 自宅へ</button><button id="floorBtn" style="display:none">🏢 階の案内</button>
+  <div id="zoom"><button id="zin" aria-label="拡大">＋</button><button id="zout" aria-label="縮小">－</button><button id="zview" aria-label="視点切替(通り視点)" title="視点切替(V)">👁</button></div>
+  <button id="btnA">A</button><button id="btnB">走る</button>
+  <div id="menubar">
+    <button data-m="map"><span class="ic">🗺</span>地図</button><button data-m="move"><span class="ic">🚕</span>移動</button><button data-m="plan"><span class="ic">📅</span>予定</button><button data-m="people"><span class="ic">👥</span>人物</button><button data-m="items"><span class="ic">🎒</span>持物</button><button data-m="diary"><span class="ic">📖</span>日記</button><button data-m="skip"><span class="ic">⏩</span>時間</button><button data-m="cfg">⚙</button>
+  </div>
+  <div id="ride"><div id="rideinfo"></div><canvas id="ridecv"></canvas><div id="ridebar"></div></div>
+  <div id="modal"><div class="card" id="card"></div></div>
+  <div id="title"></div>
+  <div id="fade"></div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

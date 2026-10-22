@@ -14,8 +14,8 @@
   function stationById(id) {
     return STATIONS.find((s) => s.id === id);
   }
-  function buildRailPath(line, lookup = stationById) {
-    const sts = line.stations.map(lookup);
+  function buildRailPath(line2, lookup = stationById) {
+    const sts = line2.stations.map(lookup);
     const pts = [[sts[0].x, sts[0].y]];
     const stopIdx = [0];
     for (let i = 1; i < sts.length; i++) {
@@ -30,7 +30,7 @@
     }
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]));
-    return { id: line.id, pts, cum, len: cum[cum.length - 1], stopDist: stopIdx.map((i) => cum[i]) };
+    return { id: line2.id, pts, cum, len: cum[cum.length - 1], stopDist: stopIdx.map((i) => cum[i]) };
   }
   function posOnPath(path, d) {
     d = Math.max(0, Math.min(path.len, d));
@@ -80,9 +80,9 @@
     const setG = (x, y, g) => {
       if (inb(x, y)) ground[I2(x, y)] = g;
     };
-    for (const line of LINES) {
-      const rp = buildRailPath(line);
-      railPaths[line.id] = rp;
+    for (const line2 of LINES) {
+      const rp = buildRailPath(line2);
+      railPaths[line2.id] = rp;
       for (let i = 1; i < rp.pts.length; i++) {
         const [x0, y0] = rp.pts[i - 1], [x1, y1] = rp.pts[i];
         const sx = Math.sign(x1 - x0), sy = Math.sign(y1 - y0);
@@ -172,9 +172,9 @@
       }
     }
     const roadSegs = [];
-    for (const line of LINES) {
-      for (let i = 1; i < line.stations.length; i++) {
-        const A2 = stationById(line.stations[i - 1]), B2 = stationById(line.stations[i]);
+    for (const line2 of LINES) {
+      for (let i = 1; i < line2.stations.length; i++) {
+        const A2 = stationById(line2.stations[i - 1]), B2 = stationById(line2.stations[i]);
         const tw = (opts.ver || 1) >= 2 && TRUNK.has(A2.id) && TRUNK.has(B2.id) ? 4 : 2;
         const o = tw === 4 ? 1 : 0;
         if ((opts.ver || 1) >= 2 && B2.y > A2.y + 6) {
@@ -186,7 +186,7 @@
           carveLine(A2.x, A2.y + 5 - o, B2.x - o, A2.y + 5 - o, tw);
           carveLine(B2.x - o, A2.y + 5 - o, B2.x - o, B2.y + 5, tw);
         }
-        roadSegs.push({ line: line.id, from: A2.id, to: B2.id, pts: [[A2.x, A2.y + 5], [B2.x, A2.y + 5], [B2.x, B2.y + 5]] });
+        roadSegs.push({ line: line2.id, from: A2.id, to: B2.id, pts: [[A2.x, A2.y + 5], [B2.x, A2.y + 5], [B2.x, B2.y + 5]] });
       }
     }
     for (const s of STATIONS) for (let y = s.y + 5; y <= s.y + 6; y++) for (let x = s.x - 5; x <= s.x + 5; x++) net[I2(x, y)] = 1;

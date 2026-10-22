@@ -3,10 +3,12 @@ export async function clickText(p, txt) {
   await p.evaluate((t) => { const b = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === t && b.getClientRects().length); if (!b) throw new Error('no button ' + t); b.click(); }, txt);
 }
 export async function startTrial(p, opts = {}) {
-  await p.click('.nls-hot.trial', { force: true }); await p.waitForTimeout(400);
+  if (await p.$('.nls-hot.trial')) { await p.click('.nls-hot.trial', { force: true }); await p.waitForTimeout(400); }
+  else for (let i = 0; i < 3; i++) { const has = await p.evaluate(() => [...document.querySelectorAll('#title button')].some(b => b.textContent.trim() === 'はじめる' && b.getClientRects().length)); if (has) break; await clickText(p, 'つぎへ').catch(() => {}); await p.waitForTimeout(300); }
   await p.evaluate((t) => { for (const s of document.querySelectorAll('#title select')) for (const o of s.options) if (o.textContent.startsWith(t)) { s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); } }, opts.scenario || '喧嘩番長人生');
   await p.waitForTimeout(200);
-  await clickText(p, '試験用MAX資金'); await clickText(p, '自由試遊(開発用)');
+  await clickText(p, '開発試験').catch(() => {}); await p.waitForTimeout(200);
+  await clickText(p, '試験用MAX資金').catch(() => {}); await clickText(p, '自由試遊(開発用)').catch(() => {});
   await clickText(p, 'はじめる');
   await p.waitForFunction(() => window.NLS && window.NLS.G, null, { timeout: 60000 });
   await p.waitForTimeout(1500);

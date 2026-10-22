@@ -5,6 +5,7 @@
       const fr = facRange(b);
       if (fr) return fr;
     }
+    if (b && b.estate === 2) return { lo: -1, hi: 2, nf: 3 };
     const nf = storeys(b), k = bigKind(b);
     if (k === "dept") return { lo: -1, hi: nf, nf };
     if (k === "mall") return { lo: -1, hi: nf, nf };
@@ -18,6 +19,7 @@
       const fl = facLabel(b, lv);
       if (fl) return fl;
     }
+    if (b && b.estate === 2) return { "-1": "B1 \u5730\u4E0B(\u30EF\u30A4\u30F3\u30BB\u30E9\u30FC\u30FB\u30AC\u30EC\u30FC\u30B8)", 0: "1F \u8FCE\u8CD3\u30FB\u751F\u6D3B\u7A7A\u9593", 1: "2F \u5BB6\u65CF\u306E\u5C45\u4F4F\u7A7A\u9593", 2: "3F \u8DA3\u5473\u30FB\u30B2\u30B9\u30C8\u30B9\u30A4\u30FC\u30C8" }[lv] || lv + 1 + "F";
     const k = bigKind(b);
     const { nf } = levelRange(b);
     const fl = lv < 0 ? "B" + -lv + "F" : lv >= nf && (k === "dept" || k === "mall") ? "R" : lv + 1 + "F";

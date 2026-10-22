@@ -89,6 +89,7 @@
   };
   var mixOf = (id) => MIX2[id] || ZONE_MIX[id] || ZONE_MIX.default;
   var SITE_TYPES = /* @__PURE__ */ new Set(["cityhall", "hospital", "univ", "hs", "jh", "elem", "special", "tourtower", "court", "mall", "dept", "museum", "library", "factory", "market", "marina", "pier", "ferry", "station", "edovillage", "aquarium", "cemetery", "crematorium", "airport", "stadium", "themepark", "zoo", "lab", "homecenter", "park", "police", "fire", "kinder", "beachhouse", "media", "resorthotel", "construction", "cardealer", "usedcar", "shrine", "temple"]);
+  var LOTK = { mall: [50, 17], dept: [30, 10], hospital: [38, 12], homecenter: [28, 8], stadium: [84, 22], factory: [38, 8], logistics: [58, 10], cityhall: [24, 6] };
   var SITE = {
     kinder: { w: 16, h: 11, yard: "sand", fence: 1 },
     elem: { w: 32, h: 21, yard: "sand", fence: 1, ex: ["gym"], pool: 1 },
@@ -123,6 +124,7 @@
     crematorium: { w: 16, h: 11, yard: "grass", fence: 1 },
     shrine: { w: 22, h: 16, yard: "grass" },
     temple: { w: 22, h: 14, yard: "grass", fence: 1 },
+    grandestate: { w: 60, h: 44, yard: "grass", fence: 0, grand: 1 },
     construction: { w: 20, h: 12, yard: "plaza", fence: 1 },
     cardealer: { w: 22, h: 11, yard: "plaza" },
     usedcar: { w: 24, h: 12, yard: "plaza" },
@@ -131,24 +133,24 @@
   var PLAN2 = {
     downtown: { dept: 3, mall: 2, court: 1, hospital: 1, police: 1, fire: 1, media: 2, library: 1, park: 3, tourtower: 0 },
     shinkansen: { dept: 1, park: 1, police: 1 },
-    tower: { tourtower: 1, mall: 1, aquarium: 1, park: 3, stadium: 1, resorthotel: 1 },
+    tower: { grandestate: 1, tourtower: 1, mall: 1, aquarium: 1, park: 3, stadium: 1, resorthotel: 1 },
     shotengai: { shrine: 1, park: 2, fire: 1, kinder: 2, elem: 2 },
     chinatown: { temple: 1 },
     oldtown: { temple: 2, shrine: 1, elem: 2, jh: 1, kinder: 2, park: 2, crematorium: 0 },
     port: { market: 2, pier: 4, ferry: 1, marina: 1, warehouse: 3, kinder: 1, park: 1, fire: 1, police: 1 },
     industrial: { factory: 4, logistics: 2, warehouse: 2, construction: 2, homecenter: 1 },
-    campus: { univ: 3, lab: 3, hs: 1, kinder: 2, library: 1, park: 2, elem: 2 },
+    campus: { grandestate: 1, univ: 3, lab: 3, hs: 1, kinder: 2, library: 1, park: 2, elem: 2 },
     culture: { museum: 5, library: 2, edovillage: 1, park: 4, univ: 1, aquarium: 0 },
-    suburb_n: { elem: 3, jh: 2, hs: 1, kinder: 3, park: 3, fire: 1, homecenter: 1, cemetery: 1 },
+    suburb_n: { grandestate: 1, elem: 3, jh: 2, hs: 1, kinder: 3, park: 3, fire: 1, homecenter: 1, cemetery: 1 },
     civic: { cityhall: 1, hospital: 2, police: 1, fire: 1, library: 1, court: 1, park: 2, kinder: 2, elem: 2, welfare: 0 },
-    school: { elem: 3, jh: 2, hs: 2, kinder: 3, special: 1, park: 3, library: 1 },
-    newtown: { elem: 4, jh: 2, hs: 1, kinder: 3, mall: 1, hospital: 1, park: 4, fire: 1, police: 1, library: 1 },
-    suburb_e: { elem: 3, jh: 2, hs: 1, kinder: 2, homecenter: 1, park: 2, cardealer: 1, usedcar: 1 },
-    suburb_w: { elem: 2, jh: 1, kinder: 2, park: 2, usedcar: 1, cemetery: 1 },
+    school: { grandestate: 1, elem: 3, jh: 2, hs: 2, kinder: 3, special: 1, park: 3, library: 1 },
+    newtown: { grandestate: 1, elem: 4, jh: 2, hs: 1, kinder: 3, mall: 1, hospital: 1, park: 4, fire: 1, police: 1, library: 1 },
+    suburb_e: { grandestate: 1, elem: 3, jh: 2, hs: 1, kinder: 2, homecenter: 1, park: 2, cardealer: 1, usedcar: 1 },
+    suburb_w: { grandestate: 1, elem: 2, jh: 1, kinder: 2, park: 2, usedcar: 1, cemetery: 1 },
     farm: { elem: 2, kinder: 1, crematorium: 1, shrine: 1 },
     onsen: { shrine: 1, park: 1 },
     themepark: { themepark: 1, zoo: 1 },
-    resort: { resorthotel: 3, aquarium: 1, park: 2, stadium: 0 },
+    resort: { grandestate: 1, resorthotel: 3, aquarium: 1, park: 2, stadium: 0 },
     marina: { marina: 1, ferry: 1, park: 1 },
     airport: { airport: 1, construction: 1 },
     temple_town: { temple: 6, shrine: 2, cemetery: 3, crematorium: 1, park: 2 },
@@ -209,9 +211,9 @@
     };
     const railPaths = {};
     const lookup = (id) => stById[id];
-    for (const line of LINES2) {
-      const rp = buildRailPath2(line, lookup);
-      railPaths[line.id] = rp;
+    for (const line2 of LINES2) {
+      const rp = buildRailPath2(line2, lookup);
+      railPaths[line2.id] = rp;
       for (let i = 1; i < rp.pts.length; i++) {
         const [x0, y0] = rp.pts[i - 1], [x1, y1] = rp.pts[i];
         const sx = Math.sign(x1 - x0), sy = Math.sign(y1 - y0);
@@ -232,18 +234,21 @@
       const idx = buildings.length;
       const b = { idx, id: "B" + String(idx).padStart(4, "0"), type, x: bx, y: by, w: bt.w, h: bt.h, doorX: bx + (bt.w >> 1), doorY: by + bt.h, zone, floors: bt.floors || 1, ...extra };
       buildings.push(b);
-      for (let y = by; y < by + bt.h; y++) for (let x = bx; x < bx + bt.w; x++) if (inb(x, y)) bid[I2(x, y)] = idx;
+      for (let y = by; y < by + b.h; y++) for (let x = bx; x < bx + b.w; x++) if (inb(x, y)) bid[I2(x, y)] = idx;
       return b;
     }
     const hubs = [];
+    const lots = [];
     for (const s of STATIONS2) {
-      for (let x = s.x - 6; x <= s.x + 6; x++) setG(x, s.y + 1, T.PLATFORM);
+      const MAJ0 = ["aoumi_chuo", "tohtower", "shinaomi", "kuko", "showacho", "gakuen", "kazeminato"].includes(s.id), PL = MAJ0 ? 17 : 8;
+      for (let x = s.x - PL; x <= s.x + PL; x++) setG(x, s.y + 1, T.PLATFORM);
       for (let y = s.y + 5; y <= s.y + 6; y++) for (let x = s.x - 9; x <= s.x + 9; x++) setG(x, y, T.PLAZA);
       for (let y = s.y + 2; y <= s.y + 4; y++) for (let x = s.x - 9; x <= s.x + 9; x++) if (ground[I2(x, y)] !== T.RAIL && ground[I2(x, y)] !== T.WATER) setG(x, y, T.GRASS);
       const MAJOR = ["aoumi_chuo", "tohtower", "shinaomi", "kuko", "showacho", "gakuen", "kazeminato"].includes(s.id);
-      const b = addBuilding("station", s.x - 6, s.y + 2, s.zone, { stationId: s.id, name: s.name + "\u99C5", ...MAJOR ? { floors: 3, nf: 4 } : {} });
+      const sw = MAJOR ? 17 : 9;
+      const b = addBuilding("station", s.x - (sw >> 1), s.y + 2, s.zone, { stationId: s.id, name: s.name + "\u99C5", w: sw, doorX: s.x - (sw >> 1) + (sw >> 1), ...MAJOR ? { floors: 3, nf: 4 } : {} });
       stations.push({ ...s, door: { x: b.doorX, y: b.doorY }, building: b.idx, platformY: s.y + 1 });
-      markRes(s.x - 11, s.y - 2, 23, 7);
+      markRes(s.x - Math.max(11, PL + 1), s.y - 2, 2 * Math.max(11, PL + 1) + 1, 7);
       if (s.shin) {
         for (let y = s.y + 8; y <= s.y + 9; y++) for (let x = s.x - 14; x <= s.x + 14; x++) setG(x, y, y === s.y + 8 ? T.PLATFORM : T.RAIL);
         for (let x = s.x - 14; x <= s.x + 14; x++) setG(x, s.y + 7, T.PLATFORM);
@@ -293,8 +298,8 @@
     }
     const TRUNK2 = /* @__PURE__ */ new Set(["aoumi_chuo", "tohtower", "midoricho", "showacho", "shinaomi"]);
     const roadSegs = [];
-    for (const line of LINES2) for (let i = 1; i < line.stations.length; i++) {
-      const A2 = stById[line.stations[i - 1]], B2 = stById[line.stations[i]];
+    for (const line2 of LINES2) for (let i = 1; i < line2.stations.length; i++) {
+      const A2 = stById[line2.stations[i - 1]], B2 = stById[line2.stations[i]];
       const tw = TRUNK2.has(A2.id) && TRUNK2.has(B2.id) ? 4 : 2;
       const o = tw === 4 ? 1 : 0;
       if (B2.y > A2.y + 6) {
@@ -306,7 +311,7 @@
         carveLine(A2.x, A2.y + 5 - o, B2.x - o, A2.y + 5 - o, tw);
         carveLine(B2.x - o, A2.y + 5 - o, B2.x - o, B2.y + 5, tw);
       }
-      roadSegs.push({ line: line.id, from: A2.id, to: B2.id, pts: [[A2.x, A2.y + 5], [B2.x, A2.y + 5], [B2.x, B2.y + 5]] });
+      roadSegs.push({ line: line2.id, from: A2.id, to: B2.id, pts: [[A2.x, A2.y + 5], [B2.x, A2.y + 5], [B2.x, B2.y + 5]] });
     }
     for (const s of STATIONS2) for (let y = s.y + 5; y <= s.y + 6; y++) for (let x = s.x - 9; x <= s.x + 9; x++) net[I2(x, y)] = 1;
     const zby = (id) => zones.find((z) => z.id === id);
@@ -335,7 +340,7 @@
     }
     function placeSite(kind, r, tries = 500) {
       const sp = SITE[kind];
-      const bt = BTYPES[kind];
+      const bt = BTYPES[kind] || (kind === "grandestate" ? BTYPES.house : null);
       if (!sp || !bt) return null;
       const rows2 = rowsOf2(r).filter((y) => y - sp.h > r.y - r.ry * 1.25 && y < r.y + r.ry * 1.3);
       if (COASTAL2.has(kind)) return null;
@@ -359,8 +364,102 @@
       dbg["site:" + kind] = (dbg["site:" + kind] || 0) + 1;
       return null;
     }
+    const grandWall = /* @__PURE__ */ new Set();
+    const grandSolid = [];
+    function buildGrand(S2, x0, y0, sp, main) {
+      const W0 = sp.w, H0 = sp.h;
+      const at = (x, y) => [x0 + x, y0 + y];
+      const put2 = (x, y, t) => {
+        const [X, Y2] = at(x, y);
+        if (inb(X, Y2) && bid[I2(X, Y2)] < 0) {
+          ground[I2(X, Y2)] = t;
+          deco[I2(X, Y2)] = 0;
+        }
+      };
+      const rect2 = (x, y, w, h, t) => {
+        for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) put2(i, j, t);
+      };
+      const E2 = { x0, y0, w: W0, h: H0, gate: { x: x0 + 30, y: y0 + H0 - 1 }, ring: { cx: x0 + 30, cy: y0 + 35, r: 6 }, fountain: { cx: x0 + 30, cy: y0 + 35 }, wallMinX: x0, solid: [] };
+      for (let j = 0; j < H0; j++) for (let i = 0; i < W0; i++) {
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) {
+          ground[I2(X, Y2)] = T.GRASS;
+          deco[I2(X, Y2)] = 0;
+        }
+      }
+      rect2(28, 28, 5, 16, T.PLAZA);
+      rect2(26, 27, 9, 1, T.PLAZA);
+      for (let j = 28; j <= 42; j++) for (let i = 22; i <= 38; i++) {
+        const d = Math.hypot(i - 30, j - 35);
+        if (d <= 6.4 && d >= 3.6) put2(i, j, T.PLAZA);
+      }
+      for (let j = 33; j <= 37; j++) for (let i = 28; i <= 32; i++) {
+        const d = Math.hypot(i - 30, j - 35);
+        if (d < 3.6) put2(i, j, T.GRASS);
+      }
+      rect2(2, 27, 26, 3, T.PLAZA);
+      rect2(3, 20, 12, 7, T.PLAZA);
+      rect2(14, 14, 2, 14, T.PATH);
+      rect2(2, 40, 26, 2, T.PATH);
+      rect2(3, 3, 11, 11, T.PLAZA);
+      rect2(45, 13, 14, 9, T.PLAZA);
+      rect2(47, 15, 10, 5, T.WATER);
+      for (let j = 15; j < 20; j++) for (let i = 47; i < 57; i++) E2.solid.push([x0 + i, y0 + j]);
+      rect2(45, 25, 14, 15, T.PLAZA);
+      for (let i = 45; i < 59; i++) for (const j of [25, 39]) {
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) deco[I2(X, Y2)] = D.FENCE;
+      }
+      for (let j = 25; j < 40; j++) for (const i of [45, 58]) {
+        if (i === 45 && (j === 31 || j === 32)) continue;
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) deco[I2(X, Y2)] = D.FENCE;
+      }
+      for (let i = 33; i < 59; i++) for (const j of [1]) {
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) deco[I2(X, Y2)] = D.FENCE;
+      }
+      for (let i = 0; i < W0; i++) for (const j of [0, H0 - 1]) {
+        if (j === H0 - 1 && i >= 28 && i <= 32) continue;
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) {
+          deco[I2(X, Y2)] = D.FENCE;
+          grandWall.add(I2(X, Y2));
+        }
+      }
+      for (let j = 0; j < H0; j++) for (const i of [0, W0 - 1]) {
+        const [X, Y2] = at(i, j);
+        if (bid[I2(X, Y2)] < 0) {
+          deco[I2(X, Y2)] = D.FENCE;
+          grandWall.add(I2(X, Y2));
+        }
+      }
+      for (let j = 39; j <= 40; j++) for (let i = 34; i <= 36; i++) E2.solid.push(at(i, j));
+      for (let j = 34; j <= 36; j++) for (let i = 29; i <= 31; i++) E2.solid.push(at(i, j));
+      const keep = (i, j) => i >= 27 && i <= 33 && j >= 27 || i >= 14 && i <= 44 && j >= 13 && j <= 27 || i >= 21 && i <= 39 && j >= 28 && j <= 43 || i >= 2 && i <= 28 && j >= 26 && j <= 31 || i >= 3 && i <= 14 && j >= 3 && j <= 14 || i >= 44 && i <= 59 && j >= 12 && j <= 40 || i >= 32 && j <= 12 && i >= 33;
+      for (let j = 1; j < H0 - 1; j++) for (let i = 1; i < W0 - 1; i++) {
+        if (keep(i, j)) continue;
+        const [X, Y2] = at(i, j);
+        const k = I2(X, Y2);
+        if (bid[k] >= 0 || deco[k] || ground[k] !== T.GRASS) continue;
+        if (hash2(X * 7 + Y2, 6203) % 100 < (j < 14 || i < 14 ? 11 : 7)) deco[k] = D.TREE;
+        else if (hash2(X + Y2 * 9, 6204) % 100 < 3) deco[k] = D.FLOWER;
+      }
+      E2.cars = [{ x: x0 + 5.5, y: y0 + 28.5, d: 1, ty: "sports", c: 0 }, { x: x0 + 10.5, y: y0 + 28.5, d: 1, ty: "luxury", c: 1 }, { x: x0 + 15.5, y: y0 + 28.5, d: 1, ty: "suv", c: 2 }, { x: x0 + 20.5, y: y0 + 28.5, d: 1, ty: "luxury", c: 3 }];
+      E2.heli = { cx: x0 + 8.5, cy: y0 + 8.5 };
+      E2.pool = [x0 + 47, y0 + 15, 10, 5];
+      E2.tennis = [x0 + 46, y0 + 26, 12, 13];
+      E2.golf = [x0 + 34, y0 + 2, 24, 9];
+      E2.deck = [x0 + 45, y0 + 13, 14, 9];
+      E2.garage = { x: x0 + 16, y: y0 + 20, w: 9, h: 7 };
+      grandEstates.push(E2);
+      S2.estate = E2;
+      for (const [x, y] of E2.solid) grandSolid.push(I2(x, y));
+      for (const [px_, py_, pw_, ph_] of [[x0 + 14, y0 + 13, 31, 15], [x0 + 21, y0 + 28, 18, 16]]) res;
+    }
+    const grandEstates = [];
     function buildSite(kind, r, x0, y0, sp) {
-      const bt = BTYPES[kind];
+      const bt = kind === "grandestate" ? { ...BTYPES.house, w: 28, h: 13 } : BTYPES[kind];
       const S2 = { kind, zone: r.id, x: x0, y: y0, w: sp.w, h: sp.h, parts: [] };
       for (let y = y0; y < y0 + sp.h; y++) for (let x = x0; x < x0 + sp.w; x++) {
         const k = I2(x, y);
@@ -369,7 +468,18 @@
         else if (sp.yard === "plaza") ground[k] = T.PLAZA;
         else if (sp.yard === "park" || sp.yard === "grass") ground[k] = T.GRASS;
       }
-      const bx = x0 + (sp.w - bt.w >> 1), by = y0 + sp.h - bt.h;
+      if (kind === "grandestate") {
+        const bx2 = x0 + 16, by2 = y0 + 14;
+        const main2 = addBuilding("house", bx2, by2, r.id, { site: sites2.length, w: 28, h: 13, estate: 2, pin: "mansion", name: "\u5927\u90B8\u5B85", floors: 3, doorX: bx2 + 14, doorY: by2 + 13 });
+        S2.main = main2.idx;
+        S2.parts.push(main2.idx);
+        buildGrand(S2, x0, y0, sp, main2);
+        sites2.push(S2);
+        placeLog[kind] = (placeLog[kind] || 0) + 1;
+        return S2;
+      }
+      const FC = kind === "airport" ? 14 : 0;
+      const bx = x0 + (sp.w - bt.w >> 1), by = y0 + sp.h - bt.h - FC;
       const main = addBuilding(kind, bx, by, r.id, { site: sites2.length });
       S2.main = main.idx;
       S2.parts.push(main.idx);
@@ -378,7 +488,7 @@
         const gateX = bx + bt.w + 1;
         for (let x = x0; x < x0 + sp.w; x++) {
           for (const y of [y0, y0 + sp.h - 1]) {
-            if (y === y0 + sp.h - 1 && (x >= bx && x < bx + bt.w || x >= gateX && x < gateX + 4)) continue;
+            if (y === y0 + sp.h - 1 && (x >= bx - 6 && x < bx + bt.w + 6 || x >= gateX && x < gateX + 4)) continue;
             if (bid[I2(x, y)] < 0) deco[I2(x, y)] = D.FENCE;
           }
         }
@@ -387,6 +497,22 @@
       const occ = [];
       occ.push([bx - 1, by - 1, bt.w + 2, bt.h + 3]);
       const clash = (x, y, w, h) => occ.some((o) => !(x + w <= o[0] || o[0] + o[2] <= x || y + h <= o[1] || o[1] + o[3] <= y));
+      if (LOTK[kind]) {
+        const L2 = LOTK[kind];
+        const lw = Math.min(sp.w - 6, L2[0]), lh = Math.min(sp.h - bt.h - 7, L2[1]);
+        if (lh >= 8 && lw >= 12) {
+          const lx = x0 + 3 + (kind === "stadium" ? 0 : sp.w - 6 - lw >> 1), ly = y0 + 2;
+          if (!clash(lx - 1, ly - 1, lw + 2, lh + 2)) {
+            for (let y = ly; y < ly + lh; y++) for (let x = lx; x < lx + lw; x++) if (bid[I2(x, y)] < 0) {
+              ground[I2(x, y)] = T.PLAZA;
+              deco[I2(x, y)] = 0;
+            }
+            occ.push([lx - 1, ly - 1, lw + 2, lh + 2]);
+            (S2.lots || (S2.lots = [])).push([lx, ly, lw, lh]);
+            lots.push({ x: lx, y: ly, w: lw, h: lh, kind });
+          }
+        }
+      }
       if (sp.pool) {
         const px2 = x0 + sp.w - 14, py = y0 + 3, pw = 11, ph = 5;
         if (!clash(px2, py, pw, ph)) {
@@ -407,17 +533,23 @@
         occ.push([fx - 2, fy - 2, fw + 4, fh + 4]);
         S2.field = [fx, fy, fw, fh];
       }
+      if (FC) {
+        for (let y = by + bt.h; y < y0 + sp.h; y++) for (let x = bx - 6; x < bx + bt.w + 6; x++) if (bid[I2(x, y)] < 0) {
+          ground[I2(x, y)] = T.PLAZA;
+          deco[I2(x, y)] = 0;
+        }
+      }
       if (sp.runway) {
         const ry0 = y0 + 6;
         for (let y = ry0; y < ry0 + 6; y++) for (let x = x0 + 8; x < x0 + sp.w - 8; x++) ground[I2(x, y)] = T.PLAZA;
         for (let y = ry0 + 8; y < ry0 + 11; y++) for (let x = x0 + 8; x < x0 + sp.w - 8; x++) ground[I2(x, y)] = T.PLAZA;
         const gx0 = x0 + (sp.w >> 1) - 2;
         for (let y = ry0 + 11; y < y0 + sp.h; y++) for (let x = gx0; x < gx0 + 4; x++) if (bid[I2(x, y)] < 0) ground[I2(x, y)] = T.PLAZA;
-        const ax0 = x0 + (sp.w >> 1) - 46, ay0 = y0 + sp.h - bt.h - 22;
+        const ax0 = x0 + (sp.w >> 1) - 46, ay0 = by - 22;
         for (let y = ay0; y < y0 + sp.h; y++) for (let x = ax0; x < ax0 + 92; x++) if (bid[I2(x, y)] < 0) ground[I2(x, y)] = T.PLAZA;
         occ.push([x0 + 6, ry0 - 2, sp.w - 12, 16]);
         occ.push([ax0, ay0 - 1, 92, 24]);
-        S2.runway = { x0: x0 + 8, x1: x0 + sp.w - 9, y0: ry0, y1: ry0 + 5, taxi: { y0: ry0 + 8, y1: ry0 + 10 }, apron: { x0: ax0, y0: ay0, w: 92 }, stands: [0, 1, 2, 3].map((i) => ({ x: ax0 + 10 + i * 24, y: ay0 + 11, liv: i })), rwPlane: { x: x0 + 70, y: ry0 + 3 } };
+        S2.runway = { x0: x0 + 8, x1: x0 + sp.w - 9, y0: ry0, y1: ry0 + 5, taxi: { y0: ry0 + 8, y1: ry0 + 10 }, apron: { x0: ax0, y0: ay0, w: 92 }, stands: [0, 1, 2, 3].map((i) => ({ x: ax0 + 10 + i * 24, y: ay0 + 11, liv: i })), rwPlane: { x: x0 + 70, y: ry0 + 3 }, doorX: main.doorX, fc: { x0: bx - 6, y0: by + bt.h + 1, w: bt.w + 12, h: FC - 2 } };
         hubs.push({ id: "hub_airport", kind: "airport", stationId: "kuko", name: "\u9752\u6D77\u7A7A\u6E2F", building: main.idx, door: { x: main.doorX, y: main.doorY }, runway: S2.runway });
       }
       if (sp.pens) {
@@ -449,6 +581,7 @@
           S2.parts.push(eb.idx);
           done = true;
           if (et === "tourtower" && kind === "airport") eb.name = "\u7BA1\u5236\u5854";
+          if (et === "warehouse" && kind === "airport") eb.name = "\u822A\u7A7A\u6A5F\u683C\u7D0D\u5EAB" + (S2.parts.length - 1);
         }
         if (!done) dbg["siteEx:" + et] = (dbg["siteEx:" + et] || 0) + 1;
       }
@@ -651,6 +784,9 @@
       if (!a.length) a.push(["house", 10]);
       return a;
     })());
+    const ESTATE_ZONES = /* @__PURE__ */ new Set(["school", "campus", "suburb_n", "suburb_e", "suburb_w", "marina", "tower", "newtown", "civic", "resort"]);
+    const ESTATE = { w: 10, h: 7 };
+    let estates = 0;
     const typeCount = {};
     for (const b of buildings) typeCount[b.type] = (typeCount[b.type] || 0) + 1;
     function fillRow(r, y, xa, xb, onlyRes) {
@@ -678,6 +814,13 @@
           const t = rng.weighted(bag);
           const bt = BTYPES[t];
           const bx = x, by = y - bt.h;
+          if (t === "house" && ESTATE_ZONES.has(z.id) && estates < 120 && rng.next() < 0.25 && fits(x, y - ESTATE.h, ESTATE.w, ESTATE.h)) {
+            addBuilding("house", x, y - ESTATE.h, z.id, { w: ESTATE.w, h: ESTATE.h, estate: 1, pin: "mansion", name: "\u5927\u90B8\u5B85", doorY: y });
+            estates++;
+            x += ESTATE.w + 1;
+            placed = true;
+            continue;
+          }
           if (fits(bx, by, bt.w, bt.h)) {
             addBuilding(t, bx, by, z.id);
             typeCount[t] = (typeCount[t] || 0) + 1;
@@ -847,10 +990,248 @@
       const bx = s.x - 6, by = s.y + 7;
       if (inb(bx, by) && ground[I2(bx, by)] === T.PLAZA) deco[I2(bx, by)] = D.BENCH;
     }
+    dbg.roadJoined = joinRoads();
+    function joinRoads() {
+      const isD = (k) => {
+        const g = ground[k];
+        return (g === T.ROAD || g === T.BRIDGE || g === T.CROSSING || g === T.PLAZA) && rmeta.ax[k] > 0;
+      };
+      let n2 = 0;
+      for (const [G4, maxE, TO] of [[T.RAIL, 9, T.CROSSING], [T.WATER, 14, T.BRIDGE]]) for (const bit of [2, 1]) {
+        for (let u = 1; u < (bit === 2 ? W : H2) - 1; u++) for (let v = 1; v < (bit === 2 ? H2 : W) - 1; v++) {
+          const X = bit === 2 ? u : v, Y2 = bit === 2 ? v : u;
+          const k = I2(X, Y2);
+          if (ground[k] !== G4) continue;
+          const px2 = bit === 2 ? X : X - 1, py = bit === 2 ? Y2 - 1 : Y2;
+          if (ground[I2(px2, py)] === G4) continue;
+          let e = 0;
+          while (e < maxE + 1 && inb(bit === 2 ? X : X + e, bit === 2 ? Y2 + e : Y2) && ground[I2(bit === 2 ? X : X + e, bit === 2 ? Y2 + e : Y2)] === G4) e++;
+          if (e > maxE) continue;
+          const a = I2(px2, py), bx = bit === 2 ? X : X + e, by = bit === 2 ? Y2 + e : Y2;
+          if (!inb(bx, by)) continue;
+          const b = I2(bx, by);
+          if (!isD(a) || !isD(b) || rmeta.ax[a] !== bit || rmeta.ax[b] !== bit || rmeta.th[a] !== rmeta.th[b] || rmeta.ln[a] !== rmeta.ln[b]) continue;
+          for (let i = 0; i < e; i++) {
+            const cx = bit === 2 ? X : X + i, cy = bit === 2 ? Y2 + i : Y2, ck = I2(cx, cy);
+            if (bid[ck] >= 0 || res[ck] === 2) {
+              i = -1;
+              break;
+            }
+          }
+          if (!(e > 0)) continue;
+          let blocked = false;
+          for (let i = 0; i < e; i++) {
+            const ck = I2(bit === 2 ? X : X + i, bit === 2 ? Y2 + i : Y2);
+            if (bid[ck] >= 0 || res[ck] === 2) blocked = true;
+          }
+          if (blocked) continue;
+          for (let i = 0; i < e; i++) {
+            const ck = I2(bit === 2 ? X : X + i, bit === 2 ? Y2 + i : Y2);
+            ground[ck] = TO;
+            deco[ck] = D.NONE;
+            net[ck] = 1;
+            rmeta.ax[ck] = bit;
+            rmeta.th[ck] = rmeta.th[a];
+            rmeta.ln[ck] = rmeta.ln[a];
+          }
+          n2++;
+        }
+      }
+      return n2;
+    }
+    dbg.xingAdded = addRailCrossings();
+    function addRailCrossings() {
+      const FREEG2 = /* @__PURE__ */ new Set([T.GRASS, T.ROAD, T.PATH, T.PLAZA, T.SAND, T.FARM, T.PADDY]);
+      const CLR = /* @__PURE__ */ new Set([D.TREE, D.FENCE, D.FLOWER, D.POST, D.BENCH, D.LAMP, D.VENDING]);
+      const freeAt = (x, y) => {
+        if (!inb(x, y)) return false;
+        const k = I2(x, y);
+        if (bid[k] >= 0 || res[k] === 2) return false;
+        if (!FREEG2.has(ground[k])) return false;
+        return !deco[k] || CLR.has(deco[k]) || deco[k] === D.NONE;
+      };
+      const comp = new Int32Array(N).fill(-1);
+      let nc = 0;
+      for (let k0 = 0; k0 < N; k0++) {
+        if (ground[k0] !== T.RAIL && ground[k0] !== T.CROSSING || comp[k0] >= 0) continue;
+        const q = [k0];
+        comp[k0] = nc;
+        for (let i = 0; i < q.length; i++) {
+          const t = q[i], tx = t % W, ty = t / W | 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const x = tx + dx, y = ty + dy;
+            if (!inb(x, y)) continue;
+            const kk = I2(x, y);
+            if (comp[kk] < 0 && (ground[kk] === T.RAIL || ground[kk] === T.CROSSING)) {
+              comp[kk] = nc;
+              q.push(kk);
+            }
+          }
+        }
+        nc++;
+      }
+      const placed = [];
+      for (let y = 0; y < H2; y++) for (let x = 0; x < W; x++) if (ground[I2(x, y)] === T.CROSSING) {
+        const c = comp[I2(x, y)];
+        if (c >= 0) placed.push([x, y, c]);
+        else {
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const cc = inb(x + dx, y + dy) ? comp[I2(x + dx, y + dy)] : -1;
+            if (cc >= 0) {
+              placed.push([x, y, cc]);
+              break;
+            }
+          }
+        }
+      }
+      const SP = 28;
+      let n2 = 0;
+      const near2 = (x, y, c) => {
+        for (const p of placed) if (p[2] === c && Math.hypot(p[0] - x, p[1] - y) < SP) return true;
+        return false;
+      };
+      const apply = (cells, ends, c, cx, cy) => {
+        for (const [x, y] of cells) {
+          ground[I2(x, y)] = T.CROSSING;
+          deco[I2(x, y)] = D.NONE;
+        }
+        for (const [x, y] of ends) {
+          if (ground[I2(x, y)] !== T.ROAD && ground[I2(x, y)] !== T.PLAZA) ground[I2(x, y)] = T.PATH;
+          deco[I2(x, y)] = D.NONE;
+        }
+        placed.push([cx, cy, c]);
+        n2++;
+      };
+      for (let pass2 = 0; pass2 < 2; pass2++) for (let a = 2; a < (pass2 ? H2 : W) - 3; a++) for (let b = 2; b < (pass2 ? W : H2) - 1; b++) {
+        const X = pass2 ? b : a, Y2 = pass2 ? a : b;
+        if (ground[I2(X, Y2)] !== T.RAIL) continue;
+        if (pass2 ? ground[I2(X - 1, Y2)] === T.RAIL : ground[I2(X, Y2 - 1)] === T.RAIL) continue;
+        let e = 0;
+        const step2 = pass2 ? [1, 0] : [0, 1];
+        while (e < 9 && ground[I2(X + step2[0] * e, Y2 + step2[1] * e)] === T.RAIL) e++;
+        if (e > 8) continue;
+        const ex = X + step2[0] * e, ey = Y2 + step2[1] * e, sx = X - step2[0], sy = Y2 - step2[1];
+        const lat = pass2 ? [0, 1] : [1, 0];
+        const cells = [], ends = [];
+        let ok = true;
+        for (let w = 0; w < 2 && ok; w++) {
+          const ox = lat[0] * w, oy = lat[1] * w;
+          for (let i = 0; i < e; i++) {
+            const x = X + step2[0] * i + ox, y = Y2 + step2[1] * i + oy;
+            if (ground[I2(x, y)] !== T.RAIL) {
+              ok = false;
+              break;
+            }
+            cells.push([x, y]);
+          }
+          if (!ok) break;
+          if (!freeAt(sx + ox, sy + oy) || !freeAt(ex + ox, ey + oy)) ok = false;
+          ends.push([sx + ox, sy + oy], [ex + ox, ey + oy]);
+        }
+        if (!ok) continue;
+        const c = comp[I2(X, Y2)];
+        const cx = X + step2[0] * (e / 2), cy = Y2 + step2[1] * (e / 2);
+        if (near2(cx, cy, c)) continue;
+        let tooClose = false;
+        for (const p of placed) if (Math.hypot(p[0] - cx, p[1] - cy) < 5) {
+          tooClose = true;
+          break;
+        }
+        if (tooClose) continue;
+        apply(cells, ends, c, cx, cy);
+      }
+      return n2;
+    }
+    dbg.bridgeAdded = addWaterBridges();
+    function addWaterBridges() {
+      const FREEG2 = /* @__PURE__ */ new Set([T.GRASS, T.ROAD, T.PATH, T.PLAZA, T.SAND, T.FARM, T.PADDY]);
+      const CLR = /* @__PURE__ */ new Set([D.TREE, D.FENCE, D.FLOWER, D.POST, D.BENCH, D.LAMP, D.VENDING]);
+      const freeAt = (x, y) => {
+        if (!inb(x, y)) return false;
+        const k = I2(x, y);
+        if (bid[k] >= 0 || res[k] === 2) return false;
+        if (!FREEG2.has(ground[k])) return false;
+        return !deco[k] || CLR.has(deco[k]) || deco[k] === D.NONE;
+      };
+      const walk = (k) => {
+        const g = ground[k];
+        if (bid[k] >= 0) return false;
+        if (!(FREEG2.has(g) || g === T.BRIDGE || g === T.CROSSING || g === T.QUAY)) return false;
+        const d = deco[k];
+        return !d || !(d === D.TREE || d === D.FENCE || d === D.VENDING || d === D.BENCH || d === D.POST || d === D.LAMP || d === D.BUILDING);
+      };
+      const stamp = new Int32Array(N), dist2 = new Int32Array(N);
+      let sid = 0;
+      const qa = new Int32Array(6e4);
+      const detour = (a, b, cap2) => {
+        sid++;
+        let h = 0, t = 0;
+        qa[t++] = a;
+        stamp[a] = sid;
+        dist2[a] = 0;
+        while (h < t) {
+          const c = qa[h++], d = dist2[c];
+          if (c === b) return d;
+          if (d >= cap2) continue;
+          const x = c % W, y = c / W | 0;
+          for (let q = 0; q < 4; q++) {
+            const nx = x + (q === 0) - (q === 1), ny = y + (q === 2) - (q === 3);
+            if (nx < 0 || ny < 0 || nx >= W || ny >= H2) continue;
+            const kk = ny * W + nx;
+            if (stamp[kk] !== sid && walk(kk)) {
+              stamp[kk] = sid;
+              dist2[kk] = d + 1;
+              if (t < qa.length) qa[t++] = kk;
+            }
+          }
+        }
+        return -1;
+      };
+      let n2 = 0;
+      const CAP2 = 110;
+      for (let pass2 = 0; pass2 < 2; pass2++) for (let a = 2; a < (pass2 ? H2 : W) - 3; a += 2) for (let b = 2; b < (pass2 ? W : H2) - 1; b++) {
+        const X = pass2 ? b : a, Y2 = pass2 ? a : b;
+        if (ground[I2(X, Y2)] !== T.WATER) continue;
+        if (pass2 ? ground[I2(X - 1, Y2)] === T.WATER : ground[I2(X, Y2 - 1)] === T.WATER) continue;
+        const step2 = pass2 ? [1, 0] : [0, 1];
+        let e = 0;
+        while (e < 22 && ground[I2(X + step2[0] * e, Y2 + step2[1] * e)] === T.WATER) e++;
+        if (e > 20) continue;
+        const lat = pass2 ? [0, 1] : [1, 0];
+        const cells = [], ends = [];
+        let ok = true;
+        for (let w = 0; w < 2 && ok; w++) {
+          const ox = lat[0] * w, oy = lat[1] * w;
+          for (let i = 0; i < e; i++) {
+            const x = X + step2[0] * i + ox, y = Y2 + step2[1] * i + oy;
+            if (ground[I2(x, y)] !== T.WATER) {
+              ok = false;
+              break;
+            }
+            cells.push([x, y]);
+          }
+          if (!ok) break;
+          const sx = X - step2[0] + ox, sy = Y2 - step2[1] + oy, ex = X + step2[0] * e + ox, ey = Y2 + step2[1] * e + oy;
+          if (!freeAt(sx, sy) || !freeAt(ex, ey)) ok = false;
+          ends.push([sx, sy], [ex, ey]);
+        }
+        if (!ok) continue;
+        const A2 = I2(ends[0][0], ends[0][1]), B2 = I2(ends[1][0], ends[1][1]);
+        if (detour(A2, B2, CAP2) >= 0) continue;
+        for (const [x, y] of cells) {
+          ground[I2(x, y)] = T.BRIDGE;
+          deco[I2(x, y)] = D.NONE;
+        }
+        for (const [x, y] of ends) deco[I2(x, y)] = D.NONE;
+        n2++;
+      }
+      return n2;
+    }
     const GROUND_SOLID2 = /* @__PURE__ */ new Set([T.WATER, T.RAIL, T.ROCK, T.FOREST]);
     const DECO_SOLID2 = /* @__PURE__ */ new Set([D.TREE, D.VENDING, D.BENCH, D.POST, D.LAMP, D.FENCE, D.BUILDING]);
     const solid = new Uint8Array(N);
     for (let k = 0; k < N; k++) if (GROUND_SOLID2.has(ground[k]) || DECO_SOLID2.has(deco[k]) || bid[k] >= 0) solid[k] = 1;
+    for (const k of grandSolid) solid[k] = 1;
     const ferries = buildings.filter((b) => b.type === "ferry");
     ferries.forEach((b, i) => hubs.push({ id: "hub_ferry" + (i + 1), kind: "ferry", name: (zones.find((z) => z.id === b.zone) || { name: "" }).name.replace(/周辺$/, "") + "\u30D5\u30A7\u30EA\u30FC\u30BF\u30FC\u30DF\u30CA\u30EB", building: b.idx, door: { x: b.doorX, y: b.doorY } }));
     assignNames2(buildings, zones, rng);
@@ -879,6 +1260,9 @@
       placeLog,
       dbg,
       v2info: { city2: true, sites: sites2.length },
+      lots,
+      estates: grandEstates,
+      estWall: grandWall,
       siteRects: sites2.map((S2) => [S2.x, S2.y, S2.w, S2.h]),
       ver: opts.ver || 4,
       rmeta,

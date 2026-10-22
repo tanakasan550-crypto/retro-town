@@ -9,7 +9,7 @@ const vp = land ? { width: 915, height: 412 } : dev.viewport;
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
 const ctx = await browser.newContext({ ...dev, viewport: vp, screen: vp });
 const page = await ctx.newPage();
-const errs = []; page.on('pageerror', e => errs.push('pageerror: ' + e.message)); page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+const errs = []; page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 6).join('\n'))); page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
 await page.goto(file); await page.waitForTimeout(1500);
 const script = process.argv[2] ? (await import(path.resolve(process.argv[2]))).default : async (p, shot) => { await shot('title'); };
 let n = 0; const shot = async (name) => { const f = `${OUT}/${String(++n).padStart(2,'0')}_${name}.png`; await page.screenshot({ path: f }); console.log('shot', f); };

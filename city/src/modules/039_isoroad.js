@@ -1,10 +1,10 @@
   // src/isoroad.js
   var LOT = /* @__PURE__ */ new Set(["konbini", "super", "market", "mall", "hospital", "cardealer", "usedcar", "cityhall", "hotel", "restaurant", "univ", "hs", "clinic", "pharmacy", "bank", "homecenter", "gasstation", "dept", "library", "gym", "cinema", "factory", "logistics", "warehouse", "office"]);
-  var cache9 = /* @__PURE__ */ new WeakMap();
+  var cache8 = /* @__PURE__ */ new WeakMap();
   var grc = /* @__PURE__ */ new WeakMap();
   var FREE = /* @__PURE__ */ new Set([T.GRASS, T.PLAZA, T.SAND, T.PATH]);
   function parkingOf(map2) {
-    let r = cache9.get(map2);
+    let r = cache8.get(map2);
     if (r) return r;
     r = [];
     const W2 = map2.W, H4 = map2.H;
@@ -30,9 +30,9 @@
       const bw = Math.min(b.w, 6), cands = [];
       for (let dep = 2; dep <= 3; dep++) {
         const wd = Math.max(4, Math.min(bw, 6));
-        for (let sh2 = -1; sh2 <= b.w - wd + 1; sh2++) {
-          cands.push({ x: b.x + sh2, y: b.y + b.h + 1, w: wd, h: dep, side: "S" });
-          cands.push({ x: b.x + sh2, y: b.y - dep, w: wd, h: dep, side: "N" });
+        for (let sh3 = -1; sh3 <= b.w - wd + 1; sh3++) {
+          cands.push({ x: b.x + sh3, y: b.y + b.h + 1, w: wd, h: dep, side: "S" });
+          cands.push({ x: b.x + sh3, y: b.y - dep, w: wd, h: dep, side: "N" });
         }
         for (let sy = -1; sy <= b.h - 3 + 1; sy++) {
           cands.push({ x: b.x + b.w, y: b.y + sy + 0, w: dep, h: 3, side: "E" });
@@ -46,33 +46,33 @@
         break;
       }
     }
-    cache9.set(map2, r);
+    cache8.set(map2, r);
     return r;
   }
-  function paintParking(sx, lots, x0, y0, x1, y1, ox, oy, TS) {
+  function paintParking(sx, lots, x0, y0, x1, y1, ox, oy, TS2) {
     for (const L2 of lots) {
       if (L2.x + L2.w < x0 || L2.x > x1 || L2.y + L2.h < y0 || L2.y > y1) continue;
-      const px2 = ox + L2.x * TS, py = oy + L2.y * TS, pw = L2.w * TS, ph = L2.h * TS;
+      const px2 = ox + L2.x * TS2, py = oy + L2.y * TS2, pw = L2.w * TS2, ph = L2.h * TS2;
       sx.fillStyle = "#585b61";
       sx.fillRect(px2, py, pw, ph);
       sx.fillStyle = "#4c4f55";
       for (let i = 0; i < L2.w * L2.h; i += 2) {
         const gx = i % L2.w, gy = i / L2.w | 0;
-        sx.fillRect(px2 + gx * TS + TS * 0.1, py + gy * TS + TS * 0.1, TS * 0.2, TS * 0.2);
+        sx.fillRect(px2 + gx * TS2 + TS2 * 0.1, py + gy * TS2 + TS2 * 0.1, TS2 * 0.2, TS2 * 0.2);
       }
       sx.fillStyle = "#e9e9e4";
-      const lw = Math.max(1, TS * 0.06);
+      const lw = Math.max(1, TS2 * 0.06);
       if (L2.side === "S" || L2.side === "N") {
-        for (let i = 0; i <= L2.w; i++) sx.fillRect(px2 + i * TS - lw / 2, py, lw, ph - TS * 0);
+        for (let i = 0; i <= L2.w; i++) sx.fillRect(px2 + i * TS2 - lw / 2, py, lw, ph - TS2 * 0);
         sx.fillRect(px2, py + ph - lw, pw, lw);
         sx.fillStyle = "#b8bcc4";
-        for (let i = 0; i < L2.w; i++) sx.fillRect(px2 + i * TS + TS * 0.25, L2.side === "N" ? py + ph - TS * 0.22 : py + TS * 0.12, TS * 0.5, TS * 0.1);
+        for (let i = 0; i < L2.w; i++) sx.fillRect(px2 + i * TS2 + TS2 * 0.25, L2.side === "N" ? py + ph - TS2 * 0.22 : py + TS2 * 0.12, TS2 * 0.5, TS2 * 0.1);
       } else {
-        for (let j = 0; j <= L2.h; j++) sx.fillRect(px2, py + j * TS - lw / 2, pw, lw);
+        for (let j = 0; j <= L2.h; j++) sx.fillRect(px2, py + j * TS2 - lw / 2, pw, lw);
         const e = L2.side === "E" ? px2 + pw - lw : px2;
         sx.fillRect(e, py, lw, ph);
         sx.fillStyle = "#b8bcc4";
-        for (let j = 0; j < L2.h; j++) sx.fillRect(L2.side === "E" ? px2 + pw - TS * 0.22 : px2 + TS * 0.12, py + j * TS + TS * 0.25, TS * 0.1, TS * 0.5);
+        for (let j = 0; j < L2.h; j++) sx.fillRect(L2.side === "E" ? px2 + pw - TS2 * 0.22 : px2 + TS2 * 0.12, py + j * TS2 + TS2 * 0.25, TS2 * 0.1, TS2 * 0.5);
       }
     }
   }
