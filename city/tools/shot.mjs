@@ -2,7 +2,7 @@
 import { chromium, devices } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 import fs from 'fs'; import path from 'path';
 const OUT = process.env.OUT || '/tmp/claude-0/shots'; fs.mkdirSync(OUT, { recursive: true });
-const file = 'file://' + path.resolve(process.env.HTML || 'dist/index.html');
+const file = 'file://' + path.resolve(process.env.HTML || 'dist/index.html') + '?city=' + (process.env.CITY || '4');
 const land = process.env.PORTRAIT ? false : true;
 const dev = devices['Pixel 7'];
 const vp = land ? { width: 915, height: 412 } : dev.viewport;

@@ -1,0 +1,21 @@
+import { startTrial, st } from './lib.mjs';
+const until = async (p, fn, maxS) => { for (let i = 0; i < maxS * 2; i++) { await p.waitForTimeout(500); const r = await p.evaluate(fn); if (r) return r; } return null; };
+const pickItem = (p, txt) => p.evaluate((txt) => { const b = [...document.querySelectorAll('#card button.item')].find(b => b.textContent.includes(txt)); if (b) b.click(); return !!b; }, txt);
+const walkObj = (p, pred) => p.evaluate((pred) => { const G = NLS.G, L = G.S.loc; const I = NLS.nav.interiorOf(G, L.b, L.floor).I; const o = I.objs.find(new Function('o', 'return ' + pred)); NLS.nav.navTo({ kind: 'obj', o }); return !!o; }, pred);
+export default async (p, shot) => {
+  await startTrial(p);
+  await p.evaluate(() => { globalThis.__NAVSPEED = 3; const G = NLS.G, b = G.world.map.buildings.find(b => b.type === 'themepark'); const L = G.S.loc; L.k = 'in'; L.b = b.idx; L.floor = 0; const I = NLS.nav.interiorOf(G, b.idx, 0).I; L.x = I.door.x + 0.5; L.y = I.H - 2; G.S.min = 10 * 60; NLS.U.cwAt = -999; NLS.R.izl = -1; });
+  await p.waitForTimeout(1500); await shot('gate');
+  await walkObj(p, "o.act==='fx_tpticket'"); await until(p, () => NLS.U.modal, 30);
+  console.log('ticket:', (await st(p)).card.replace(/\n/g, ' | '));
+  await pickItem(p, '1日パスポート'); await p.waitForTimeout(500);
+  await walkObj(p, "o.ride==='coaster'"); await until(p, () => NLS.U.modal, 60);
+  await shot('at_coaster');
+  console.log('coaster:', (await st(p)).card.replace(/\n/g, ' | '));
+  await pickItem(p, '乗る'); await p.waitForTimeout(6500); await shot('coaster_ride');
+  await p.evaluate(() => window.__scene && window.__scene.end()); await p.waitForTimeout(500);
+  console.log('toast:', await p.evaluate(() => document.getElementById('toast').textContent));
+  await walkObj(p, "o.ride==='ferris'"); await until(p, () => NLS.U.modal, 60);
+  await shot('at_ferris');
+  await pickItem(p, '乗る'); await p.waitForTimeout(7000); await shot('ferris_ride');
+};
