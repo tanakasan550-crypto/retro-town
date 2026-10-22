@@ -127,6 +127,10 @@
         L2.y = ny;
         res.moved = true;
       }
+      if (I2.fac) {
+        const fm = facStep(g, L2, I2, iy);
+        if (fm) res.msg = fm;
+      }
       if (L2.y >= I2.H - 0.6 && Math.abs(L2.x - (I2.door.x + 0.5)) < 0.8) {
         if (isUnitFloor(L2.floor)) {
           leaveUnit(g);

@@ -172,6 +172,7 @@
       L2.x = dest.door.x + 0.5;
       L2.y = dest.door.y + 0.6;
       L2.f = "d";
+      if (this.toPlatform) stationArrive(g, this);
       g.S.stats.rides++;
       g.log("trip", `\u96FB\u8ECA\u3067${dest.name}\u99C5\u306B\u7740\u3044\u305F(${this.originName}\u2192${dest.name})`);
       if (this.sitting) g.chg({ energy: 3 });

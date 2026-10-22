@@ -878,6 +878,11 @@ ${spiritLines(G3).map(esc4).join("\n")}
       return;
     }
     if (r.ui === "fx_move") return moveModal();
+    if (r.ui === "fx_ticket") return ticketModal();
+    if (r.ui === "fx_ride") {
+      sfx.train && sfx.train();
+      return rideScreen(r.ride);
+    }
     if (r.ui === "fx_scene") return facScene(r.scene, r.msg);
     if (r.ui === "guide") {
       const gb = G3.bld(G3.S.loc.b);

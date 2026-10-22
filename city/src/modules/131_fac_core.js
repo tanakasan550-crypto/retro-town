@@ -7,6 +7,12 @@
   var FAC_KEY = {};
   var FAC_ACTS = {};
   var FAC_RUN = {};
+  var FAC_STEP = {};
+  function facStep(g, L2, I2, iy) {
+    const b = g.world.map.buildings[L2.b];
+    const f = b && FAC_STEP[b.type];
+    return f ? f(g, L2, I2, iy) : null;
+  }
   function facBuild(b, floor, g) {
     const f = FAC_BUILD[b.type];
     if (!f) return null;

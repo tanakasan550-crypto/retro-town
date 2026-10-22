@@ -170,7 +170,7 @@
       if (tr.t < DOOR_SEC) tr.door = Math.min(1, tr.t / DOOR_SEC);
       else {
         const u = Math.min(1, (tr.t - DOOR_SEC) / 0.8);
-        L2.y = tr.dy + (2.5 - tr.dy) * u;
+        L2.y = tr.dy + (Math.max(tr.dy + 0.95, tr.dy < 2 ? 2.5 : 0) - tr.dy) * u;
         L2.f = "d";
         res.moved = true;
         tr.door = 1;
