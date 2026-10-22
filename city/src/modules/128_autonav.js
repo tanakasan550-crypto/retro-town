@@ -16,6 +16,13 @@
   // 目標: {kind:"pt",x,y} / {kind:"bld",b,floor?,unit?} / {kind:"npc",id} / {kind:"obj",o} / {kind:"deco",x,y,d} / {kind:"exit"} / {kind:"floor",floor}
   function navTo(tg, opts = {}) {
     if (!G3 || R4.street) return false;
+    {
+      const L0 = G3.S.loc;
+      if ((tg.kind === "obj" || tg.kind === "pt" && !tg.out) && L0.k === "in" && tg.floor == null) {
+        tg.floor = L0.floor;
+        tg.inB = L0.b;
+      }
+    }
     NAV = { tg, label: opts.label || navLabel(tg), run: !!opts.run, path: null, i: 0, key: "", dir: null, stuckT: 0, lastP: null, fails: 0, push: 0, born: performance.now(), done: false };
     navPlan();
     navPill();
@@ -114,6 +121,9 @@
         goals = navAround(I2, solid, o);
         n.after = "unit";
       } else return navArrive();
+    } else if ((tg.kind === "obj" || tg.kind === "pt") && tg.floor != null && tg.inB === L2.b && tg.floor !== L2.floor && !isUnitFloor(L2.floor)) {
+      goals = navLevel(I2, solid, tg.floor);
+      if (!goals) return navStop("この階からは行けません");
     } else if (tg.kind === "obj") {
       n.obj = tg.o;
       goals = navAround(I2, solid, tg.o);
@@ -183,7 +193,7 @@
     for (let y = o.y - 1; y <= o.y + h; y++) for (let x = o.x - 1; x <= o.x + w; x++) {
       const inside = x >= o.x && x < o.x + w && y >= o.y && y < o.y + h;
       if (inside || x < 0 || y < 0 || x >= I2.W || y >= I2.H) continue;
-      if (!solid[x + y * I2.W]) out.push([x, y]);
+      if (!solid[x + y * I2.W] && !I2.objs.some((q) => q.act === "stairs" && q.x === x && q.y === y)) out.push([x, y]);
     }
     if (!out.length && !solid[o.x + o.y * I2.W]) out.push([o.x, o.y]);
     return out;
@@ -191,6 +201,7 @@
   function bfsIn(I2, solid, sx, sy, goals) {
     const W2 = I2.W, H4 = I2.H, n = W2 * H4;
     const gset = new Set(goals.map(([x, y]) => x + y * W2));
+    const trap = new Set(I2.objs.filter((o) => o.act === "stairs" || o.t === "esc").map((o) => o.x + o.y * W2));
     const prev = new Int32Array(n).fill(-2);
     sx = Math.max(0, Math.min(W2 - 1, sx));
     sy = Math.max(0, Math.min(H4 - 1, sy));
@@ -210,7 +221,7 @@
         if (nx < 0 || ny < 0 || nx >= W2 || ny >= H4) continue;
         const kk = nx + ny * W2;
         if (prev[kk] !== -2) continue;
-        if (solid[kk] && !gset.has(kk)) continue;
+        if ((solid[kk] || trap.has(kk)) && !gset.has(kk)) continue;
         prev[kk] = k;
         q.push(kk);
       }

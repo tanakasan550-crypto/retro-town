@@ -335,7 +335,7 @@
       }
       return g.chg(m);
     };
-    if (facRun(g, kind, arg, tg, r)) return r;
+    if (facRun(g, kind, arg != null ? id.slice(kind.length + 1) : arg, tg, r)) return r;
     switch (kind) {
       case "enter":
         break;
