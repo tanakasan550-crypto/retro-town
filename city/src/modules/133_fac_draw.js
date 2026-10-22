@@ -5,12 +5,20 @@
   FLOORC.floor_red = ["#8c2f39", "#96363f"];
   FLOORC.floor_turf = ["#4f9a3c", "#57a443"];
   FLOORC.floor_dirt = ["#b98b5b", "#c29462"];
+  var FAC_DRAW = {};
   var FXH = { roomsign: 0.05, fx_pool: 0.05, sunbed: 0.5 };
   function drawFac(c, env, o, H4) {
     const { P: P2, Z, R: R5 } = env;
     const { box, poly, shadow, pt } = H4;
     const x = o.x, y = o.y, w = o.w || 1, h = o.h || 1;
     const t = R5 && R5.time || 0;
+    {
+      const fd = FAC_DRAW[o.t];
+      if (fd) {
+        fd(c, env, o, H4, { x, y, w, h, t, Z, P: P2, box, poly, shadow, pt });
+        return true;
+      }
+    }
     switch (o.t) {
       case "roomsign": {
         // 天井から下がる案内板(文字)
