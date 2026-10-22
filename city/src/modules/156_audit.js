@@ -31,7 +31,7 @@
   })();
   var auditCat = (b) => AUDIT_TYPE_CAT[b.type] || "other";
   // 自動試験(tools/scen)のうち、その施設の利用を実際に通して確かめているもの
-  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp", station: "st,stpeople,metro", metro: "metro", stadium: "sd", airport: "fly", hospital: "ho" };
+  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp", station: "st,stpeople,metro", metro: "metro", stadium: "sd", airport: "fly", hospital: "ho", zoo: "zoo" };
   var auditFactC = /* @__PURE__ */ new Map();
   // 種類ごとの事実(代表の建物の内部を実際に組み立てて数える)
   function auditFacts(g, b) {
