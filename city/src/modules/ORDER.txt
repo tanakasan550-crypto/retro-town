@@ -147,4 +147,5 @@
 152_guide_hud.js
 153_transit_plan.js
 154_bus_net.js
+155_transit_trip.js
 999_end.js

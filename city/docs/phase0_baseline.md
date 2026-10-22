@@ -20,5 +20,5 @@
 - 旧方式への復帰は無し(既定は新方式)。
 
 ## セーブ互換
-- 追加した保存項目はすべて任意(無くても読める): `S.hotel` `S.rail` `S.railIn` `S.hq` `S.sdTicket` `S.tpDay` `S.aqDay` `S.homeUnit` `b.planNf`(bdyn)。
+- 追加した保存項目はすべて任意(無くても読める): `S.hotel` `S.rail` `S.railIn` `S.hq` `S.sdTicket` `S.tpDay` `S.aqDay` `S.homeUnit` `b.planNf`(bdyn) `S.onBus` `S.busWait` `S.ctrip`(バス乗車中に保存した場合、読み込み時は最寄りの停留所で降りた状態になる)。
 - GAME_ID / SCHEMA_VERSION / 既存フィールドは変更なし。地図v1〜v3は不変。v4は生成結果を変えず、生成後の追加処理(階数の補正など)は決定的。

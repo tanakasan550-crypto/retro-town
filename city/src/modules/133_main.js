@@ -326,7 +326,7 @@
     U.walkers = [];
     U.people = [];
     clearInteriorCache();
-    window.NLS = { G: G3, R: R4, C, U, AW, CTL, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, bus: { busNet, busesNow, facOutdoorTargets, targetActions, runAction, targetsFor }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
+    window.NLS = { G: G3, R: R4, C, U, AW, CTL, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, bus: { busNet, busFleet, busUpdate, busEtas, busNpcStatus, BUSSIM, facOutdoorTargets, targetActions, runAction, targetsFor, transitPlan, tripOptions, tripStart, tripModal, busMapModal, busOfHero }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
       return NAV;
     } } };
     if (!loaded && !(G3.S.life && G3.S.life.env)) {
@@ -435,6 +435,18 @@
   }
   function step(dt) {
     if (!G3 || U.modal) return;
+    try {
+      const ff = G3.S.onBus && U.scale >= 3 ? 3 : 1;
+      // 乗車中の早送り: バスと信号の時計を同じ倍率で進める(赤信号の待ちだけが長くならないように)
+      if (ff > 1) R4.time = (R4.time || 0) + Math.min(dt, 0.1) * (ff - 1);
+      busUpdate(G3, Math.min(dt, 0.1) * ff);
+    } catch (e) {
+      console.error(e);
+    }
+    if (G3.S.onBus) {
+      busRideStep(G3, dt);
+      return;
+    }
     if (taxiTripActive(G3)) {
       const r = taxiTripTick(G3, dt, U.taxiSkip);
       U.taxiSkip = false;
@@ -1184,6 +1196,8 @@ ${spiritLines(G3).map(esc4).join("\n")}
       return;
     }
     if (r.ui === "fx_move") return moveModal();
+    if (r.ui === "busmap") return busMapModal();
+    if (r.ui === "taxistand") return moveModal();
     if (r.ui === "fx_ticket") return ticketModal();
     if (r.ui === "fx_ride") {
       sfx.train && sfx.train();
@@ -1933,7 +1947,8 @@ ${p.spouse[id] >= 0 ? "\u30D1\u30FC\u30C8\u30CA\u30FC: " + esc4(G3.nameOf(p.spou
           const b = G3.bld(+bb.dataset.b);
           setDest(b, 0);
           const rep = U.route ? describeRoute(G3.world.map, U.route, b.name) : ["\u7D4C\u8DEF\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093"];
-          c.querySelector("#mres").innerHTML = `<h3>${esc4(b.name)}</h3><div class="small">${!BTYPES[b.type].enter ? "\u30FB\u5916\u304B\u3089\u773A\u3081\u308B\u65BD\u8A2D(\u4E2D\u306B\u306F\u5165\u308C\u307E\u305B\u3093)" : isOpenFor(G3, b).ok ? "\u30FB\u3044\u307E\u5165\u308C\u307E\u3059" : "\u30FB" + esc4(isOpenFor(G3, b).msg || "\u4ECA\u306F\u5165\u308C\u307E\u305B\u3093")}</div></div>` + routeSummary(c, b, rep) + `<div class="row"><button class="btn sec" id="mapBtn">\u5730\u56F3\u3067\u9053\u6848\u5185\u3092\u898B\u308B</button></div>`;
+          c.querySelector("#mres").innerHTML = `<h3>${esc4(b.name)}</h3><div class="small">${!BTYPES[b.type].enter ? "\u30FB\u5916\u304B\u3089\u773A\u3081\u308B\u65BD\u8A2D(\u4E2D\u306B\u306F\u5165\u308C\u307E\u305B\u3093)" : isOpenFor(G3, b).ok ? "\u30FB\u3044\u307E\u5165\u308C\u307E\u3059" : "\u30FB" + esc4(isOpenFor(G3, b).msg || "\u4ECA\u306F\u5165\u308C\u307E\u305B\u3093")}</div></div>` + routeSummary(c, b, rep) + `<div class="row"><button class="btn acc" id="tripBtn">🧭 乗換案内(徒歩・バス・電車)</button><button class="btn sec" id="mapBtn">\u5730\u56F3\u3067\u9053\u6848\u5185\u3092\u898B\u308B</button></div>`;
+          c.querySelector("#tripBtn").onclick = () => tripModal({ b: b.idx });
           c.querySelector("#mapBtn").onclick = () => {
             closeModal();
             mapModal();

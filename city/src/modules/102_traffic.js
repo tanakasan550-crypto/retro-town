@@ -92,7 +92,7 @@
         if (pv) ty = pv.ty;
         {
           const nl = (LEN_M[ty] || 4.5) / 2;
-          if (cars.some((c) => Math.abs(c.x - cx) < (c.len + nl) / 2 + 1.5 && Math.abs(c.y - cy) < (c.len + nl) / 2 + 1.5)) continue;
+          if ((this.extra ? cars.concat(this.extra) : cars).some((c) => Math.abs(c.x - cx) < (c.len + nl) / 2 + 1.5 && Math.abs(c.y - cy) < (c.len + nl) / 2 + 1.5)) continue;
         }
         cars.push({ dest: owner >= 0 ? this.world.pop.work[owner] >= 0 ? this.world.pop.work[owner] : this.world.pop.school[owner] : -1, home: owner >= 0 ? this.world.pop.home[owner] : -1, id: pv ? pv.id : "CAR" + String(this.n).padStart(4, "0"), owner, ty, x: cx, y: cy, d, v: 0, len: (LEN_M[ty] || 4.5) / 2, color: pv ? pv.color : (hh >>> 7) % CAR_COLORS.length, driver: owner >= 0 ? owner : this.world && this.world.pop ? (hh >>> 3) % this.world.pop.n : -1, wait: 0, horiz: d % 2 === 0, dir: d === 0 || d === 1 ? 1 : -1, era: eraOfYear(year), stopped: false });
         break;

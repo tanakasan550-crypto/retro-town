@@ -807,7 +807,8 @@
       };
       return it;
     };
-    if (g.S.taxiTrip && TAXI.trip) {
+    if (g.S.onBus) {
+    } else if (g.S.taxiTrip && TAXI.trip) {
       heroIt = pushVeh(hero.x, hero.y, TAXI.trip.d & 3, "taxi", g.year() < 2e3 ? 0 : g.year() < 2015 ? 1 : g.year() < 2035 ? 2 : 3, 8, LEN_M.taxi / 2, { moving: true });
       if (heroIt) heroIt.isHero = true;
     } else if (rv === "car" || rv === "test") {
@@ -850,7 +851,7 @@
     const trs = R5.trainsNow();
     const L2 = g.tr.byId;
     const era4 = g.year() < 2e3 ? 0 : g.year() < 2015 ? 1 : g.year() < 2035 ? 2 : 3;
-    for (const c of [...R5.carsNow(dtSec, hero, trs), ...busesNow(R5, hero)]) {
+    for (const c of R5.carsNow(dtSec, hero, trs)) {
       if (Math.abs(c.x - hero.x) > 48 || Math.abs(c.y - hero.y) > 48) continue;
       pushVeh(c.x, c.y, c.d, c.ty, c.era ?? era4, c.color, c.len, { moving: c.v > 0.05 });
     }
@@ -867,7 +868,11 @@
       const sx = L3.side === "E" ? L3.x + 0.1 : L3.side === "W" ? L3.x + L3.w - 0.3 : L3.x + 0.05, sy = L3.side === "S" ? L3.y + 0.05 : L3.side === "N" ? L3.y + L3.h - 0.3 : L3.y + 0.1;
       push(sx, sy, sx + 0.25, sy + 0.25, P2.X(sx, sy) - 8 * Z, P2.X(sx, sy) + 8 * Z, P2.Y(sx, sy, 2.4) - 10 * Z, P2.Y(sx, sy, 0) + 2 * Z, (c) => drawParkSign(c, P2, Z, L3));
     }
-    facOutdoor(R5, hero, push, P2, Z);
+    {
+      R5._pushVeh = pushVeh;
+      const bi = facOutdoor(R5, hero, push, P2, Z);
+      if (bi && g.S.onBus) heroIt = bi;
+    }
     for (const sg of hwy.segs) {
       const [rx0, ry0, rx1, ry1] = sg.ax === "x" ? [sg.a, sg.f, sg.b + 1, sg.f + sg.th] : [sg.f, sg.a, sg.f + sg.th, sg.b + 1];
       if (hero.x < rx0 - 50 || hero.x > rx1 + 50 || hero.y < ry0 - 50 || hero.y > ry1 + 50) continue;
@@ -1103,6 +1108,7 @@
     }
     try {
       drawOutdoorGuides(R5, ctx4, P2, hero, g);
+      drawBusOverlay(R5, ctx4, P2, hero, g);
     } catch (e) {
     }
     if (extras.focus) {

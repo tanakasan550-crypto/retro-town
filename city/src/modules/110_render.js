@@ -666,7 +666,7 @@
         const p = posOnPath(L2.path, t.dd);
         tp.push({ x: p.x, y: p.y });
       }
-      this.traffic.extra = this.npcObs || [];
+      this.traffic.extra = (this.npcObs || []).concat(busObstacles(this.g, hero));
       this.traffic.busy = new Set(this.walkers.map((w) => w.id));
       this.traffic.step(dt, hero, this.time, peds, tp, this.g.year());
       return this.traffic.cars;
@@ -1166,6 +1166,7 @@
         x.stroke();
       }
       x.setLineDash([]);
+      drawBusRoutesMini(g, x, sc, f2);
       x.font = `bold ${Math.round(Math.max(9, 11 * (sc === 1 ? 1.1 : 1)))}px sans-serif`;
       x.textAlign = "center";
       const sr = Math.max(3, 5 * (sc === 1 ? 0.9 : 1));
