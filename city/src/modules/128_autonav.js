@@ -69,7 +69,11 @@
         gx = f[0];
         gy = f[1];
       } else return navStop();
-      const sx = Math.floor(L2.x), sy = Math.floor(L2.y);
+      let sx = Math.floor(L2.x), sy = Math.floor(L2.y);
+      if (G3.world.map.solid[sx + sy * G3.world.map.W]) {
+        const f = nearWalkOut(L2.x, L2.y);
+        if (f) [sx, sy] = f;
+      }
       const p = findPath(G3.world.map, sx, sy, gx, gy, navMode());
       if (!p) return navStop(`${n.label}への道が見つかりません`);
       n.path = p.map(([x, y]) => [x + 0.5, y + 0.5]);
