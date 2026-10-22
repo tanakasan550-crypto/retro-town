@@ -564,7 +564,7 @@
       case "showcar":
         return 1.8;
       default:
-        return XH[o.t] ?? 1.1;
+        return FXH[o.t] ?? XH[o.t] ?? 1.1;
     }
   }
   function box2(c, P2, x0, y0, x1, y1, z0, z1, base) {
@@ -1688,6 +1688,7 @@
         break;
       }
       default: {
+        if (drawFac(c, env, o, { box: box2, poly: poly4, shadow, pick: pick3, pt, mix })) break;
         if (drawExtra(c, env, o, { box: box2, poly: poly4, shadow, pick: pick3, pt, mix })) break;
         shadow(c, P2, x + 0.1, y + 0.1, x + 0.9, y + 0.9);
         box2(c, P2, x + 0.1, y + 0.1, x + 0.9, y + 0.9, 0, 0.9, "#9aa0a8");

@@ -87,6 +87,7 @@
     if (tg.kind === "npc") return npcActions(g, tg.id);
     const o = tg.o, b = g.world.map.buildings[L2.b], bt = BTYPES[b.type];
     const a = g.age();
+    if (facActs(g, o, b, push)) return out;
     switch (o.act) {
       case "sleep": {
         const hotel2 = bt.cat === "hotel";
@@ -334,6 +335,7 @@
       }
       return g.chg(m);
     };
+    if (facRun(g, kind, arg, tg, r)) return r;
     switch (kind) {
       case "enter":
         break;

@@ -19,7 +19,7 @@
   var interiorCache = /* @__PURE__ */ new Map();
   function interiorOf(g, bIdx, floor) {
     const b0 = g.world.map.buildings[bIdx];
-    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "");
+    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "") + facKey(g, b0);
     let r = interiorCache.get(k);
     if (!r) {
       const b = b0;
@@ -262,6 +262,10 @@
     L2.floor = lv;
     L2.x = 2 + pos * 3 + 1.5;
     L2.y = 6.4;
+    {
+      const sp = unitDoorSpot(g, L2.b, lv, pos);
+      if (sp) [L2.x, L2.y] = sp;
+    }
     L2.f = "d";
     L2.sl = { f: lv, b: L2.b, x: L2.x, y: 5.5 };
   }

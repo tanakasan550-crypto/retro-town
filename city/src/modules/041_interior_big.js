@@ -1,6 +1,10 @@
   // src/interior_big.js
   var bigKind = (b) => b.type === "dept" ? "dept" : b.type === "mall" ? "mall" : isCondo(b) ? "condo" : null;
   function levelRange(b) {
+    {
+      const fr = facRange(b);
+      if (fr) return fr;
+    }
     const nf = storeys(b), k = bigKind(b);
     if (k === "dept") return { lo: -1, hi: nf, nf };
     if (k === "mall") return { lo: -1, hi: nf, nf };
@@ -10,6 +14,10 @@
   var DEPT = ["\u5316\u7CA7\u54C1\u30FB\u6848\u5185", "\u5A66\u4EBA\u670D", "\u7D33\u58EB\u670D", "\u5B50\u4F9B\u670D\u30FB\u73A9\u5177", "\u5BB6\u5177\u30FB\u751F\u6D3B\u7528\u54C1", "\u66F8\u7C4D\u30FB\u6587\u5177\u30FB\u50AC\u4E8B", "\u30EC\u30B9\u30C8\u30E9\u30F3\u8857", "\u50AC\u4E8B\u5834\u30FB\u30AE\u30E3\u30E9\u30EA\u30FC"];
   var MALL = ["\u5C02\u9580\u5E97\u30FB\u96D1\u8CA8", "\u30D5\u30A1\u30C3\u30B7\u30E7\u30F3", "\u30D5\u30FC\u30C9\u30B3\u30FC\u30C8\u30FB\u30B2\u30FC\u30E0\u30FB\u6620\u753B"];
   function levelLabel(b, lv) {
+    {
+      const fl = facLabel(b, lv);
+      if (fl) return fl;
+    }
     const k = bigKind(b);
     const { nf } = levelRange(b);
     const fl = lv < 0 ? "B" + -lv + "F" : lv >= nf && (k === "dept" || k === "mall") ? "R" : lv + 1 + "F";

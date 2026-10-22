@@ -871,6 +871,14 @@ ${spiritLines(G3).map(esc4).join("\n")}
     if (G3.blocked()) setTimeout(openPrompt, 100);
   }
   function specialUI(r, tg) {
+    if (r.ui === "fx_goroom") {
+      if (r.msg) toast(r.msg, 5200);
+      const h = G3.S.hotel;
+      if (h) setTimeout(() => navTo({ kind: "bld", b: h.b, unit: h.room }, { label: `${roomNo(decodeUnit(h.room).lv, decodeUnit(h.room).pos)}号室` }), 400);
+      return;
+    }
+    if (r.ui === "fx_move") return moveModal();
+    if (r.ui === "fx_scene") return facScene(r.scene, r.msg);
     if (r.ui === "guide") {
       const gb = G3.bld(G3.S.loc.b);
       return showModal(`<h2>${esc4(gb.name)} \u30D5\u30ED\u30A2\u30AC\u30A4\u30C9</h2><div class="tx small" style="white-space:pre-line;text-align:left">${esc4(r.msg)}</div><div class="row">${btn("\u9589\u3058\u308B", "sec")}</div>`, (c) => {

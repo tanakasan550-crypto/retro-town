@@ -129,4 +129,7 @@
 128_autonav.js
 129_npcinfo.js
 130_bldfix.js
+131_fac_core.js
+132_fac_hotel.js
+133_fac_draw.js
 999_end.js

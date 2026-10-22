@@ -50,6 +50,10 @@
     return settleSpots(buildInterior0(b, floor, g));
   }
   function buildInterior0(b, floor = 0, g = null) {
+    {
+      const fi = facBuild(b, floor, g);
+      if (fi) return fi;
+    }
     if (isUnitFloor(floor)) {
       const I2 = buildInterior({ ...b, floors: 1 }, 0, g);
       I2.unit = decodeUnit(floor);
