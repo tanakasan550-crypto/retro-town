@@ -1,0 +1,24 @@
+import { startTrial, st } from './lib.mjs';
+const until = async (p, fn, maxS) => { for (let i = 0; i < maxS * 2; i++) { await p.waitForTimeout(500); const r = await p.evaluate(fn); if (r) return r; } return null; };
+const card = async (p) => (await st(p)).card.replace(/\n/g, ' | ').slice(0, 260);
+const clickFirst = (p, sel) => p.evaluate((sel) => { const b = [...document.querySelectorAll(sel)].find(b => !b.disabled); if (b) b.click(); return b ? b.textContent.slice(0, 60) : null; }, sel);
+const act = async (p, actName, label) => { await p.evaluate((a) => { const G = NLS.G, L = G.S.loc; const I = NLS.nav.interiorOf(G, L.b, L.floor).I; const o = I.objs.find(o => o.act === a); NLS.nav.navTo({ kind: 'obj', o }); }, actName); await until(p, () => NLS.U.modal, 40); console.log(label, await card(p)); };
+export default async (p, shot) => {
+  await startTrial(p);
+  await p.evaluate(() => { globalThis.__NAVSPEED = 3; const G = NLS.G, b = G.world.map.buildings.find(b => b.type === 'airport'); const L = G.S.loc; L.k = 'in'; L.b = b.idx; L.floor = 0; L.x = 48.5; L.y = 25; G.S.min = 9 * 60; NLS.U.cwAt = -999; });
+  await act(p, 'checkin', 'checkin:');
+  console.log(' click', await clickFirst(p, '#card button.item')); await p.waitForTimeout(600);
+  console.log(' ticket modal:', await card(p));
+  console.log(' click', await p.evaluate(() => { const b = [...document.querySelectorAll('#card button')].find(b => b.textContent.trim() === '買う' && !b.disabled); b && b.click(); return !!b; })); await p.waitForTimeout(600);
+  console.log(' after:', await card(p), '|', await p.evaluate(() => JSON.stringify(NLS.G.S.trip)));
+  await p.evaluate(() => { const b = document.querySelector('#card .row .btn'); if (NLS.U.modal && b) b.click(); });
+  await p.evaluate(() => NLS.nav.navTo({ kind: 'floor', floor: 1 })); await until(p, () => NLS.G.S.loc.floor === 1 && !NLS.nav.NAV && !NLS.G.S.loc.tr, 60);
+  await act(p, 'security', 'security:');
+  console.log(' click', await clickFirst(p, '#card button.item')); await p.waitForTimeout(600);
+  console.log(' toast', await p.evaluate(() => document.getElementById('toast').textContent), JSON.stringify(await p.evaluate(() => NLS.G.S.trip)));
+  await p.evaluate(() => { const b = document.querySelector('#card .row .btn'); if (NLS.U.modal && b) b.click(); });
+  await act(p, 'gate', 'gate:');
+  console.log(' click', await clickFirst(p, '#card button.item')); await p.waitForTimeout(1500);
+  console.log(' after gate:', await card(p), await p.evaluate(() => document.getElementById('ride').classList.contains('on') + ' ' + document.getElementById('rideinfo').textContent));
+  await shot('flight');
+};

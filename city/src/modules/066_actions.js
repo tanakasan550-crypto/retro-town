@@ -335,6 +335,7 @@
       }
       return g.chg(m);
     };
+    if (kind === "doctor" && g.S.hq) g.S.hq.done = true;
     if (facRun(g, kind, arg != null ? id.slice(kind.length + 1) : arg, tg, r)) return r;
     switch (kind) {
       case "enter":

@@ -128,6 +128,14 @@
     L2.moving = false;
     L2.x = hosp.type === "hospital" ? 2.5 : 6;
     L2.y = hosp.type === "hospital" ? 7.5 : 4;
+    {
+      const ws = typeof wardSpot === "function" && FAC_BUILD[hosp.type] ? wardSpot(g, hosp) : null;
+      if (ws) {
+        L2.floor = ws.floor;
+        L2.x = ws.x;
+        L2.y = ws.y;
+      }
+    }
     g.log("health", `${hosp.name}\u306B\u5165\u9662\u3057\u305F`);
     g.queueEvent("ward_admit", { name: DISEASES[c.ill.kind].name });
   }

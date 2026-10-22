@@ -878,6 +878,16 @@ ${spiritLines(G3).map(esc4).join("\n")}
       return;
     }
     if (r.ui === "fx_move") return moveModal();
+    if (r.ui === "fx_goexam") {
+      if (r.msg) toast(r.msg, 4200);
+      const q = G3.S.hq, L2 = G3.S.loc;
+      if (q && L2.k === "in") {
+        const I2 = interiorOf(G3, L2.b, 0).I;
+        const o = I2.objs.find((o2) => o2.act === "clinic" && o2.room === q.room);
+        if (o) setTimeout(() => navTo({ kind: "obj", o, floor: 0, inB: L2.b }, { label: `第${q.room}診察室` }), 300);
+      }
+      return;
+    }
     if (r.ui === "fx_ticket") return ticketModal();
     if (r.ui === "fx_ride") {
       sfx.train && sfx.train();

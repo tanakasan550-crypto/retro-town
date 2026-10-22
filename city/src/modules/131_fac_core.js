@@ -61,6 +61,21 @@
     P.vwall = (x, y0, y1, gaps = [], label = "壁") => {
       for (let y = y0; y <= y1; y++) if (!gaps.includes(y)) P.add("pwall", x, y, null, label, true);
     };
+    // 部屋: 外周に壁、door=[x,y](壁の切れ目)。南側の壁は低い間仕切りにして中が見えるようにする
+    P.room = (x0, y0, x1, y1, opt = {}) => {
+      const doors = opt.doors || (opt.door ? [opt.door] : []);
+      const isDoor = (x, y) => doors.some(([dx2, dy2]) => dx2 === x && dy2 === y);
+      if (opt.tile) P.fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, opt.tile);
+      for (let x = x0; x <= x1; x++) {
+        if (y0 >= 1 && !opt.noTop && !isDoor(x, y0)) P.add("pwall", x, y0, null, opt.label ? opt.label + "の壁" : "壁", true);
+        if (!isDoor(x, y1)) P.add(opt.lowFront === false ? "pwall" : "partition", x, y1, null, opt.label ? opt.label + "の壁" : "間仕切り", true);
+      }
+      for (let y = y0 + 1; y < y1; y++) {
+        if (!isDoor(x0, y)) P.add("pwall", x0, y, null, "壁", true);
+        if (!isDoor(x1, y)) P.add("pwall", x1, y, null, "壁", true);
+      }
+      if (opt.label && opt.sign !== false) P.sign(Math.round((x0 + x1) / 2), y1 + 1 <= P.H - 2 ? y1 + 1 : y1 - 1, opt.label);
+    };
     P.wide = (t, x, y, w, h, act, label, extra = {}) => P.add(t, x, y, act, label, true, { ...extra, w, h });
     P.windows = (step = 3) => {
       for (let x = 1; x < W2 - 1; x += step) P.objs.push({ t: "window", x, y: 0, solid: true, deco: true });
