@@ -1267,6 +1267,10 @@
         if (st3) return st3;
         if (cm.sched(L2, "to", Math.round(dp.a * 60 - 2), hash2(id, 1) % 5) && cm.sched(L2, "from", Math.round(dp.b * 60))) return { s: 0 };
       }
+      {
+        const bc = typeof busCommuteState === "function" ? busCommuteState(world, id, dp, minuteOfDay) : null;
+        if (bc) return bc;
+      }
       const { a, b } = dp;
       const w = dp.kind === "school" ? 0.7 : 0.6;
       if (h >= a - w && h < a) return { s: 1, to: dp.dest, t: (h - (a - w)) / w };

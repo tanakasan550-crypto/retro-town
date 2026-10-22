@@ -1,7 +1,8 @@
   // src/bus_net.js — 路線バス(地図v4): 循環「青海めぐりん」と系統1〜4。
   // バスは一台ずつ道路の車線(進行方向の決まった車線・交差点)だけを通る経路を走り、信号で止まり、前の車と間隔をあけ、
   // 乗る人・降りる人がいる停留所に停まる。主人公と住民は同じ車両に乗って移動する(瞬間移動ではない)。
-  // 時間: バスは他の車や歩行者と同じく実時間で動く(時間の流れ×1で 1秒=1分)。乗車中の「早送り」は時計とバスを同じ倍率で進める。
+  // 時間: 時間の流れ×1で 1秒=1分。バスの速さはタクシー(18タイル/秒)・電車に近い「街の乗り物の速さ」で、徒歩(約4タイル/分)より速い。
+  // 主人公も住民も同じ時計で乗る。乗車中の「早送り」は時計・バス・信号を同じ倍率で進める。
   var BUS_ROUTES = [
     { id: "C", no: "循環", name: "青海めぐりん", dest: "青海中央駅", color: "#e53935", loop: true, headway: 14, via: ["st:aoumi_chuo", "cityhall", "hospital", "dept", "stadium", "st:tohtower", "aquarium", "st:showacho"] },
     { id: "1", no: "1", name: "空港リムジン", dest: "青海空港", color: "#1e63c8", headway: 20, ty: "tourbus", via: ["st:tohtower", "st:higashino", "airport"] },
@@ -11,13 +12,11 @@
   ];
   var BUS_HOURS = [6 * 60, 23 * 60];
   var BUS_LAST = 22 * 60 + 30;
-  var BUS_VMAX = { 1: 4.2, 2: 6.2, 3: 7.2, 4: 8 };
-  var BUS_ACC = 2.6, BUS_DEC = 4;
+  var BUS_VMAX = { 1: 8, 2: 12, 3: 14, 4: 16 };
+  var BUS_ACC = 5, BUS_DEC = 8;
   var BUS_STOP_OFF = 1.6;
   var BUS_FARE = 230;
-  // 乗車中の時計: 街の乗り物は歩く速さに近い見かけで描かれるため、タクシー(運賃表の所要時間で時計を進める)と同じく
-  // 乗車中は「走った秒数 × 0.4 分」で時計を進める。徒歩(約4.4タイル/分)と鉄道(約13タイル/分)の間の速さになる。
-  var BUS_RIDE_CLOCK = 0.4;
+  var BUS_RIDE_CLOCK = 1;
   var busNetC = /* @__PURE__ */ new WeakMap();
   var stopKind = (key) => key.startsWith("st:") ? "terminal" : key === "airport" ? "airport" : key === "univ" ? "univ" : key === "hospital" ? "hospital" : ["aquarium", "themepark", "zoo", "onsenbath", "ryokan", "stadium"].includes(key) ? "sight" : "std";
   function busNet(map2) {
@@ -27,6 +26,10 @@
     const ri = roadInfo(map2), W2 = map2.W, H4 = map2.H, N = W2 * H4;
     const walk = (x, y) => x >= 0 && y >= 0 && x < W2 && y < H4 && !map2.solid[x + y * W2] && !ri.drv[x + y * W2] && map2.ground[x + y * W2] !== T.WATER && map2.ground[x + y * W2] !== T.RAIL;
     const anchor = (key) => {
+      if (key.startsWith("b:")) {
+        const b = map2.buildings[+key.slice(2)];
+        return b ? { x: b.doorX, y: b.doorY + 1, name: null, b: b.idx } : null;
+      }
       if (key.startsWith("st:")) {
         const s = map2.stations.find((q) => q.id === key.slice(3));
         return s ? { x: s.door.x, y: s.door.y + 2, name: s.name + (s.name.endsWith("前") ? "駅" : "駅前"), stationId: s.id } : null;
@@ -111,8 +114,77 @@
       return out.reverse().map((s) => [(s >> 2) % W2, (s >> 2) / W2 | 0, s & 3]);
     };
     net = { routes: [], stops: [], ri };
+    // 途中の停留所の名前: 近くの目印(学校・公園・寺社・図書館・診療所・郵便局・交番・団地)か、住所の「○○丁目」
+    const usedNames = /* @__PURE__ */ new Set();
+    const stopName = (x, y) => {
+      let best = null, bd = 22;
+      for (const b of map2.buildings) {
+        if (b.tenant || !["school", "elementary", "juniorhigh", "highschool", "kinder", "park", "shrine", "temple", "library", "clinic", "post", "police", "koban", "museum", "pool", "gym", "danchi", "community"].includes(b.type)) continue;
+        const d = Math.abs(b.doorX - x) + Math.abs(b.doorY - y);
+        if (d < bd) {
+          bd = d;
+          best = b;
+        }
+      }
+      let nm = best ? (best.name || BTYPES[best.type].label).replace(/第\d+$/, "") + "前" : "";
+      if (!nm || usedNames.has(nm)) {
+        let nb = null, nd = 1e9;
+        for (const b of map2.buildings) {
+          if (!b.addr) continue;
+          const d = Math.abs(b.doorX - x) + Math.abs(b.doorY - y);
+          if (d < nd) {
+            nd = d;
+            nb = b;
+          }
+        }
+        const mm = nb && /^(.*?)(\d+丁目)/.exec(nb.addr);
+        nm = mm ? mm[1].replace(/地区$/, "").split("・").pop() + mm[2] : nm || "停留所";
+      }
+      usedNames.add(nm);
+      return nm;
+    };
     const stopKey = /* @__PURE__ */ new Map();
-    for (const R5 of BUS_ROUTES) {
+    // 住宅地と駅・都心を結ぶ系統(住宅の多い地区のうち、駅から遠いところを地図から決める)
+    const feeders = [];
+    {
+      const cell = 48, gw = Math.ceil(W2 / cell), gh = Math.ceil(H4 / cell), cnt = new Float32Array(gw * gh), big = new Int32Array(gw * gh).fill(-1);
+      for (const b of map2.buildings) {
+        const bt = BTYPES[b.type];
+        if (!bt || bt.cat !== "res" || b.tenant) continue;
+        const k = (b.doorX / cell | 0) + (b.doorY / cell | 0) * gw;
+        cnt[k] += bt.cap || 5;
+        if (big[k] < 0 || (BTYPES[map2.buildings[big[k]].type].cap || 5) < (bt.cap || 5)) big[k] = b.idx;
+      }
+      const cells = [];
+      for (let k = 0; k < gw * gh; k++) if (cnt[k] >= 250 && big[k] >= 0) cells.push({ k, n: cnt[k], b: map2.buildings[big[k]] });
+      cells.sort((a, b) => b.n - a.n);
+      const picks = [];
+      const near = (b) => map2.stations.reduce((m, s) => Math.min(m, Math.abs(s.x - b.doorX) + Math.abs(s.y - b.doorY)), 1e9);
+      for (const c of cells) {
+        if (picks.length >= 4) break;
+        if (near(c.b) < 70 || picks.some((q) => Math.abs(q.b.doorX - c.b.doorX) + Math.abs(q.b.doorY - c.b.doorY) < 160)) continue;
+        picks.push(c);
+      }
+      const cols = ["#00897b", "#6d4c41", "#c2185b", "#546e7a"];
+      picks.forEach((c, i) => {
+        let st3 = null, bd = 1e9;
+        for (const s of map2.stations) {
+          if (s.metro) continue;
+          const d = Math.abs(s.x - c.b.doorX) + Math.abs(s.y - c.b.doorY);
+          if (d < bd) {
+            bd = d;
+            st3 = s;
+          }
+        }
+        if (!st3) return;
+        const mm = c.b.addr && /^(.*?)(\d+丁目)/.exec(c.b.addr), area = mm ? mm[1].replace(/地区$/, "").split("・").pop() : "住宅地";
+        const via = ["b:" + c.b.idx, "st:" + st3.id];
+        if (st3.id !== "aoumi_chuo") via.push("st:aoumi_chuo");
+        feeders.push({ id: String(5 + i), no: String(5 + i), name: area + "線", dest: st3.name + "駅", color: cols[i], headway: 15, via, res: true });
+      });
+    }
+    net.feeders = feeders.length;
+    for (const R5 of [...BUS_ROUTES, ...feeders]) {
       const stops = [];
       for (const v of R5.via) {
         const a = anchor(v);
@@ -121,7 +193,7 @@
         const k = s.x + "," + s.y;
         let st3 = stopKey.get(k);
         if (!st3) {
-          st3 = { id: "bs" + net.stops.length, ...s, kind: stopKind(v), routes: [], queue: [] };
+          st3 = { id: "bs" + net.stops.length, ...s, name: s.name || stopName(s.x, s.y), kind: v.startsWith("b:") ? "std" : stopKind(v), routes: [], queue: [] };
           stopKey.set(k, st3);
           net.stops.push(st3);
         }
@@ -148,7 +220,59 @@
       }
       if (!ok || pts.length < 8) continue;
       pts.push(pts[0]);
-      const route = { ...R5, stops, cyc, pts, cycAt: at, len: pts.length - 1, avgV: 5, buses: [] };
+      // 途中の停留所: 主な停留所の間が長いところに、約260m(130タイル)ごとに道沿いの停留所を置く
+      {
+        const nc = [], na = [], len = pts.length - 1;
+        for (let i = 0; i < cyc.length; i++) {
+          nc.push(cyc[i]);
+          na.push(at[i]);
+          const a0 = at[i], a1 = i + 1 < cyc.length ? at[i + 1] : len, gap = a1 - a0, n2 = Math.floor(gap / 130);
+          for (let k = 1; k < n2; k++) {
+            let idx = a0 + Math.round(gap * k / n2);
+            let st3 = null;
+            for (let tries = 0; tries < 8 && !st3; tries++, idx++) {
+              const p = pts[idx];
+              if (!p || ri.axis[p[0] + p[1] * W2] === AX.J) continue;
+              const d = p[2], lf = [DY[d], -DX[d]];
+              // 進行方向の左(歩道側)を優先
+              for (const [ex, ey] of [lf, [-lf[0], -lf[1]]]) {
+                let x = p[0], y = p[1];
+                for (let s2 = 0; s2 < 4; s2++) {
+                  x += ex;
+                  y += ey;
+                  if (walk(x, y)) break;
+                  if (!ri.drv[x + y * W2]) {
+                    x = -1;
+                    break;
+                  }
+                }
+                if (x >= 0 && walk(x, y)) {
+                  const k2 = x + "," + y;
+                  st3 = stopKey.get(k2);
+                  if (!st3) {
+                    st3 = { id: "bs" + net.stops.length, x, y, rx: x - ex, ry: y - ey, name: stopName(x, y), kind: "std", routes: [], queue: [] };
+                    stopKey.set(k2, st3);
+                    net.stops.push(st3);
+                  }
+                  break;
+                }
+              }
+              if (st3) {
+                nc.push(st3);
+                na.push(idx);
+              }
+            }
+          }
+        }
+        cyc.length = 0;
+        cyc.push(...nc);
+        at.length = 0;
+        at.push(...na);
+        for (const s2 of cyc) if (!stops.includes(s2)) stops.push(s2);
+      }
+      const route = { ...R5, stops, cyc, pts, cycAt: at, len: pts.length - 1, avgV: 9, buses: [] };
+      // 住宅地の系統は起点の停留所名で呼ぶ(例: 「○○団地線」「○○7丁目線」)
+      if (R5.res) route.name = stops[0].name.replace(/前$/, "") + "線";
       for (const s of stops) s.routes.push(route);
       net.routes.push(route);
     }
@@ -266,7 +390,7 @@
     if (b.pax.some((p) => p.to === s.id)) return true;
     const ob = g.S.onBus;
     if (ob && ob.bus === b.id && (ob.req || ob.to === s.id)) return true;
-    if (b.pax.length < 44 && s.queue.some((p) => busServes(r, b.j, p.to))) return true;
+    if (b.pax.length < 65 && s.queue.some((p) => busServes(r, b.j, p.to))) return true;
     const w = g.S.busWait;
     if (w && w.stop === s.id && w.route === r.id) return true;
     return false;
@@ -285,7 +409,7 @@
     BUSSIM.lastAbs = abs;
     if (!busInService(m) || dtSim <= 0) return;
     busDemand(g, net, dtSim, m);
-    const steps = Math.ceil(dtSim / 0.1);
+    const steps = Math.ceil(dtSim / 0.05);
     const h = dtSim / steps;
     for (let i = 0; i < steps; i++) for (const r of net.routes) for (const b of r.buses) busMove(g, net, r, b, h, m);
     for (let i = BUSSIM.alight.length - 1; i >= 0; i--) {
@@ -295,7 +419,9 @@
       a.y += a.dy * dtSim * 1.1;
       if (a.t > 6) {
         BUSSIM.alight.splice(i, 1);
-        BUSSIM.riders.delete(a.id);
+        // 通勤・通学の人は「降りた」ことを覚えておく(このあと職場・学校/家へ歩く)
+        if (a.commute) BUSSIM.riders.set(a.id, { st: "arrived" });
+        else BUSSIM.riders.delete(a.id);
       }
     }
   }
@@ -335,7 +461,7 @@
     // 信号・横断歩道(前方8タイル)
     const near2 = Math.abs(b.x - hero.x) < 60 && Math.abs(b.y - hero.y) < 40;
     const front = b.S + half, clk = R4.time || 0, cl = junctions(g.world.map);
-    for (let i = 0; i <= 8; i++) {
+    for (let i = 0; i <= 20; i++) {
       const idx = Math.floor(front) + i, p = r.pts[(idx % r.len + r.len) % r.len], k = p[0] + p[1] * W2, d = p[2];
       const sFar = idx + 0.5 - front;
       if (sFar < 0.02) continue;
@@ -365,10 +491,10 @@
       const a = (op - (horiz ? b.x : b.y)) * sgn;
       if (a <= 0) return;
       const gap = a - (olen + half * 2) / 2 - 0.4;
-      if (gap < 8) consider(Math.max(0, gap + 0.1), w);
+      if (gap < 20) consider(Math.max(0, gap + 0.1), w);
     };
     if (near2 && R4.traffic) for (const c of R4.traffic.cars) if (!c.dead) ahead(c, c.len, "渋滞");
-    for (const r2 of net.routes) for (const o of r2.buses) if (o !== b && o.x != null && Math.abs(o.x - b.x) < 12 && Math.abs(o.y - b.y) < 12) ahead(o, r2.ty === "tourbus" ? 5.5 : 5.25, "前のバス");
+    for (const r2 of net.routes) for (const o of r2.buses) if (o !== b && o.x != null && Math.abs(o.x - b.x) < 26 && Math.abs(o.y - b.y) < 26) ahead(o, r2.ty === "tourbus" ? 5.5 : 5.25, "前のバス");
     const v0 = b.v;
     b.v = b.v < limit ? Math.min(limit, b.v + BUS_ACC * dt) : Math.max(limit, b.v - BUS_DEC * 1.5 * dt);
     b.why = b.v < 0.3 ? why : "";
@@ -389,14 +515,14 @@
       b.pax.splice(i, 1);
       const ax = s.x + 0.5, ay = s.y + 0.5, ex = s.x - s.rx, ey = s.y - s.ry;
       const along = brand() < 0.5 ? 1 : -1;
-      BUSSIM.alight.push({ id: p.id, x: ax, y: ay, dx: ex ? 0 : along, dy: ey ? 0 : along, t: 0, why: p.why });
+      BUSSIM.alight.push({ id: p.id, x: ax, y: ay, dx: ex ? 0 : along, dy: ey ? 0 : along, t: 0, why: p.why, commute: p.commute });
       BUSSIM.riders.set(p.id, { st: "walk", stop: s, why: p.why });
       n2++;
     }
     const ob = g.S.onBus;
     if (ob && ob.bus === b.id && (ob.req || ob.to === s.id)) busHeroAlight(g, s, r);
     // 乗る
-    for (let i = 0; i < s.queue.length && b.pax.length < 44; i++) {
+    for (let i = 0; i < s.queue.length && b.pax.length < 65; i++) {
       const p = s.queue[i];
       if (!busServes(r, b.j, p.to)) continue;
       s.queue.splice(i--, 1);
@@ -416,9 +542,17 @@
   // ---- 住民の利用(通学・通勤・通院・観光)
   function busDemand(g, net, dt, m) {
     const hr = m / 60;
+    busCommuteFeed(g, m);
+    // 長く来ないときはあきらめて歩く
+    const now = g.absMin();
+    for (const s of net.stops) for (let i = s.queue.length - 1; i >= 0; i--) if (now - s.queue[i].since > 90) {
+      BUSSIM.riders.delete(s.queue[i].id);
+      s.queue.splice(i, 1);
+    }
     for (const s of net.stops) {
-      if (s.queue.length >= 10) continue;
-      const base = s.kind === "terminal" ? 0.5 : s.kind === "std" ? 0.2 : 0.3;
+      if (s.queue.filter((q) => !q.commute).length >= 8) continue;
+      if (brand() < 0.5) continue;
+      const base = s.kind === "terminal" ? 0.25 : s.kind === "std" ? 0.06 : 0.15;
       const rush = hr >= 7 && hr < 9.5 || hr >= 17 && hr < 19.5 ? 2.2 : hr >= 22 ? 0.3 : 1;
       if (brand() > base * rush * dt) continue;
       const pick = busPickTrip(g, s, hr);
@@ -434,23 +568,16 @@
     const of = (k) => dests.filter((t) => t.kind === k);
     let why = "移動", to = null, age = [18, 75];
     const am = hr < 10, pm = hr >= 15;
-    if (am && of("univ").length && brand() < 0.55) {
-      why = "通学";
-      to = of("univ")[0];
-      age = [18, 22];
-    } else if (am && of("hospital").length && brand() < 0.45) {
+    // 通勤・通学はそれぞれの住民の一日の予定から乗る(busCommute)。ここでは通院・観光・買い物・用事の利用
+    if (am && of("hospital").length && brand() < 0.5) {
       why = "通院";
       to = of("hospital")[0];
       age = [65, 92];
     } else if (s.kind === "hospital" && hr >= 11) {
       why = "通院の帰り";
       to = of("terminal")[0] || dests[0];
-      age = [65, 92];
-    } else if (s.kind === "univ" && pm) {
-      why = "下校";
-      to = of("terminal")[0] || dests[0];
-      age = [18, 22];
-    } else if (hr >= 9 && hr < 15 && of("sight").length && brand() < 0.5) {
+      age = [60, 92];
+    } else if (hr >= 9 && hr < 15 && of("sight").length && brand() < 0.6) {
       why = "観光";
       const t = of("sight");
       to = t[Math.floor(brand() * t.length)];
@@ -462,15 +589,15 @@
     } else if (s.kind === "airport") {
       why = "旅行の帰り";
       to = of("terminal")[0] || dests[0];
-    } else if (am) {
-      why = "通勤";
-      to = of("terminal")[0] || dests[Math.floor(brand() * dests.length)];
-      age = [22, 64];
-    } else if (pm && s.kind === "terminal") {
-      why = "帰宅";
+    } else if (hr >= 10 && hr < 18 && dests.some((t) => /百貨店/.test(t.name)) && brand() < 0.4) {
+      why = "買い物";
+      to = dests.find((t) => /百貨店/.test(t.name));
+      age = [16, 85];
+    } else {
+      if (brand() < 0.7) return null;
+      why = "用事";
       to = dests[Math.floor(brand() * dests.length)];
-      age = [18, 75];
-    } else to = dests[Math.floor(brand() * dests.length)];
+    }
     if (!to || to === s) return null;
     const pop = g.world.pop, B2 = g.world.map.buildings;
     const near2 = (bi, p, r) => bi >= 0 && B2[bi] && Math.abs(B2[bi].doorX - p.x) + Math.abs(B2[bi].doorY - p.y) < r;
@@ -510,6 +637,7 @@
     if (st3.st === "wait") return `🚏 バス停「${st3.stop.name}」で${stopName(st3.to)}行きのバスを待っています(${st3.why})`;
     if (st3.st === "ride") return `🚌 [${st3.bus.r.no}] ${st3.bus.r.name}に乗って${stopName(st3.to)}へ(${st3.why})`;
     if (st3.st === "walk") return `🚶 バスを降りて「${st3.stop.name}」から歩いています(${st3.why})`;
+    if (st3.st === "arrived") return null;
     return null;
   }
   // ---- 到着予想(実際に走っているバスの位置と平均速度から)
@@ -611,7 +739,7 @@
     L2.k = "out";
     L2.x = b.x;
     L2.y = b.y;
-    U.clockFrac += dt * (U.scale >= 3 ? 3 : U.scale > 0 ? 1 : 0) * BUS_RIDE_CLOCK;
+    U.clockFrac += dt * U.scale;
     while (U.clockFrac >= 1 && !g.blocked()) {
       U.clockFrac -= 1;
       g.advance(1);
@@ -1176,4 +1304,130 @@
       x.stroke();
     }
     x.restore();
+  }
+  // ---- 通勤・通学のバス利用(住民それぞれの一日の予定 dayPlan から)
+  // 鉄道の通勤経路がない人のうち、家と職場・学校がともに同じ系統の停留所の近くにあり、歩くより早い人がバスで通う。
+  // 決まった時刻に家を出て停留所へ歩き、列に並び、実際のバスに乗り、降りて職場・学校へ歩く。夕方は逆向き。
+  var BC = { links: /* @__PURE__ */ new Map(), idx: null, last: null };
+  var BC_WALK = 4;
+  function stopNearB(map2, s) {
+    if (s.nb != null) return s.nb;
+    let best = -1, bd = 1e9;
+    for (const b of map2.buildings) {
+      if (b.tenant) continue;
+      const d = Math.abs(b.doorX - s.x) + Math.abs(b.doorY - s.y);
+      if (d < bd) {
+        bd = d;
+        best = b.idx;
+      }
+    }
+    return s.nb = best;
+  }
+  function busRideEst(r, from, to) {
+    const ja = r.cyc.indexOf(from);
+    let dist2 = 0;
+    for (let k = 1; k < r.cyc.length; k++) {
+      const j = (ja + k) % r.cyc.length, jp = (ja + k - 1) % r.cyc.length;
+      dist2 += ((r.cycAt[j] - r.cycAt[jp]) % r.len + r.len) % r.len || r.len;
+      if (r.cyc[j] === to) return Math.ceil(dist2 / 9 + k * 0.8);
+      if (r.cyc[j] === from) break;
+    }
+    return null;
+  }
+  function busCommuteLink(world, homeB, destB) {
+    const key = homeB * 65536 + destB;
+    if (BC.links.has(key)) return BC.links.get(key);
+    let L2 = null;
+    const net = busNet(world.map);
+    if (net && net.routes.length && homeB >= 0 && destB >= 0 && homeB !== destB) {
+      const B2 = world.map.buildings, h = B2[homeB], d = B2[destB];
+      const direct = Math.abs(h.doorX - d.doorX) + Math.abs(h.doorY - d.doorY);
+      if (direct > 50) {
+        const walkAll = direct * 1.15 / BC_WALK;
+        let best = null;
+        for (const A of net.stops) {
+          const wA = Math.abs(A.x - h.doorX) + Math.abs(A.y - h.doorY);
+          if (wA > 90) continue;
+          for (const r of A.routes) for (const Bs of r.stops) {
+            if (Bs === A) continue;
+            const wB = Math.abs(Bs.x - d.doorX) + Math.abs(Bs.y - d.doorY);
+            if (wB > 90) continue;
+            const ride = busRideEst(r, A, Bs), back = busRideEst(r, Bs, A);
+            if (ride == null || back == null) continue;
+            const cost = (wA + wB) * 1.15 / BC_WALK + ride + r.headway / 2;
+            if (!best || cost < best.cost) best = { A, B: Bs, r, wA: Math.ceil(wA * 1.15 / BC_WALK), wB: Math.ceil(wB * 1.15 / BC_WALK), walkT: wA + wB, ride, rideBack: back, wait: Math.ceil(r.headway / 2), cost };
+          }
+        }
+        // 鉄道の通勤(034_commute: 駅までの徒歩の合計が直線距離の8割未満なら電車)と同じ考え方で、
+        // 停留所までの徒歩の合計が直線距離の6割未満で、時間も歩くより大きく遅くならなければバス
+        if (best && best.walkT < direct * 0.6 && best.cost < walkAll * 1.2) L2 = best;
+      }
+    }
+    BC.links.set(key, L2);
+    return L2;
+  }
+  function busCommuteTimes(L2, dp) {
+    const T4 = Math.round(dp.a * 60 - 2), tOff = T4 - L2.wB, tStop = tOff - L2.ride - L2.wait, t0 = tStop - L2.wA;
+    const f0 = Math.round(dp.b * 60), tB = f0 + L2.wB, tOff2 = tB + L2.wait + L2.rideBack, tHome = tOff2 + L2.wA;
+    return { T: T4, tOff, tStop, t0, f0, tB, tOff2, tHome };
+  }
+  // personActivity から呼ばれる: バス通勤・通学の人の、その時刻の様子(鉄道通勤と同じ形の区間で返す)
+  function busCommuteState(world, id, dp, m) {
+    if (!dp || dp.b > 23.5) return null;
+    const p = world.pop, hb = p.home[id], L2 = busCommuteLink(world, hb, dp.dest);
+    if (!L2) return null;
+    const t = busCommuteTimes(L2, dp), map2 = world.map;
+    if (t.t0 < BUS_HOURS[0] - 60 || t.tB > BUS_LAST) return null;
+    if (m < t.t0 || m >= t.tHome) return null;
+    const nbA = stopNearB(map2, L2.A), nbB = stopNearB(map2, L2.B);
+    const walk = (fromB, toB, t0, t1) => ({ s: 1, train: true, bus: true, to: toB, seg: { k: "walk", fromB, toB, t0, t1 }, u: Math.max(0, Math.min(1, (m - t0) / Math.max(1, t1 - t0))) });
+    const rs = BUSSIM.riders.get(id), off = rs && (rs.st === "walk" || rs.st === "arrived"), on = rs && (rs.st === "ride" || rs.st === "wait");
+    const bus = { s: 1, train: true, bus: true, to: dp.dest, seg: { k: "bus" } };
+    if (m < t.tStop) return walk(hb, nbA, t.t0, t.tStop);
+    if (m < t.tOff) return off ? walk(nbB, dp.dest, t.tOff - L2.wB, t.T) : bus;
+    if (m < t.T) return on ? bus : walk(nbB, dp.dest, t.tOff, t.T);
+    if (m < t.f0) return { s: 2, at: dp.dest };
+    if (m < t.tB) return walk(dp.dest, nbB, t.f0, t.tB);
+    if (m < t.tOff2) return off ? walk(nbA, hb, t.tOff2 - L2.wA, t.tHome) : bus;
+    return on ? bus : walk(nbA, hb, t.tOff2, t.tHome);
+  }
+  // その日の索引: 何時何分にどの停留所の列に誰が並ぶか
+  function busCommuteIndex(g) {
+    const w = g.world, d = g.date(), day = Math.floor(g.absMin() / 1440);
+    if (BC.idx && BC.idx.day === day && BC.idx.map === w.map) return BC.idx;
+    const idx = { day, map: w.map, at: /* @__PURE__ */ new Map(), n: 0, who: /* @__PURE__ */ new Set(), byRoute: {} };
+    BC.idx = idx;
+    for (const [id, v] of BUSSIM.riders) if (v.st === "arrived") BUSSIM.riders.delete(id);
+    const p = w.pop;
+    const add = (m, e) => {
+      let a = idx.at.get(m);
+      if (!a) idx.at.set(m, a = []);
+      a.push(e);
+    };
+    for (let i = 0; i < p.n; i++) {
+      if (p.gone[i] || i === g.hero.id || BUSSIM.drivers && BUSSIM.drivers.has(i)) continue;
+      const dp = w.dayPlan(i, d.dow);
+      if (!dp || dp.b > 23.5) continue;
+      const L2 = busCommuteLink(w, p.home[i], dp.dest);
+      if (!L2 || w.getCommute().link(p.home[i], dp.dest)) continue;
+      const t = busCommuteTimes(L2, dp), sch = dp.kind === "school";
+      if (t.t0 < BUS_HOURS[0] - 60 || t.tB > BUS_LAST) continue;
+      add(Math.max(BUS_HOURS[0], t.tStop), { id: i, stop: L2.A, to: L2.B.id, why: sch ? "通学" : "通勤" });
+      add(t.tB, { id: i, stop: L2.B, to: L2.A.id, why: sch ? "下校" : "帰宅" });
+      idx.n++;
+      idx.who.add(i);
+      idx.byRoute[L2.r.id] = (idx.byRoute[L2.r.id] || 0) + 1;
+    }
+    return idx;
+  }
+  function busCommuteFeed(g, m) {
+    const ix = busCommuteIndex(g), m0 = Math.floor(m);
+    if (BC.last == null || m0 < BC.last || m0 - BC.last > 30) BC.last = m0 - 1;
+    for (let mm = BC.last + 1; mm <= m0; mm++) for (const e of ix.at.get(mm) || []) {
+      const rs = BUSSIM.riders.get(e.id);
+      if (rs && rs.st !== "arrived" || g.world.pop.gone[e.id]) continue;
+      e.stop.queue.push({ id: e.id, to: e.to, why: e.why, since: g.absMin(), commute: true });
+      BUSSIM.riders.set(e.id, { st: "wait", stop: e.stop, to: e.to, why: e.why });
+    }
+    BC.last = m0;
   }

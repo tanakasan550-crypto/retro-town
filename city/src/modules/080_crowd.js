@@ -443,7 +443,9 @@
       }
       if (isUnitFloor(floor)) return unitPeople(this, bIdx, I2, floor, res);
       if (I2.big) return bigPeople(this, bIdx, I2, floor, res);
-      if (b.type === "station") {
+      if (FAC_BUILD[b.type] && typeof stationPeople === "function" && (b.type === "station" || b.type === "metro")) {
+        for (const q of stationPeople(g, b, I2, floor)) res.push(q);
+      } else if (b.type === "station") {
         const cm = w.getCommute();
         const si2 = w.map.stations.findIndex((x) => x.building === bIdx);
         if (si2 >= 0) {

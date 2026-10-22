@@ -57,6 +57,12 @@
               this.planCache.set(pk, plan);
             }
             if (plan && plan.legs.length) L2 = { homeB, destB, si, sj, plan, w1: Math.ceil(w1 * 1.15 / WALK_TPM), w2: Math.ceil(w2 * 1.15 / WALK_TPM), wt1: w1, wt2: w2 };
+            // 交通手段の選択: 同じ通勤をバスのほうが早くできるなら、鉄道ではなくバスで通う(bus_net.js)
+            if (L2 && typeof busCommuteLink === "function") {
+              const bl = busCommuteLink(this.world, homeB, destB);
+              // 歩く距離がずっと短くなるほうを選ぶ(電車の乗換が多いとバスに傾く)
+              if (bl && bl.walkT + 20 * (bl.r ? 0 : 1) < (w1 + w2) * 0.7 - 15 * (plan.legs.length - 1)) L2 = null;
+            }
           }
         }
       }
@@ -110,7 +116,7 @@
         const board2 = lg.board - base, alight = lg.alight - base;
         const stIdFrom = lg.from;
         const sIdx = this.stDoor.findIndex((s) => s.id === stIdFrom);
-        segs.push({ k: "plat", st: sIdx, t0: t, t1: board2 });
+        segs.push({ k: "plat", st: sIdx, t0: t, t1: board2, line: lg.line, dir: lg.dir });
         segs.push({ k: "ride", line: lg.line, dir: lg.dir, fromIdx: lg.fromIdx, toIdx: lg.toIdx, t0: board2, t1: alight, dep: this.depRel(lg, board2), stFrom: sIdx, stTo: this.stDoor.findIndex((s) => s.id === lg.to) });
         t = alight;
       });
@@ -176,7 +182,7 @@
             } else if (g.k === "plat") {
               let a = idx.plat.get(g.st);
               if (!a) idx.plat.set(g.st, a = []);
-              a.push({ id: i, t0: g.t0, t1: g.t1 });
+              a.push({ id: i, t0: g.t0, t1: g.t1, line: g.line, dir: g.dir });
             } else if (g.k === "exit") {
               let a = idx.alight.get(g.st);
               if (!a) idx.alight.set(g.st, a = []);

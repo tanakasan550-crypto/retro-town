@@ -15,6 +15,8 @@
     let now = "", goal = "";
     if (a.s === 1) {
       now = isHome(a.to) ? "帰宅中" : dp && dp.kind === "school" ? "登校中" : "通勤中";
+      if (a.bus) now += a.seg && a.seg.k === "walk" ? "(バス停との間を歩いています)" : "(バス)";
+      else if (a.train) now += "(電車)";
       goal = isHome(a.to) ? "自宅" : bn(a.to);
     } else if (a.s === 2) {
       now = dp && dp.kind === "school" ? `授業中(${bn(a.at)})` : `仕事中(${bn(a.at)})`;

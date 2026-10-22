@@ -354,3 +354,42 @@
       }
     }
   };
+  // ---- 駅の利用者(住民の通勤・通学の予定から): ホームでは乗る路線・方面の乗車位置に並び、改札階では改札とホームの間を歩く
+  function stationPeople(g, b, I2, floor) {
+    const w = g.world, cm = w.getCommute(), dt = g.date(), m = g.S.min + (U.clockFrac || 0);
+    const si2 = w.map.stations.findIndex((x) => x.building === b.idx);
+    if (si2 < 0) return [];
+    const out = [], lay = stLayout(g, b), lines = [...lay.surf, ...lay.under];
+    if (I2.platform && I2.platform.line) {
+      const cnt = { 1: 0, "-1": 0 };
+      for (const r of cm.waiting(dt.dow, si2, Math.floor(m))) {
+        if (r.line !== I2.platform.line) continue;
+        const north = r.dir === 1, k = cnt[north ? 1 : -1]++;
+        if (k > 31) continue;
+        const door = [8, 17, 25, 33, 41][k % 5], row = Math.floor(k / 5);
+        out.push({ id: r.id, x: door + 0.5 + (hash2(r.id, 3) % 3 - 1) * 0.18, y: north ? 6.2 + row * 0.5 : 10.8 - row * 0.5, dir: north ? "u" : "d", role: "commuter" });
+      }
+      return out;
+    }
+    if (floor !== lay.gateF || !I2.gate) return out;
+    const gy = I2.gate.y, stairX = (lid) => {
+      const i = lines.findIndex((q) => q.id === lid);
+      return 2 + Math.max(0, i) * 4 + 0.5;
+    };
+    // 改札を入ってホームの階段へ(ホームに着く前の2分間)
+    for (const r of cm.waiting(dt.dow, si2, Math.floor(m))) {
+      const u = (m - r.t0) / 2;
+      if (u < 0 || u >= 1 || out.length > 24) continue;
+      const gx = 4 + hash2(r.id, 5) % (I2.W - 10) + 0.5, sx = stairX(r.line);
+      out.push({ id: r.id, x: gx + (sx - gx) * u, y: gy + 1.5 + (2.2 - gy - 1.5) * u, dir: "u", role: "commuter" });
+    }
+    // 降りてホームから改札を出て出口へ
+    for (const r of cm.alighting(dt.dow, si2, Math.floor(m))) {
+      const u = Math.max(0, Math.min(1, (m - r.t0) / Math.max(1, r.t1 - r.t0)));
+      if (out.length > 40) break;
+      const gx = 4 + hash2(r.id, 5) % (I2.W - 10) + 0.5, dx = I2.door.x + 0.5;
+      const x = u < 0.5 ? 2.5 + (gx - 2.5) * u * 2 : gx + (dx - gx) * (u - 0.5) * 2, y = u < 0.5 ? 2.2 + (gy + 1.5 - 2.2) * u * 2 : gy + 1.5 + (I2.H - 1.5 - gy - 1.5) * (u - 0.5) * 2;
+      out.push({ id: r.id, x, y, dir: "d", role: "commuter" });
+    }
+    return out;
+  }
