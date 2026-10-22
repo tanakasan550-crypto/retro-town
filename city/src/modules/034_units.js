@@ -6,16 +6,17 @@
   function aptLifts(b, nf = storeys(b)) {
     if (b.type !== "apt") return 0;
     const e = b.era | 0;
-    if (!(nf >= 5 && e >= 1 || nf >= 4 && e >= 2)) return 0;
+    if (!(nf >= 5 && e >= 1 || nf >= 4 && e >= 2 || nf >= 6)) return 0;
     return nf >= 8 ? 2 : 1;
   }
   function condoPlan(b, need = 0) {
-    const nf = storeys(b);
+    // 住戸の割り当ては建設当初の階数で固定(旧セーブの部屋番号を保つ)。実際の階数は fixCondoHeights で居住者数に合わせる
+    const nf = b.planNf || storeys(b);
     const bt = BTYPES[b.type];
     const resFloors = Math.max(1, nf - 1);
     const total = Math.max(resFloors * 2, Math.round((bt.cap || 40) / 2.4), Math.ceil(need * 1.1));
     const perFloor = Math.min(16, Math.max(2, Math.ceil(total / resFloors)));
-    return { nf, resFloors, perFloor, units: resFloors * perFloor, tower: b.type === "tower", lifts: b.type === "tower" ? nf >= 14 ? 3 : 2 : aptLifts(b, nf) };
+    return { nf, resFloors, perFloor, units: resFloors * perFloor, tower: b.type === "tower", lifts: b.type === "tower" ? storeys(b) >= 14 ? 3 : 2 : aptLifts(b, storeys(b)) };
   }
   var isCondo = (b) => b && (b.type === "apt" || b.type === "tower");
   var roomNo = (lv, pos) => String((lv + 1) * 100 + pos + 1);

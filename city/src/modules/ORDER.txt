@@ -127,4 +127,6 @@
 126_i18n.js
 127_main.js
 128_autonav.js
+129_npcinfo.js
+130_bldfix.js
 999_end.js

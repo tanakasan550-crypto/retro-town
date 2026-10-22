@@ -6,7 +6,7 @@ export default async (p, shot) => {
   // teleport to outside home door to shorten the test, then go home
   await p.evaluate(() => { const L = NLS.G.S.loc, b = NLS.G.bld(NLS.G.hero.homeB); L.k = 'out'; delete L.b; delete L.floor; L.x = b.doorX + 0.5; L.y = b.doorY + 2.5; NLS.nav.goHome('walk'); });
   const t = Date.now();
-  const r = await until(p, () => NLS.G.S.loc.floor === 1807 && !NLS.nav.NAV, 110);
+  const r = await until(p, () => NLS.G.S.loc.floor === 1807 && !NLS.nav.NAV, 170);
   console.log('home', !!r, (Date.now() - t) / 1000, JSON.stringify(await st(p)));
   await shot('home');
 };

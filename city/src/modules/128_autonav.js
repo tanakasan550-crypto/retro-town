@@ -90,11 +90,7 @@
       if (isUnitFloor(L2.floor) || L2.floor === 0 || !navStairs(I2, 0)) {
         goals = [[I2.door.x, I2.H - 2]];
         n.after = "out";
-      } else {
-        const st3 = navStairs(I2, 0);
-        goals = [[st3.x, st3.y]];
-        n.after = "stairs";
-      }
+      } else goals = navLevel(I2, solid, 0);
     } else if (tg.kind === "bld" || tg.kind === "floor") {
       // 同じ建物内: 目標の階へ(自宅の住戸を含む)
       const unit = tg.unit;
@@ -104,17 +100,15 @@
         goals = [[I2.door.x, I2.H - 2]];
         n.after = "out";
       } else if (lvWant != null && L2.floor !== lvWant) {
-        const st3 = navStairs(I2, lvWant);
-        if (!st3) return navStop("この階からは行けません");
-        goals = [[st3.x, st3.y]];
-        n.after = "stairs";
+        goals = navLevel(I2, solid, lvWant);
+        if (!goals) return navStop("この階からは行けません");
       } else if (unit != null) {
         const u = decodeUnit(unit);
-        const o = I2.objs.find((o2) => (o2.act === "unit_enter" || o2.act === "unit_visit") && o2.lv === u.lv && o2.pos === u.pos);
+        const o = I2.objs.find((o2) => o2.t === "udoor" && o2.lv === u.lv && o2.pos === u.pos);
         if (!o) return navStop("住戸の入口が見つかりません");
         n.obj = o;
         goals = navAround(I2, solid, o);
-        n.after = "obj";
+        n.after = "unit";
       } else return navArrive();
     } else if (tg.kind === "obj") {
       n.obj = tg.o;
@@ -136,6 +130,24 @@
     if (n.after === "out") n.path[n.path.length - 1] = [I2.door.x + 0.5, I2.H - 1.5];
     n.goal = n.path[n.path.length - 1];
     n.tiles = null;
+  }
+  // 別の階へ: 2階以上離れていればエレベーター、それ以外は階段
+  function navLevel(I2, solid, lv) {
+    const n = NAV, L2 = G3.S.loc;
+    n.liftTo = null;
+    if (Math.abs(lv - L2.floor) >= 2 && !n.noLift) {
+      const el = I2.objs.find((o) => o.t === "elev" && o.lo != null && o.lo <= lv && o.hi >= lv);
+      if (el) {
+        n.obj = el;
+        n.liftTo = lv;
+        n.after = "lift";
+        return navAround(I2, solid, el);
+      }
+    }
+    const st3 = navStairs(I2, lv);
+    if (!st3) return null;
+    n.after = "stairs";
+    return [[st3.x, st3.y]];
   }
   // 階の移動: 階段のつながりを幅優先で探し、いまの階で乗るべき階段を返す
   function navStairs(I2, lvWant) {
@@ -271,7 +283,13 @@
       return navScreen(n.pushDir[0], n.pushDir[1]);
     }
     const P = n.path;
-    if (!P) return null;
+    if (!P) {
+      if (n.after === "lift" && !L2.tr) {
+        n.noLift = true;
+        navPlan();
+      }
+      return null;
+    }
     // 角を切って先へ進んだ分、経由点の番号を追いつかせる
     {
       let bi = n.i, bd = 1e9;
@@ -370,6 +388,16 @@
       n.pushDir = [0, 1];
       return null;
     }
+    if (n.after === "lift") {
+      if (L2.tr) return null;
+      const r = callLift(G3, n.obj);
+      if (r.msg) toast(r.msg, 2200);
+      if (!r.ok) {
+        n.noLift = true;
+        navPlan();
+      } else n.path = null;
+      return null;
+    }
     if (n.after === "stairs") {
       // 階段のマスへ乗る
       const { I: I2 } = interiorOf(G3, L2.b, L2.floor);
@@ -407,6 +435,14 @@
         L2.f = Math.abs(sx) > Math.abs(sy) ? sx > 0 ? "r" : "l" : sy > 0 ? "d" : "u";
       } else L2.f = Math.abs(dx) > Math.abs(dy) ? dx > 0 ? "r" : "l" : dy > 0 ? "d" : "u";
     };
+    if (n.after === "unit" && n.obj) {
+      if (enterUnit(G3, n.obj.lv, n.obj.pos)) {
+        U.cwAt = -999;
+        sfx.door();
+        toast(tg.unit != null && G3.bld(tg.b) && tg.b === G3.hero.homeB ? "ただいま。自宅に着きました" : `${n.obj.room}号室に入りました`, 2400);
+      }
+      return;
+    }
     if (n.after === "obj" && n.obj) {
       const o = n.obj;
       face(o.x + (o.w || 1) / 2, o.y + (o.h || 1) / 2);
@@ -626,7 +662,12 @@
     const hb = G3.hero.homeB;
     if (hb == null || hb < 0) return toast("自宅がありません");
     const L2 = G3.S.loc;
-    const unit = G3.S.homeUnit;
+    let unit = G3.S.homeUnit;
+    try {
+      const u = unitOfPerson(G3, G3.hero.id);
+      if (u) unit = unitCode(u.lv, u.pos);
+    } catch (_) {
+    }
     if (how === "taxi" && L2.k === "out") {
       closeModal();
       setDest(G3.bld(hb), 0);
@@ -768,6 +809,7 @@
         const L2 = G3.S.loc;
         // 自宅住戸を覚える(エレベーター・階段経由で帰宅するため)
         if (L2.k === "in" && L2.b === G3.hero.homeB && isUnitFloor(L2.floor)) G3.S.homeUnit = L2.floor;
+        if (condoFixM !== G3.S.M) fixCondoHeights(G3);
         // 電車を降りたら目的地へ歩きを再開
         if (U.railNext != null && !U.modal && !RD.on && !NAV) {
           const fb = U.railNext;

@@ -291,13 +291,18 @@
     }
     R4.resize();
     if (G3.hero.sprite === "w01") R4.special = { look: G3.world.pop.look[G3.hero.id] >>> 0 };
+    try {
+      fixCondoHeights(G3);
+    } catch (e) {
+      console.warn("[bldfix]", e);
+    }
     U.started = true;
     U.dest = null;
     U.route = null;
     U.walkers = [];
     U.people = [];
     clearInteriorCache();
-    window.NLS = { G: G3, R: R4, C, U, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, nav: { navTo, navStop, onTap, tapPick, destSheet, goHome, get NAV() {
+    window.NLS = { G: G3, R: R4, C, U, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, nav: { navTo, navStop, onTap, tapPick, destSheet, goHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
       return NAV;
     } } };
     if (!loaded) {
@@ -423,8 +428,17 @@
       } else liftModal();
     }
     if (res.directory != null) {
-      U.dirAt = res.directory;
-      showDirectory(res.directory);
+      if (NAV && NAV.tg.kind === "bld" && NAV.tg.b === res.directory && (res.directory === G3.hero.homeB || NAV.tg.direct)) {
+        const r2 = tryEnter(G3, res.directory, true);
+        if (r2.ok) res.entered = res.directory;
+        else {
+          navStop();
+          if (r2.msg) toast(r2.msg, 3e3);
+        }
+      } else {
+        U.dirAt = res.directory;
+        showDirectory(res.directory);
+      }
     }
     if (res.msg) toast(res.msg);
     if (res.entered != null || res.exited || res.floor != null) {
@@ -778,7 +792,7 @@ ${spiritLines(G3).map(esc4).join("\n")}
       }
       return;
     }
-    showModal(`<h2>${esc4(tg.label)}</h2><div class="list">${acts.map((a, i) => `<button class="btn item" data-i="${i}" ${a.disabled ? "disabled" : ""}>${esc4(a.label)}</button>`).join("")}</div><div class="row">${btn("\u3084\u3081\u308B", "sec")}</div>`, (c) => {
+    showModal(`<h2>${esc4(tg.label)}</h2>${tg.kind === "npc" ? npcStatusHtml(tg.id) : ""}<div class="list">${acts.map((a, i) => `<button class="btn item" data-i="${i}" ${a.disabled ? "disabled" : ""}>${esc4(a.label)}</button>`).join("")}</div><div class="row">${btn("\u3084\u3081\u308B", "sec")}</div>`, (c) => {
       c.querySelectorAll("button.item").forEach((b) => b.onclick = () => doAction(acts[+b.dataset.i], tg));
       c.querySelector(".row .btn").onclick = closeModal;
     });
