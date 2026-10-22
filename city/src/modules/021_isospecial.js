@@ -355,6 +355,10 @@
       paintStation(ctx4, e, P2, poly7, mode2);
       return;
     }
+    if (e.sp.kind === "metro") {
+      paintMetro(ctx4, e, P2, poly7);
+      return;
+    }
     const { b, sp, w, h, R: R5 } = e;
     const lit = mode2 !== "day";
     const kind = sp.kind;

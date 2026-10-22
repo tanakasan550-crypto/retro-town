@@ -5,26 +5,76 @@
     if (!tr || !b.stationId) return [];
     return tr.lines.filter((L3) => L3.stops.some((s) => s.id === b.stationId));
   }
-  var stFloors = (g, b) => 1 + Math.max(1, Math.min(3, stLines(g, b).length));
-  FAC_RANGE.station = (b) => ({ lo: 0, hi: G3 ? stFloors(G3, b) - 1 : 1, nf: 2 });
-  FAC_LABEL.station = (b, lv) => {
-    if (lv === 0) return "1F コンコース・改札";
-    const L3 = G3 && stLines(G3, b)[lv - 1];
-    return L3 ? `${lv + 1}F ${L3.name}ホーム` : `${lv + 1}F ホーム`;
+  // 階の割り当て: 地上の路線は 2F〜、地下の路線は B1〜(地下鉄出入口は 1F入口 → B1改札 → B2〜ホーム)
+  function stLayout(g, b) {
+    const all = stLines(g, b);
+    const surf = all.filter((L3) => !L3.underground).slice(0, 3), under = all.filter((L3) => L3.underground).slice(0, 3);
+    const metro = b.type === "metro";
+    if (metro) return { metro, surf: [], under, lo: -(under.length + 1), hi: 0, gateF: -1 };
+    return { metro, surf: surf.length ? surf : [], under, lo: -under.length, hi: Math.max(1, surf.length), gateF: 0 };
+  }
+  function stLineFloor(lay, L3) {
+    const i = lay.surf.indexOf(L3);
+    if (i >= 0) return i + 1;
+    const j = lay.under.indexOf(L3);
+    if (j >= 0) return lay.metro ? -(j + 2) : -(j + 1);
+    return null;
+  }
+  var stFloors = (g, b) => {
+    const lay = stLayout(g, b);
+    return lay.hi - lay.lo + 1;
   };
-  FAC_KEY.station = (g) => g.S.rail ? "t" + g.S.rail.to : "";
-  FAC_BUILD.station = (b, floor, g) => {
-    if (!g) return null;
-    const nf = stFloors(g, b);
-    return floor === 0 ? stConcourse(b, g, nf) : stPlatform(b, g, floor, nf);
-  };
-  function stConcourse(b, g, nf) {
-    const W2 = 48, H4 = 22;
-    const P = plan(W2, H4, "floor_marble", "station");
+  for (const tp of ["station", "metro"]) {
+    FAC_RANGE[tp] = (b) => {
+      if (!G3) return { lo: 0, hi: 1, nf: 2 };
+      const lay = stLayout(G3, b);
+      return { lo: lay.lo, hi: lay.hi, nf: lay.hi + 1 };
+    };
+    FAC_LABEL[tp] = (b, lv) => {
+      const lay = G3 ? stLayout(G3, b) : { surf: [], under: [], metro: false };
+      const fl = lv < 0 ? `B${-lv}F` : `${lv + 1}F`;
+      if (lay.metro && lv === 0) return "1F 地下鉄出入口";
+      if (lay.metro && lv === -1 || !lay.metro && lv === 0) return `${fl} コンコース・改札`;
+      const L3 = [...lay.surf, ...lay.under].find((q) => stLineFloor(lay, q) === lv);
+      return L3 ? `${fl} ${L3.name}ホーム` : `${fl} ホーム`;
+    };
+    FAC_KEY[tp] = (g) => g.S.rail ? "t" + g.S.rail.to : "";
+    FAC_BUILD[tp] = (b, floor, g) => {
+      if (!g) return null;
+      const lay = stLayout(g, b);
+      if (lay.metro && floor === 0) return stMetroEntrance(b, g, lay);
+      if (floor === lay.gateF) return stConcourse(b, g, lay);
+      const L3 = [...lay.surf, ...lay.under].find((q) => stLineFloor(lay, q) === floor);
+      return stPlatform(b, g, floor, lay, L3);
+    };
+  }
+  function stMetroEntrance(b, g, lay) {
+    const W2 = 16, H4 = 11;
+    const P = plan(W2, H4, "floor_tile", "station");
     P.lv = 0;
-    P.windows(4);
+    P.door(8);
+    P.stair(6, 2, -1, "B1F 改札へ(階段)");
+    P.stair(7, 2, -1, "B1F 改札へ(エスカレーター)");
+    P.lifts(10, 1, 1, lay.lo, lay.hi, "エレベーター");
+    P.sign(8, 5, `${b.name.replace(/駅$/, "")}駅 ${lay.under.map((q) => q.name).join("・")}`);
+    P.wide("board", 1, 1, 3, 1, "timetable", "路線図・運賃表", {});
+    P.add("board", 13, 1, "fx_stinfo", "出口案内・周辺地図", true);
+    P.add("vending", 1, 7, null, "自販機");
+    P.staffSpots.push({ x: 4, y: 6, role: "staff" });
+    return P.done({ floors: lay.hi - lay.lo + 1, floor: 0, lv: 0, lo: lay.lo, hi: lay.hi, wallH: 3, label: "1F 地下鉄出入口" });
+  }
+  function stConcourse(b, g, lay) {
+    const W2 = 48, H4 = 22;
+    const P = plan(W2, H4, lay.metro ? "floor_tile" : "floor_marble", "station");
+    P.lv = lay.gateF;
+    const nf = lay.hi - lay.lo + 1;
+    if (!lay.metro) P.windows(4);
     const dx = 24;
-    P.door(dx);
+    if (!lay.metro) P.door(dx);
+    else {
+      P.stair(dx - 1, H4 - 2, 0, "1F 出入口へ(階段)");
+      P.stair(dx, H4 - 2, 0, "1F 出入口へ(エスカレーター)");
+    }
     const gy = 10;
     // 自動改札の列(門扉の間は通路。切符が無いと押し戻される)
     P.hwall(2, W2 - 3, gy, [19, 21, 23, 25, 27], "改札の仕切り");
@@ -61,27 +111,32 @@
     P.add("aed", 30, H4 - 2, null, "AED");
     // 改札内: 発車標・階段・エレベーター
     P.wide("dboard", 16, 1, 6, 1, "fx_stdep", "発車標(次の列車)", {});
-    const L3 = stLines(g, b);
-    L3.slice(0, 3).forEach((ln, i) => {
-      const x = 4 + i * 6;
-      P.stair(x, 1, i + 1, `${ln.name}ホームへ(${i + 2}F)`);
-      P.sign(x, 3, `${i + 1 + i}・${i + 2 + i}番線 ${ln.name}`);
+    [...lay.surf, ...lay.under].forEach((ln, i) => {
+      const x = 2 + i * 4;
+      const f = stLineFloor(lay, ln);
+      P.stair(x, 1, f, `${ln.name}ホームへ(${f < 0 ? "B" + -f : f + 1}F)`);
+      P.sign(x, 3, `${i * 2 + 1}・${i * 2 + 2}番線 ${ln.name}`);
     });
-    P.lifts(28, 1, 1, 0, nf - 1, "エレベーター(ホーム)");
+    P.lifts(28, 1, 1, lay.lo, lay.hi, "エレベーター(ホーム)");
     for (let x = 32; x <= 42; x += 3) P.add("bench", x, 6, "rest", "ベンチ", false);
     P.add("toilet", W2 - 2, 2, "toilet", "トイレ(改札内)");
     P.staffSpots.push({ x: 20, y: 5, role: "staff" });
-    return P.done({ floors: nf, floor: 0, lv: 0, lo: 0, hi: nf - 1, wallH: 3.4, gate: { y: gy, x0: 2, x1: W2 - 3 }, label: "1F コンコース・改札" });
+    return P.done({ floors: nf, floor: lay.gateF, lv: lay.gateF, lo: lay.lo, hi: lay.hi, wallH: 3.4, noDoor: lay.metro, gate: { y: gy, x0: 2, x1: W2 - 3 }, label: FAC_LABEL[b.type](b, lay.gateF) });
   }
-  function stPlatform(b, g, floor, nf) {
+  function stPlatform(b, g, floor, lay, ln) {
     const W2 = 52, H4 = 18;
     const P = plan(W2, H4, "floor_tile", "station");
     P.lv = floor;
-    const ln = stLines(g, b)[floor - 1];
+    const nf = lay.hi - lay.lo + 1;
+    const under = !!(ln && ln.underground);
     const si = ln ? ln.stops.findIndex((s) => s.id === b.stationId) : -1;
     const n2 = ln ? ln.stops.length : 0;
-    const toA = ln && si < n2 - 1 ? ln.stops[n2 - 1].name : null, toB = ln && si > 0 ? ln.stops[0].name : null;
-    const t1 = (floor - 1) * 2 + 1;
+    let toA = ln && si < n2 - 1 ? ln.stops[n2 - 1].name : null, toB = ln && si > 0 ? ln.stops[0].name : null;
+    if (ln && ln.ring) {
+      toA = "外回り";
+      toB = "内回り";
+    }
+    const t1 = Math.max(0, [...lay.surf, ...lay.under].indexOf(ln)) * 2 + 1;
     // 線路(北)・島式ホーム・線路(南)
     P.fill(0, 1, W2 - 1, 4, "floor_asphalt");
     P.fill(0, 12, W2 - 1, 15, "floor_asphalt");
@@ -103,14 +158,14 @@
     }
     P.add("vending", 44, 7, null, "自販機");
     P.add("kiosk", 5, 9, "shelf", "ホームの売店(駅弁・飲み物)");
-    P.stair(26, 7, 0, "改札口へ(1F)");
-    P.lifts(28, 7, 1, 0, nf - 1, "エレベーター(改札階)");
+    P.stair(26, 7, lay.gateF, `改札口へ(${lay.gateF < 0 ? "B" + -lay.gateF : lay.gateF + 1}F)`);
+    P.lifts(28, 7, 1, lay.lo, lay.hi, "エレベーター(改札階)");
     P.staffSpots.push({ x: 20, y: 9, role: "conductor" });
     for (let x = 8; x < 46; x += 6) P.seatSpots.push({ x, y: 6 + x % 4 });
-    return P.done({ floors: nf, floor, lv: floor, lo: 0, hi: nf - 1, wallH: 1.2, roof: true, noDoor: true, label: FAC_LABEL.station(b, floor), platform: { line: ln && ln.id } });
+    return P.done({ floors: nf, floor, lv: floor, lo: lay.lo, hi: lay.hi, wallH: under ? 3 : 1.2, roof: !under, noDoor: true, label: FAC_LABEL[b.type](b, floor), platform: { line: ln && ln.id, under } });
   }
   // ---- 改札の通過(歩いて通る)
-  FAC_STEP.station = (g, L2, I2, iy) => {
+  FAC_STEP.metro = FAC_STEP.station = (g, L2, I2, iy) => {
     if (!I2.gate) return null;
     const gy = I2.gate.y;
     const S2 = g.S;
@@ -230,15 +285,15 @@
   // 到着: 降りた駅のホームへ(改札で切符を回収)
   function stationArrive(g, ride) {
     const map2 = g.world.map, L2 = g.S.loc;
-    const bi = map2.buildings.findIndex((b2) => b2.type === "station" && b2.stationId === ride.toId);
+    const bi = map2.buildings.findIndex((b2) => (b2.type === "station" || b2.type === "metro") && b2.stationId === ride.toId);
     if (bi < 0) return;
     const b = map2.buildings[bi];
     const last = ride.legs[ride.legs.length - 1];
-    const lines = stLines(g, b);
-    const li = Math.max(0, lines.findIndex((L3) => L3.id === (last && last.line)));
+    const lay = stLayout(g, b);
+    const L3 = [...lay.surf, ...lay.under].find((q) => q.id === (last && last.line)) || lay.surf[0] || lay.under[0];
     L2.k = "in";
     L2.b = bi;
-    L2.floor = li + 1;
+    L2.floor = stLineFloor(lay, L3) ?? 1;
     const I2 = interiorOf(g, bi, L2.floor).I;
     L2.x = 24.5;
     L2.y = I2.H / 2;

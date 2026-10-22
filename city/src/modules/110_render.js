@@ -1156,6 +1156,7 @@
       for (const L2 of g.tr.lines) {
         x.strokeStyle = L2.color;
         x.lineWidth = lw;
+        x.setLineDash(L2.underground ? [lw * 2.5, lw * 1.5] : []);
         x.beginPath();
         L2.path.pts.forEach((p, i) => {
           const px2 = p[0] * sc + sc / 2, py = p[1] * sc + sc / 2;
@@ -1164,6 +1165,7 @@
         });
         x.stroke();
       }
+      x.setLineDash([]);
       x.font = `bold ${Math.round(Math.max(9, 11 * (sc === 1 ? 1.1 : 1)))}px sans-serif`;
       x.textAlign = "center";
       const sr = Math.max(3, 5 * (sc === 1 ? 0.9 : 1));

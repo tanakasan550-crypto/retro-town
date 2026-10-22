@@ -20,6 +20,7 @@
     const out = [];
     const day = Math.floor(t / 1440);
     for (const L2 of tr.lines) {
+      if (L2.underground) continue;
       for (const dir of [1, -1]) {
         const off = dir === 1 ? 0 : L2.headway / 2 | 0;
         for (let d0 = day - 1; d0 <= day; d0++) {
@@ -118,7 +119,7 @@
       const i = L2.stops.findIndex((s) => s.id === cur2.st);
       for (const j of [i - 1, i + 1]) if (j >= 0 && j < L2.stops.length) {
         const k2 = key(L2.stops[j].id, cur2.line);
-        const c2 = cur2.c + (L2.stops[j].dist - L2.stops[i].dist) / L2.speed + 1;
+        const c2 = cur2.c + Math.abs(L2.stops[j].dist - L2.stops[i].dist) / L2.speed + 1;
         if (!best.has(k2) || best.get(k2).c > c2) {
           const nn = { c: c2, prev: cur2, st: L2.stops[j].id, line: cur2.line };
           best.set(k2, nn);

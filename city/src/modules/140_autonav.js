@@ -536,7 +536,7 @@
     const md = (b, p) => Math.abs(b.doorX - p.x) + Math.abs(b.doorY - p.y);
     let s1 = null, s2 = null;
     for (const b of map2.buildings) {
-      if (b.type !== "station" || !b.stationId) continue;
+      if (b.type !== "station" && b.type !== "metro" || !b.stationId) continue;
       if (!s1 || md(b, pos) < md(s1, pos)) s1 = b;
       const dp = { x: dest.doorX, y: dest.doorY };
       if (!s2 || md(b, dp) < md(s2, dp)) s2 = b;

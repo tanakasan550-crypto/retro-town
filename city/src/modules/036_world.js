@@ -100,6 +100,7 @@
       this.ver = opts.ver ?? 3;
       this.targetPop = this.ver >= 4 ? TARGET_POP_V4 : TARGET_POP;
       this.map = generateMap(seed, { ver: this.ver });
+      augmentTransit(this.map);
       assignSalons(this.map);
       assignVoc(this.map);
       assignWa(this.map);
