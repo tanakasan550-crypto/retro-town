@@ -36,7 +36,10 @@
     // 職業ではない人生の目標
     { k: "family", n: "家族と仲良く暮らす", life: 1 },
     { k: "community", n: "地域の役に立つ", life: 1 },
-    { k: "travel", n: "いろいろな所を旅する", life: 1 }
+    { k: "travel", n: "いろいろな所を旅する", life: 1 },
+    // 追加(番号は後ろへ)
+    { k: "space", n: "宇宙飛行士", jobs: ["astronaut", "scientist"], route: "phd" },
+    { k: "zoo", n: "動物園の飼育員", jobs: ["zookeeper"], route: null }
   ];
   var DREAM_BY = Object.fromEntries(DREAMS.map((d, i) => [d.k, i]));
   // 段階: 0 まだない / 1 あこがれ / 2 学ぶ(養成の学校・大学) / 3 挑戦(受験・採用試験) / 4 かなえた(その仕事に就いた・目標を達成) / 5 別の道へ / 6 諦めた / 7 独立した
@@ -166,7 +169,7 @@
       if (need >= 130 && p.apt[i] >= need) wt[k] *= 1.8;
     });
     // 子どもに人気の夢(スポーツ選手・料理人・先生など)
-    for (const [k, v] of [["athlete", 1.5], ["cook", 0.6], ["teacher", 0.5], ["nursery", 0.5], ["doctor", 0.3], ["police", 0.4], ["pilot", 0.3], ["train", 0.4], ["artist", 0.5]]) wt[DREAM_BY[k]] += age < 12 ? v : v / 2;
+    for (const [k, v] of [["space", 0.3], ["zoo", 0.4], ["athlete", 1.5], ["cook", 0.6], ["teacher", 0.5], ["nursery", 0.5], ["doctor", 0.3], ["police", 0.4], ["pilot", 0.3], ["train", 0.4], ["artist", 0.5]]) wt[DREAM_BY[k]] += age < 12 ? v : v / 2;
     if (age >= 15) {
       wt[DREAM_BY.family] = 1.2;
       wt[DREAM_BY.community] = 0.5;
