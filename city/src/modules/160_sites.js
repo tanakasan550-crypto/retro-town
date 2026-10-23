@@ -17,7 +17,10 @@
   function siteLayout(b) {
     const t = b.type, hsh = uh(b.idx, 811);
     if (t === "kinder") return { W: 20, H: 16, main: [2, 2, 12, 6, 1], annex: [], ground: [["yard", 2, 9, 16, 5], ["paved", 14, 2, 4, 7]], solid: [], props: [["slide", 4, 10], ["swing", 8, 10], ["sandbox", 12, 11], ["jungle", 15, 11]], gate: [8, 12] };
-    if (t === "elem") return { W: 40, H: 34, main: [3, 3, 30, 6, 3], annex: [["gym", 29, 13, 9, 8, 1, "体育館", "s_gym"]], ground: [["paved", 1, 10, 38, 2], ["yard", 2, 13, 25, 18], ["paved", 28, 22, 11, 2]], solid: [["pool", 29, 25, 9, 6]], props: [["track", 2, 13, 25, 18], ["iron_bar", 3, 29], ["slide", 6, 29], ["swing", 9, 29], ["jungle", 12, 29], ["bike", 33, 10]], gate: [17, 23] };
+    // 小学校の標準(校舎3階・体育館の屋上にプール・運動場は体育館の南も使って約2,660㎡。設置基準 2,400㎡ 以上)
+    if (t === "elem") return { W: 40, H: 34, main: [3, 2, 30, 6, 3], annex: [["gym", 29, 10, 9, 8, 1, "体育館(屋上プール)", "s_gym"]], ground: [["paved", 1, 8, 38, 2], ["yard", 2, 10, 26, 21], ["paved", 29, 18, 10, 1], ["yard", 29, 19, 10, 12]], solid: [], props: [["track", 2, 10, 26, 21], ["iron_bar", 3, 28], ["slide", 6, 28], ["swing", 9, 28], ["jungle", 12, 28], ["bike", 34, 8]], gate: [17, 23] };
+    // 都市部の小さな小学校(校庭を優先: 本館4階建て・体育館の屋上にプール。運動場は約2,460㎡で設置基準の2,400㎡以上)
+    if (t === "elem_compact") return { W: 36, H: 30, main: [2, 2, 26, 4, 4], annex: [["gym", 29, 2, 6, 8, 1, "体育館(屋上プール)", "s_gym"]], ground: [["paved", 1, 6, 27, 1], ["paved", 29, 10, 6, 1], ["yard", 2, 7, 26, 20], ["yard", 29, 11, 6, 16]], solid: [], props: [["track", 3, 8, 24, 18], ["iron_bar", 3, 25], ["slide", 7, 25], ["jungle", 11, 25], ["bike", 30, 24]], gate: [17, 28] };
     if (t === "jh") return { W: 46, H: 38, main: [3, 3, 36, 7, 3], annex: [["gym", 36, 13, 9, 10, 1, "体育館", "s_gym"], ["club", 3, 33, 10, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 44, 2], ["yard", 2, 14, 32, 18], ["court", 36, 25, 9, 9]], solid: [], props: [["track", 2, 14, 32, 18], ["backstop", 3, 15], ["goal", 26, 22], ["goalL", 8, 22], ["tennis", 36, 25, 9, 9], ["bike", 40, 11]], gate: [18, 24] };
     if (t === "hs") return { W: 56, H: 44, main: [3, 3, 42, 7, 4], annex: [["wing", 47, 3, 8, 12, 3, "特別教室棟", "s_wing"], ["gym", 46, 17, 9, 10, 1, "体育館", "s_gym"], ["club", 14, 39, 12, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 54, 2], ["yard", 2, 14, 42, 24], ["court", 2, 38, 11, 5]], solid: [["pool", 46, 30, 9, 7]], props: [["track", 14, 14, 30, 24], ["backstop", 3, 15], ["diamond", 2, 14, 11, 11], ["goal", 41, 24], ["goalL", 16, 24], ["tennis", 2, 38, 11, 5], ["bike", 49, 39]], gate: [28, 36] };
     // 公共施設(実際の庁舎・図書館・美術館・裁判所の規模に近く。1タイル=2m)
@@ -172,8 +175,10 @@
       // 実際の基準に近い広さ(SITE_GROW)から試し、入らなければ標準→85%→72%の順に探す
       let L3 = L0, best = null;
       const t1 = performance.now();
-      for (const f2 of [...(SITE_GROW[b.type] || []), 1, 0.85, 0.72]) {
-        const r2 = siteFind(map2, b, f2 === 1 ? L0 : scaleLayout(L0, f2), F, placed, W2);
+      // 小学校: 拡大した標準の作り(運動場が基準以上になる 1.3倍まで)→ 都市部の小さな小学校の作り → 標準以下の順
+      const tries = b.type === "elem" ? [1.8, 1.65, 1.5, 1.3, "compact", 1, 0.85, 0.72] : [...SITE_GROW[b.type] || [], 1, 0.85, 0.72];
+      for (const f2 of tries) {
+        const r2 = siteFind(map2, b, f2 === "compact" ? siteLayout({ ...b, type: "elem_compact" }) : f2 === 1 ? L0 : scaleLayout(L0, f2), F, placed, W2);
         if (r2) {
           best = r2.best;
           L3 = r2.L3;
