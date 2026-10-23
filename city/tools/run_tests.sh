@@ -12,7 +12,7 @@ for n in "${names[@]}"; do
 done
 wait
 {
-  echo "# 試験結果"; echo; echo "実行: $(date '+%Y-%m-%d %H:%M') / HTML: dist/index.html ($(stat -c %s dist/index.html) bytes) / コミット: $(git rev-parse --short HEAD)"; echo
+  echo "# 試験結果"; echo; echo "実行: $(date '+%Y-%m-%d %H:%M') / HTML: ${HTML:-dist/index.html} ($(stat -c %s ${HTML:-dist/index.html}) bytes) / コミット: $(git rev-parse --short HEAD)"; echo
   echo "| 試験 | 結果 | 最後の行 |"; echo "|---|---|---|"
   pass=0; fail=0
   for n in "${names[@]}"; do last=$(tail -n1 "$OUTD/$n.log" | tr '|' '/' | cut -c1-120); if [[ $last == "no errors" ]]; then r="合格"; pass=$((pass+1)); else r="**不合格**"; fail=$((fail+1)); fi; echo "| $n | $r | $last |"; done
