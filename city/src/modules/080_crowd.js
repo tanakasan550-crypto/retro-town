@@ -832,9 +832,11 @@
     const open2 = h >= 6 && h < 23;
     if (!open2) return;
     const busy3 = h >= 16 && h < 22 ? 1 : h >= 10 && h < 16 ? 0.55 : 0.3;
-    const tubs = (I2.objs || []).filter((o) => o.t === "bath" || o.t === "rotenbath"), washes = (I2.objs || []).filter((o) => o.t === "wash"), lock = (I2.objs || []).find((o) => o.t === "locker"), bench = (I2.objs || []).find((o) => o.t === "seat" && o.act === "rest");
+    const tubs = (I2.objs || []).filter((o) => o.t === "bath" || o.t === "rotenbath" || o.t === "fx_yubune"), washes = (I2.objs || []).filter((o) => o.t === "wash"), lock = (I2.objs || []).find((o) => o.t === "locker"), bench = (I2.objs || []).find((o) => o.t === "seat" && o.act === "rest");
     if (!tubs.length || !washes.length) return;
-    const want = Math.max(1, Math.min(tubs.length, Math.round(tubs.length * busy3))), male = floor === 1;
+    // 広い湯船は2マスに1人まで入れる
+    const cap = tubs.reduce((a, o) => a + Math.max(1, Math.floor((o.w || 1) * (o.h || 1) / 2)), 0);
+    const want = Math.max(1, Math.min(cap, Math.round(cap * busy3))), male = floor === 1;
     const slot = Math.floor(g.S.min / 30), day = g.S.M * 31 + (g.S.day || 0);
     const used = new Set(res.map((q) => q.id));
     const picked = [];
@@ -847,10 +849,10 @@
       used.add(i);
       picked.push(i);
     }
-    const cell2 = (o, dy = 0) => ({ x: o.x + 0.5, y: o.y + 0.5 + dy });
+    const cell2 = (o, dy = 0, k = 0) => ({ x: o.x + 0.5 + ((o.w || 1) > 1 ? (k * 2 + (k / (o.w || 1) | 0)) % (o.w || 1) : 0), y: o.y + 0.5 + dy + ((o.h || 1) > 1 ? (k * 2 / (o.w || 1) | 0) % (o.h || 1) : 0) });
     picked.forEach((id, k) => {
       const tub = tubs[k % tubs.length], wash = washes[k % washes.length], lk = lock ? { x: lock.x + 0.5, y: Math.min(I2.H - 2, lock.y) - 0 + 0.5 - 1 } : { x: 3.5, y: I2.H - 3.5 };
-      const seq = [{ ...lk, pause: 2, dir: "u" }, { ...cell2(wash, 0), pause: 6, dir: "u", pose: "sit", act: "washing" }, { ...cell2(tub), pause: 14, dir: "d", pose: "sit", act: "bathing" }];
+      const seq = [{ ...lk, pause: 2, dir: "u" }, { ...cell2(wash, 0), pause: 6, dir: "u", pose: "sit", act: "washing" }, { ...cell2(tub, 0, Math.floor(k / tubs.length)), pause: 14, dir: "d", pose: "sit", act: "bathing" }];
       if (bench) seq.push({ x: bench.x + 0.5, y: bench.y + 0.5, pause: 5, dir: "d", pose: "sit", act: "resting" });
       res.push({ id, x: seq[0].x, y: seq[0].y, dir: "d", role: "bather", act: "bathing", act0: "bathing", wp: seq, ph: hash2(id, 5) % 40 + k * 9 });
     });

@@ -300,7 +300,9 @@
       const look = pop.look[id];
       const age = hero0 ? g.age() : g.ageOf(id);
       const sitB = (hero0 ? R5.heroPose && R5.heroPose.pose === "sit" && (R5.heroPose.k ?? 1) >= 0.35 : pose === "sit") ? 0.5 : 0;
-      items.push({ x0: x - 0.2, y0: y - 0.2, x1: x + 0.2 + sitB, y1: y + 0.2 + sitB + (hero0 && tr0 && tr0.k === "esc" ? 3.2 : 0), sx0: X - 9 * Z, sx1: X + 9 * Z, sy0: Y2 - 26 * Z, sy1: Y2 + 3 * Z, isP: true, tub: I2.objs.find((o) => (o.t === "bath" || o.t === "rotenbath") && Math.floor(x) === o.x && Math.floor(y) === o.y) ? { X, Y: Y2 } : null, isH: !!hero0, draw: (c) => {
+      // 湯船(1マスの湯船と、広い湯船 fx_yubune)
+      const tubO = I2.objs.find((o) => (o.t === "bath" || o.t === "rotenbath" || o.t === "fx_yubune") && x >= o.x && x < o.x + (o.w || 1) && y >= o.y && y < o.y + (o.h || 1));
+      items.push({ x0: x - 0.2, y0: y - 0.2, x1: x + 0.2 + sitB, y1: y + 0.2 + sitB + (hero0 && tr0 && tr0.k === "esc" ? 3.2 : 0), sx0: X - 9 * Z, sx1: X + 9 * Z, sy0: Y2 - 26 * Z, sy1: Y2 + 3 * Z, isP: true, tub: tubO ? { X, Y: Y2 } : null, isH: !!hero0, draw: (c) => {
         c.fillStyle = "rgba(0,0,0,0.22)";
         c.beginPath();
         c.ellipse(X, Y2, 5.5 * Z, 2.4 * Z, 0, 0, 7);
@@ -309,6 +311,7 @@
         const base = hero0 ? { wheel: !!(nd & 1), cane: !!(nd & 2), id } : { wheel: !!(nd & 1), id };
         if (po && po.pose === "sit") Object.assign(base, { pose: "sit", poseK: po.k ?? 1, seatPx: (P2.Y(x, y, 0.42) - P2.Y(x, y, 0)) * -1, hip: hipFrac(age) });
         R5.drawChar(c, X, Y2, look, age, dir || "d", !!mv, base);
+        if (typeof bathTowel === "function") bathTowel(c, I2, x, y, X, Y2, Z, !!tubO);
       } });
     };
     const bubbles = [];
