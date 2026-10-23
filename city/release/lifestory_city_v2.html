@@ -12014,7 +12014,10 @@ window.__SINGLE_HTML__=true;})();</script>
       const home = p.home[i];
       const group = [i];
       if (p.spouse[i] >= 0 && p.home[p.spouse[i]] === home) group.push(p.spouse[i]);
-      for (let k = 0; k < p.n && group.length < 8; k++) {
+      // 一緒に引っ越す未成年の子(親子の索引から。番号の小さい順)
+      const kids = [.../* @__PURE__ */ new Set([...this.childrenOf(i), ...group.length > 1 ? this.childrenOf(group[1]) : []])].sort((a, b) => a - b);
+      for (const k of kids) {
+        if (group.length >= 8) break;
         if (p.gone[k] || p.home[k] !== home || group.includes(k)) continue;
         if ((p.mother[k] === i || p.father[k] === i || group.length > 1 && (p.mother[k] === group[1] || p.father[k] === group[1])) && Math.floor((this.M - p.born[k]) / 12) < 18) group.push(k);
       }
@@ -13326,17 +13329,51 @@ window.__SINGLE_HTML__=true;})();</script>
   }
 
   // src/interior_school.js
-  var SCHOOL_CFG = { jh: { floors: 4, gpf: 1, cpg: 5, g0: 11, G: 3, nm: "\u4E2D\u5B66\u6821" }, hs: { floors: 4, gpf: 1, cpg: 5, g0: 14, G: 3, nm: "\u9AD8\u6821" }, elem: { floors: 4, gpf: 2, cpg: 2, g0: 5, G: 6, nm: "\u5C0F\u5B66\u6821" }, univ: { floors: 5, gpf: 1, cpg: 5, g0: 17, G: 4, nm: "\u5927\u5B66" } };
+  var SCHOOL_CFG = { jh: { floors: 4, gpf: 1, cpg: 6, g0: 11, G: 3, nm: "\u4E2D\u5B66\u6821" }, hs: { floors: 4, gpf: 1, cpg: 7, g0: 14, G: 3, nm: "\u9AD8\u6821" }, elem: { floors: 4, gpf: 2, cpg: 4, g0: 5, G: 6, nm: "\u5C0F\u5B66\u6821" }, univ: { floors: 5, gpf: 1, cpg: 6, g0: 17, G: 4, nm: "\u5927\u5B66" } };
   var SCHOOL_FLOORS = Object.fromEntries(Object.entries(SCHOOL_CFG).map(([k, v]) => [k, v.floors]));
   var schoolFloors = (b) => SCHOOL_FLOORS[b.type] || 0;
   var cfgOf = (b) => SCHOOL_CFG[b.type] || SCHOOL_CFG.jh;
   var floorOfGrade = (cfg, grade) => 1 + Math.floor((grade - 1) / cfg.gpf);
-  var slotOf = (cfg, grade, k) => (grade - 1) % cfg.gpf * cfg.cpg + k % cfg.cpg;
-  function roomInfo(b, floor, slot) {
+  // 1学年の学級数: 在籍する人数から(1学級35人まで)。年ごとに数え直す(学級編成)。cpg は学級数の上限
+  var SCH_PER_CLASS = 35;
+  var schClsC = /* @__PURE__ */ new Map();
+  function schoolClasses(w, b) {
+    if (!w || !b) return 1;
+    const y = Math.floor(w.M / 12), c = schClsC.get(b.idx);
+    if (c && c.y === y && c.w === w) return c.n;
+    const cfg = cfgOf(b), p = w.pop, cnt = new Array(cfg.G + 2).fill(0);
+    for (let i = 0; i < p.n; i++) if (!p.gone[i] && p.school[i] === b.idx) cnt[gradeOfPerson(w, i, cfg)]++;
+    const n2 = Math.max(1, Math.min(cfg.cpg, Math.ceil(Math.max(...cnt) / SCH_PER_CLASS)));
+    schClsC.set(b.idx, { y, w, n: n2 });
+    return n2;
+  }
+  // 学級編成(年ごと): 学年の在籍者を決まった順(人ごとの値)に並べ、1組から順に配る(人数の差は1人まで・35人を超えない)
+  var schKumiC = /* @__PURE__ */ new Map();
+  function kumiAt(w, b, id) {
+    const y = Math.floor(w.M / 12);
+    let c = schKumiC.get(b.idx);
+    if (!c || c.y !== y || c.w !== w) {
+      const cfg = cfgOf(b), nC = schoolClasses(w, b), p = w.pop, byG = /* @__PURE__ */ new Map(), map = /* @__PURE__ */ new Map();
+      for (let i = 0; i < p.n; i++) if (!p.gone[i] && p.school[i] === b.idx) {
+        const gr = gradeOfPerson(w, i, cfg);
+        (byG.get(gr) || byG.set(gr, []).get(gr)).push(i);
+      }
+      for (const [gr, L3] of byG) {
+        L3.sort((a, c2) => uh(a, 770 + gr) - uh(c2, 770 + gr) || a - c2);
+        L3.forEach((i, k) => map.set(i, k % nC));
+      }
+      schKumiC.set(b.idx, c = { y, w, map });
+    }
+    const v = c.map.get(id);
+    return v != null ? v : -1;
+  }
+  // 学級(組): 人ごとに決まる(学年ごと)。学級数が変わるとその数で割りなおす
+  var slotOf = (cfg, grade, k, nC = cfg.cpg) => (grade - 1) % cfg.gpf * nC + k % nC;
+  function roomInfo(b, floor, slot, nC = cfgOf(b).cpg) {
     const cfg = cfgOf(b);
-    const grade = (floor - 1) * cfg.gpf + 1 + Math.floor(slot / cfg.cpg);
-    const cls = slot % cfg.cpg + 1;
-    if (grade > cfg.G) return { grade, cls, label: slot === 4 && cfg.gpf > 1 ? "\u7279\u5225\u6559\u5BA4(\u97F3\u697D\u30FB\u56F3\u5DE5)" : `${cfg.nm}\u306E\u4E88\u5099\u6559\u5BA4`, special: true };
+    const grade = (floor - 1) * cfg.gpf + 1 + Math.floor(slot / nC);
+    const cls = slot % nC + 1;
+    if (grade > cfg.G) return { grade, cls, label: slot === nC * cfg.gpf - 1 && cfg.gpf > 1 ? "\u7279\u5225\u6559\u5BA4(\u97F3\u697D\u30FB\u56F3\u5DE5)" : `${cfg.nm}\u306E\u4E88\u5099\u6559\u5BA4`, special: true };
     return { grade, cls, label: b.type === "univ" ? `${grade}\u5E74\u6B21 \u8B1B\u7FA9\u5BA4${slot + 1}` : `${grade}\u5E74${cls}\u7D44` };
   }
   var floorLabel = (b, floor) => {
@@ -13349,18 +13386,25 @@ window.__SINGLE_HTML__=true;})();</script>
     return b.type === "univ" ? `${floor}\u5E74\u6B21\u306E\u8B1B\u7FA9\u68DF` : `${floor}\u5E74\u751F\u306E\u968E`;
   };
   var isSchoolBig = (b) => !!SCHOOL_FLOORS[b.type];
+  // 学年は4月始まりの学年度で数える(早生まれも同じ学年)
+  function gradeOfPerson(w, i, cfg = SCHOOL_CFG.jh) {
+    const M = w.M, Ms = M - ((M % 12 - 3) % 12 + 12) % 12;
+    return Math.max(1, Math.min(cfg.G, Math.floor((Ms - w.pop.born[i]) / 12) - cfg.g0));
+  }
   function gradeOfAge(age, cfg = SCHOOL_CFG.jh) {
     return Math.max(1, Math.min(cfg.G, age - cfg.g0));
   }
   function buildSchool(b, floor, g) {
     const cfg = cfgOf(b);
-    const W2 = 27, H4 = 14, floors = cfg.floors;
+    // 教室は1学級35席(机7列×5段)。1階あたりの教室数 = 学年(gpf)×学級数。幅は教室の数で決まる
+    const nC = schoolClasses(g && g.world, b), rooms = cfg.gpf * nC;
+    const W2 = Math.max(27, 2 + rooms * 10 + 4), H4 = 18, floors = cfg.floors;
     const tiles = new Array(W2 * H4).fill("floor_wood");
     const objs = [];
     const occ = /* @__PURE__ */ new Set();
     const staffSpots = [], seatSpots = [];
-    const classSeats = [[], [], [], [], []];
-    const classStand = [[], [], [], [], []];
+    const classSeats = Array.from({ length: Math.max(5, rooms) }, () => []);
+    const classStand = Array.from({ length: Math.max(5, rooms) }, () => []);
     const add = (t, x, y, act, label2, solid = true, extra = {}) => {
       if (x < 0 || y < 1 || x >= W2 || y >= H4 - 1) return false;
       const k = x + y * W2;
@@ -13394,18 +13438,19 @@ window.__SINGLE_HTML__=true;})();</script>
     const grade = floor;
     let label = floorLabel(b, floor);
     if (floor >= 1) {
-      for (let r = 0; r < 5; r++) {
-        const x0 = 1 + 5 * r;
-        for (let y = 5; y <= 12; y++) wall(x0 + 4, y);
-        for (let x = x0; x < x0 + 3; x++) wall(x, 4);
-        const ri = roomInfo(b, floor, r);
-        add("doormat", x0 + 3, 4, null, `${ri.label}\u306E\u5165\u53E3`, false);
-        add("kokuban", x0, 5, null, `${ri.label} \u9ED2\u677F`, true, { w: 3 });
-        add("podium", x0 + 1, 6, "class", "\u6559\u5353", true);
-        staffSpots.push({ x: x0 + 3, y: 6 });
-        for (let yy = 7; yy <= 11; yy++) classStand[r].push({ x: x0 + 3, y: yy });
-        for (const yy of [7, 9, 11]) for (const xx of [x0, x0 + 1, x0 + 2]) {
-          if (add("desk", xx, yy, "class", "\u673A\u3068\u6905\u5B50")) {
+      for (let r = 0; r < rooms; r++) {
+        const x0 = 1 + 10 * r;
+        // 教室の壁(右)と廊下側の壁(入口は右上)
+        for (let y = 5; y <= H4 - 2; y++) wall(x0 + 9, y);
+        for (let x = x0; x < x0 + 8; x++) wall(x, 4);
+        const ri = roomInfo(b, floor, r, nC);
+        add("doormat", x0 + 8, 4, null, `${ri.label}の入口`, false);
+        add("kokuban", x0 + 1, 5, null, `${ri.label} 黒板`, true, { w: 6 });
+        add("podium", x0 + 4, 6, "class", "教卓", true);
+        staffSpots.push({ x: x0 + 5, y: 6 });
+        for (let yy = 7; yy <= H4 - 2; yy++) classStand[r].push({ x: x0 + 8, y: yy });
+        for (const yy of [7, 9, 11, 13, 15]) for (let xx = x0 + 1; xx <= x0 + 7; xx++) {
+          if (add("desk", xx, yy, "class", "机と椅子")) {
             classSeats[r].push({ x: xx, y: yy + 1 });
             seatSpots.push({ x: xx, y: yy + 1 });
           }
@@ -16182,6 +16227,11 @@ window.__SINGLE_HTML__=true;})();</script>
       if (personActivity(w, i, m, dow).s !== 0) continue;
       const s = sp[si++ % sp.length];
       res.push({ id: i, x: s.x + 0.5, y: s.y + 0.5, dir: "d", role: u.hero ? "family" : "resident" });
+    }
+    // 帰省している市外の親族(この住戸の世帯の親・kinvisit.js)
+    if (typeof kinVisitInside === "function") try {
+      for (const q of kinVisitInside(crowd, bIdx, I2, u.hh)) res.push(q);
+    } catch (e) {
     }
     return res;
   }
@@ -19179,7 +19229,7 @@ window.__SINGLE_HTML__=true;})();</script>
   var interiorCache = /* @__PURE__ */ new Map();
   function interiorOf(g, bIdx, floor) {
     const b0 = g.world.map.buildings[bIdx];
-    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "") + facKey(g, b0);
+    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (isSchoolBig(b0) ? ":c" + schoolClasses(g.world, b0) : "") + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "") + facKey(g, b0);
     let r = interiorCache.get(k);
     if (!r) {
       const b = b0;
@@ -23097,6 +23147,7 @@ ${parentsText(g)}
       }
       try {
         if (typeof visitorWalkers === "function") visitorWalkers(this, out, hx2, hy, radius);
+        if (typeof kinVisitWalkers === "function") kinVisitWalkers(this, out, hx2, hy, radius);
       } catch (e) {
       }
       try {
@@ -23150,6 +23201,7 @@ ${parentsText(g)}
       try {
         if (typeof campusIndoor === "function") res = campusIndoor(this, bIdx, I2, floor, res);
         if (typeof funeralIndoor === "function") res = funeralIndoor(this, bIdx, I2, floor, res);
+        if (typeof cremIndoor === "function") res = cremIndoor(this, bIdx, I2, floor, res);
         if (typeof cinemaIndoor === "function") res = cinemaIndoor(this, bIdx, I2, floor, res);
       } catch (e) {
         console.warn("[campus in]", e);
@@ -23241,6 +23293,11 @@ ${parentsText(g)}
       }
       try {
         if (typeof visitorsInside === "function" && !isUnitFloor(floor)) for (const q of visitorsInside(this, b, I2, floor)) if (!res.some((r) => r.id === q.id)) res.push(q);
+      } catch (e) {
+      }
+      // 帰省している市外の親族(kinvisit.js)。一戸建て(集合住宅の住戸は unitPeople)
+      if (bt.cat === "res" && typeof kinVisitInside === "function") try {
+        for (const q of kinVisitInside(this, bIdx, I2)) if (!res.some((r) => r.id === q.id)) res.push(q);
       } catch (e) {
       }
       if (bt.cat === "res") {
@@ -23353,13 +23410,16 @@ ${parentsText(g)}
     const free = (x, y) => x >= 1 && y >= 3 && x < I2.W - 1 && y < I2.H - 2 && !sol[x + y * I2.W];
     const byCls = /* @__PURE__ */ new Map();
     const gradeCount = {};
-    const cfg = big ? cfgOf(b) : null;
+    const cfg = big ? cfgOf(b) : null, nC = big ? schoolClasses(w, b) : 1;
     for (const i of roster) {
-      const gr = big ? gradeOfAge(ageYears(p, i, w.M), cfg) : 0;
+      const gr = big ? gradeOfPerson(w, i, cfg) : 0;
       const fl = big ? floorOfGrade(cfg, gr) : hash2(i, 5) % nF;
       const gk = big ? "g" + gr : fl;
       const n2 = (gradeCount[gk] = (gradeCount[gk] || 0) + 1) - 1;
-      const cl = big ? slotOf(cfg, gr, n2) : 0, k = big ? Math.floor(n2 / cfg.cpg) : n2;
+      // 学級は人ごとに決まる(ties.js の kumiOf と同じ)。席は学級の中で来た順
+      const kumi = big ? Math.max(0, kumiAt(w, b, i)) : 0;
+      const ck = big ? "c" + gr + ":" + kumi : null;
+      const cl = big ? slotOf(cfg, gr, kumi, nC) : 0, k = big ? (byCls.set(ck, (byCls.get(ck) || 0) + 1), byCls.get(ck) - 1) : n2;
       if (fl !== floor) continue;
       if (personActivity(w, i, m, dt.dow).s !== 2) continue;
       const seats = big ? (I2.classSeats || [])[cl] || [] : I2.seatSpots || [];
@@ -23379,7 +23439,7 @@ ${parentsText(g)}
       }
       const q = { id: i, x: pos.x + 0.5, y: pos.y + 0.5, dir: "u", role: "student", cls: big ? cl + 1 : void 0, seat0: seated };
       if (recess) {
-        const dx0 = big ? 1 + 5 * cl + 3 : pos.x, ox = big ? Math.max(2, Math.min(I2.W - 5, dx0 + hash2(i, 8) % 9 - 4)) : Math.max(1, Math.min(I2.W - 2, pos.x + hash2(i, 8) % 5 - 2)), oy = big ? 2.5 : Math.max(3, Math.min(I2.H - 3, pos.y + hash2(i, 9) % 3 - 1)) + 0.5;
+        const dx0 = big ? 1 + 10 * cl + 8 : pos.x, ox = big ? Math.max(2, Math.min(I2.W - 5, dx0 + hash2(i, 8) % 9 - 4)) : Math.max(1, Math.min(I2.W - 2, pos.x + hash2(i, 8) % 5 - 2)), oy = big ? 2.5 : Math.max(3, Math.min(I2.H - 3, pos.y + hash2(i, 9) % 3 - 1)) + 0.5;
         q.x = dx0 + 0.5;
         q.y = big ? 3.5 : pos.y + 0.5;
         q.act = "recess";
@@ -37558,7 +37618,7 @@ FPS ${d.fps} / \u30D5\u30EC\u30FC\u30E0\u5E73\u5747 ${d.frameMs.avg}ms\u30FB95%\
     U.walkers = [];
     U.people = [];
     clearInteriorCache();
-    window.NLS = { G: G3, R: R4, C, U, AW, CTL, isOpenFor, campus: { campusWhere, campusPresent, campusSlot, campusNpcStatus }, talkFacts, tiesOf, ledger: { lifeMission, ledgerAwards }, fun: { funeralOf, funeralChief, funeralSched, funeralNow, funeralText }, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, T: T, BTYPES, sitesLandMap, siteRoadSouth, snd: { soundState: () => soundState(G3, R4, G3.S.loc), unlock: () => sfx.unlock() }, vis: { visitsOf, visitOrigins, visitCount, visitNow }, audit: { rows: () => auditRows(), begin: () => auditBegin(), view: (i, o) => auditView(i, o), end: () => auditEnd(), modal: () => auditModal(), shotName: (i) => auditShotName(G3.bld(i)), AUD, cats: AUDIT_CATS }, bus: { busCommuteIndex, busNet, busFleet, busUpdate, busEtas, busNpcStatus, BUSSIM, facOutdoorTargets, targetActions, runAction, targetsFor, transitPlan, tripOptions, tripStart, tripModal, busMapModal, busOfHero }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
+    window.NLS = { G: G3, R: R4, C, U, AW, CTL, isOpenFor, campus: { campusWhere, campusPresent, campusSlot, campusNpcStatus }, talkFacts, tiesOf, ledger: { lifeMission, ledgerAwards }, fun: { funeralOf, funeralChief, funeralSched, funeralNow, funeralText, cremNow }, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, T: T, BTYPES, sitesLandMap, siteRoadSouth, findPath, saveSlot, loadSlot, kin: { kinVisitsToday, kinVisitStatus, kinVisitOf, kinVisitInside }, snd: { soundState: () => soundState(G3, R4, G3.S.loc), unlock: () => sfx.unlock() }, vis: { visitsOf, visitOrigins, visitCount, visitNow }, audit: { rows: () => auditRows(), begin: () => auditBegin(), view: (i, o) => auditView(i, o), end: () => auditEnd(), modal: () => auditModal(), shotName: (i) => auditShotName(G3.bld(i)), AUD, cats: AUDIT_CATS }, bus: { busCommuteIndex, busNet, busFleet, busUpdate, busEtas, busNpcStatus, BUSSIM, facOutdoorTargets, targetActions, runAction, targetsFor, transitPlan, tripOptions, tripStart, tripModal, busMapModal, busOfHero }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
       return NAV;
     } } };
     if (!loaded && !(G3.S.life && G3.S.life.env)) {
@@ -40418,6 +40478,16 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   function npcStatus(id) {
     const w = G3.world, p = w.pop;
     const age = G3.ageOf(id);
+    // 市外に住む親族(kinout.js): 帰省の日だけ街にいる
+    if (typeof isOutKin === "function" && isOutKin(p, id)) {
+      let ties = null;
+      try {
+        ties = tiesOf(w, G3.hero.id, id).filter((t) => t.k === "kin").map((t) => t.rel);
+      } catch (e) {
+      }
+      const kids = w.childrenOf(id).filter((k) => !p.gone[k] && p.home[k] >= 0).map((k) => G3.nameOf(k));
+      return { who: `市外在住${kids.length ? `(${kids.join("・")}さんの親)` : ""}`, age, now: (typeof kinVisitStatus === "function" ? kinVisitStatus(id) : null) || "市外の家で暮らしている", goal: "", mission: null, ties };
+    }
     const d = G3.date();
     const a = personActivity(w, id, G3.S.min, d.dow);
     const dp = dayPlan(w, id, d.dow);
@@ -46002,7 +46072,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   })();
   var auditCat = (b) => b.type === "annex" && b.parentB != null && G3 ? AUDIT_TYPE_CAT[G3.bld(b.parentB).type] || "other" : AUDIT_TYPE_CAT[b.type] || "other";
   // 自動試験(tools/scen)のうち、その施設の利用を実際に通して確かめているもの
-  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp", station: "st,stpeople,metro", metro: "metro", stadium: "sd", airport: "fly", hospital: "ho", zoo: "zoo" };
+  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp,bigsites", station: "st,stpeople,metro", metro: "metro", stadium: "sd,bigsites", airport: "fly", hospital: "ho", zoo: "zoo,zooout", police: "pubfac", fire: "pubfac", cityhall: "pubfac", court: "pubfac", nursing: "pubfac", welfare: "pubfac", lab: "pubfac", crematorium: "funeral", funeral: "funeral", elem: "classroom,campus", jh: "campus", hs: "classroom,campus", univ: "campus", kinder: "campus", onsenbath: "bath", sento: "bath", cinema: "leisure", bowling: "leisure", gym: "leisure", factory: "bigsites" };
   var auditFactC = /* @__PURE__ */ new Map();
   // 種類ごとの事実(代表の建物の内部を実際に組み立てて数える)
   function auditFacts(g, b) {
@@ -46972,10 +47042,18 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     if (t === "jh") return { W: 46, H: 38, main: [3, 3, 36, 7, 3], annex: [["gym", 36, 13, 9, 10, 1, "体育館", "s_gym"], ["club", 3, 33, 10, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 44, 2], ["yard", 2, 14, 32, 18], ["court", 36, 25, 9, 9]], solid: [], props: [["track", 2, 14, 32, 18], ["backstop", 3, 15], ["goal", 26, 22], ["goalL", 8, 22], ["tennis", 36, 25, 9, 9], ["bike", 40, 11]], gate: [18, 24] };
     if (t === "hs") return { W: 56, H: 44, main: [3, 3, 42, 7, 4], annex: [["wing", 47, 3, 8, 12, 3, "特別教室棟", "s_wing"], ["gym", 46, 17, 9, 10, 1, "体育館", "s_gym"], ["club", 14, 39, 12, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 54, 2], ["yard", 2, 14, 42, 24], ["court", 2, 38, 11, 5]], solid: [["pool", 46, 30, 9, 7]], props: [["track", 14, 14, 30, 24], ["backstop", 3, 15], ["diamond", 2, 14, 11, 11], ["goal", 41, 24], ["goalL", 16, 24], ["tennis", 2, 38, 11, 5], ["bike", 49, 39]], gate: [28, 36] };
     // 公共施設(実際の庁舎・図書館・美術館・裁判所の規模に近く。1タイル=2m)
-    if (t === "cityhall") return { W: 50, H: 40, main: [5, 4, 32, 14, 7], annex: [], ground: [["paved", 2, 19, 46, 8], ["paved", 22, 27, 6, 13], ["paved", 38, 4, 10, 15], ["paved", 3, 29, 17, 9], ["paved", 30, 29, 17, 9]], solid: [], props: [["fountain", 25, 23], ["lot", 3, 29, 17, 9], ["lot", 30, 29, 17, 9], ["tree", 4, 21], ["tree", 46, 21], ["lamp", 12, 26], ["lamp", 38, 26], ["bench", 18, 25], ["bench", 32, 25], ["bike", 42, 8]], gate: [25, 34] };
-    if (t === "court") return { W: 36, H: 30, main: [4, 3, 26, 12, 5], annex: [], ground: [["paved", 2, 16, 32, 6], ["paved", 15, 22, 6, 8]], solid: [], props: [["tree", 4, 18], ["tree", 31, 18], ["tree", 8, 25], ["tree", 28, 25], ["lamp", 12, 21], ["lamp", 24, 21]], gate: [18, 24] };
+    if (t === "cityhall") return { W: 50, H: 40, main: [5, 4, 32, 14, 5], annex: [], ground: [["paved", 2, 19, 46, 8], ["paved", 22, 27, 6, 13], ["paved", 38, 4, 10, 15], ["paved", 3, 29, 17, 9], ["paved", 30, 29, 17, 9]], solid: [], props: [["fountain", 25, 23], ["lot", 3, 29, 17, 9], ["lot", 30, 29, 17, 9], ["tree", 4, 21], ["tree", 46, 21], ["lamp", 12, 26], ["lamp", 38, 26], ["bench", 18, 25], ["bench", 32, 25], ["bike", 42, 8]], gate: [25, 34] };
+    if (t === "court") return { W: 36, H: 30, main: [4, 3, 26, 12, 2], annex: [], ground: [["paved", 2, 16, 32, 6], ["paved", 15, 22, 6, 8]], solid: [], props: [["tree", 4, 18], ["tree", 31, 18], ["tree", 8, 25], ["tree", 28, 25], ["lamp", 12, 21], ["lamp", 24, 21]], gate: [18, 24] };
     if (t === "library") return { W: 34, H: 28, main: [3, 3, 24, 11, 3], annex: [], ground: [["paved", 2, 15, 30, 5], ["paved", 14, 20, 6, 8]], solid: [], props: [["tree", 4, 21], ["tree", 9, 24], ["tree", 25, 21], ["tree", 30, 24], ["bench", 6, 17], ["bench", 26, 17], ["bike", 29, 6], ["lamp", 12, 18]], gate: [17, 22] };
     if (t === "museum") return { W: 44, H: 34, main: [4, 3, 32, 13, 2], annex: [], ground: [["paved", 2, 17, 40, 6], ["paved", 19, 23, 6, 11]], solid: [], props: [["fountain", 22, 20], ["tree", 4, 25], ["tree", 10, 28], ["tree", 33, 25], ["tree", 39, 28], ["bench", 12, 21], ["bench", 30, 21], ["lamp", 16, 19], ["lamp", 28, 19]], gate: [22, 28] };
+    // 警察署・消防署・介護施設・福祉施設・研究所(中の作り fac_public.js の広さに合わせた本館)
+    if (t === "police") return { W: 30, H: 24, main: [3, 3, 18, 9, 3], annex: [], ground: [["paved", 1, 13, 28, 5], ["paved", 13, 18, 5, 6], ["paved", 22, 3, 7, 10]], solid: [], props: [["lot", 22, 3, 7, 10], ["tree", 3, 19], ["tree", 26, 19], ["lamp", 9, 15], ["lamp", 20, 15]], gate: [15, 20] };
+    if (t === "fire") return { W: 32, H: 26, main: [3, 3, 20, 10, 2], annex: [], ground: [["paved", 1, 13, 30, 13], ["paved", 24, 3, 7, 10]], solid: [], props: [["chimney", 27, 6], ["lot", 24, 9, 7, 4], ["lamp", 6, 15], ["lamp", 20, 15]], gate: [13, 21] };
+    if (t === "nursing") return { W: 30, H: 24, main: [3, 3, 18, 9, 2], annex: [], ground: [["paved", 1, 13, 28, 4], ["paved", 13, 17, 5, 7], ["field", 22, 3, 7, 10]], solid: [], props: [["tree", 24, 5], ["tree", 27, 9], ["bench", 24, 11], ["bench", 3, 18], ["tree", 6, 21], ["tree", 24, 21]], gate: [15, 20] };
+    if (t === "welfare") return { W: 26, H: 22, main: [3, 3, 16, 8, 2], annex: [], ground: [["paved", 1, 12, 24, 4], ["paved", 11, 16, 5, 6], ["field", 20, 3, 5, 9]], solid: [], props: [["tree", 21, 5], ["bench", 21, 10], ["tree", 4, 18]], gate: [13, 18] };
+    if (t === "lab") return { W: 34, H: 26, main: [3, 3, 20, 10, 3], annex: [], ground: [["paved", 1, 14, 32, 5], ["paved", 15, 19, 5, 7], ["paved", 25, 3, 8, 11]], solid: [], props: [["lot", 25, 3, 8, 11], ["fountain", 12, 16], ["tree", 3, 21], ["tree", 30, 21], ["lamp", 8, 17], ["lamp", 22, 17]], gate: [17, 22] };
+    // 火葬場: 本館(炉前ホール・待合室)と静かな前庭・駐車場
+    if (t === "crematorium") return { W: 30, H: 24, main: [4, 3, 17, 9, 1], annex: [], ground: [["paved", 1, 13, 28, 4], ["paved", 11, 17, 5, 7], ["paved", 23, 3, 6, 10], ["field", 2, 18, 8, 5]], solid: [], props: [["lot", 23, 3, 6, 10], ["tree", 3, 19], ["tree", 7, 21], ["tree", 22, 19], ["tree", 26, 21], ["lamp", 10, 15]], gate: [13, 20] };
     if (t === "special") return { W: 30, H: 24, main: [2, 2, 18, 6, 2], annex: [["wing", 22, 2, 6, 8, 2, "実習棟", "s_wing"]], ground: [["paved", 1, 9, 28, 2], ["yard", 2, 12, 26, 9]], solid: [], props: [["slide", 4, 14], ["swing", 8, 14], ["bike", 24, 12]], gate: [12, 18] };
     if (t === "univ") {
       const FAC = ["工学部", "文学部", "経済学部", "理学部", "法学部", "教育学部", "医学部", "農学部", "情報学部", "国際学部"];
@@ -46998,7 +47076,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   // 立ち退いて移ってもらえる小さな建物(番号はそのまま・近くの空き地へ移す)
   var SITE_MOVABLE = /* @__PURE__ */ new Set(["house", "apt", "farmhouse", "villa", "shop", "konbini", "cafe", "restaurant", "ramen", "izakaya", "clothes", "bookstore", "greengrocer", "fishshop", "pharmacy", "liquor", "warehouse", "park", "seafood", "directsale"]);
   // 小さな建物(40タイル以下・テナントなし)は移せる。駅・病院・役所・学校など街の要の施設は動かさない
-  var SITE_KEEP = /* @__PURE__ */ new Set(["station", "metro", "hospital", "cityhall", "airport", "stadium", "themepark", "tower", "dept", "mall", "police", "fire", "court", "shrine", "temple", "cemetery", "elem", "jh", "hs", "univ", "kinder", "special", "zoo", "aquarium", "annex", "tourtower", "crematorium", "harboroffice", "pier", "marina", "ferry"]);
+  var SITE_KEEP = /* @__PURE__ */ new Set(["station", "metro", "hospital", "cityhall", "airport", "stadium", "themepark", "tower", "dept", "mall", "police", "fire", "court", "shrine", "temple", "cemetery", "elem", "jh", "hs", "univ", "kinder", "special", "zoo", "aquarium", "annex", "tourtower", "crematorium", "harboroffice", "pier", "marina", "ferry", "nursing", "welfare", "lab", "library", "museum"]);
   var siteMovable = (b) => !!b && !b.tenant && !(b.tenants && b.tenants.length) && b.siteI == null && !SITE_KEEP.has(b.type) && (SITE_MOVABLE.has(b.type) || b.w * b.h <= 40);
   // 土地の区分: 0=使えない(幹線道路・踏切・橋・水・線路・大きな施設など) 1=空き地(草地・畑・林・田・広場・小道・生活道路) 2=移せる小さな建物
   function sitesLandMap(map2, todo = []) {
@@ -47100,7 +47178,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     map2.fsites = [];
     const t0 = performance.now();
     const W2 = map2.W, placed = [];
-    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum"];
+    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab", "crematorium"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
     const report = [], displaced = [];
     // 埋立地の島に移す施設(動物園・大学の本キャンパス・水族館・遊園地・スタジアム・工場)を先に置く(reclaim.js)。
@@ -47160,7 +47238,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
   // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
-  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum"]);
+  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab", "crematorium"]);
   var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [2, 1.8, 1.6, 1.4, 1.2], jh: [1.8, 1.65, 1.5, 1.3, 1.15], elem: [1.8, 1.65, 1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
     // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)
@@ -47173,8 +47251,8 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
       if (!siteRectOk(map2, F, b, x, y, L3.W, L3.H)) continue;
       if (placed.some((p) => x < p.x + p.w + 2 && p.x < x + L3.W + 2 && y < p.y + p.h + 2 && p.y < y + L3.H + 2)) continue;
       const mov = rectSum(F.mov, W2, x, y, L3.W, L3.H), score = mov * 0.35 + Math.hypot(dx, dy);
-      // 公共施設は空き地だけに置く(家や店を立ち退かせない)
-      if (mov && SITE_CIVIC.has(b.type)) continue;
+      // 公共施設は、立ち退く小さな建物が少ない場所だけ(学校より控えめ: 8棟まで)
+      if (mov > (b.type === "cityhall" ? 40 : b.type === "fire" || b.type === "police" ? 20 : 8) * 12 && SITE_CIVIC.has(b.type)) continue;
       if (best && score >= best.score) continue;
       const gx = siteRoadSouth(map2, x, y, L3.W, L3.H);
       if (gx < 0) continue;
@@ -47190,7 +47268,10 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   // 立ち退いた建物を、近くの空き地(南に道路か歩道があり、2タイル以内に道路)へ移す。番号・名前・住人はそのまま
   function siteRelocate(map2, list, placed) {
     const W2 = map2.W, H4 = map2.H, moved = [];
-    const isRoad = (k) => [T.ROAD, T.CROSSING].includes(map2.ground[k]);
+    const TR = T.ROAD, TC = T.CROSSING, isRoad = (k) => {
+      const gd = map2.ground[k];
+      return gd === TR || gd === TC;
+    };
     const land = (x, y) => {
       if (x < 1 || y < 1 || x >= W2 - 1 || y >= H4 - 1) return false;
       const k = x + y * W2, gd = map2.ground[k];
@@ -47202,37 +47283,86 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     // ほかの施設の敷地(公園・屋敷・寺社・空港など)にも移さない
     for (const S2 of map2.sites || []) for (let y = Math.max(0, S2.y); y < Math.min(H4, S2.y + S2.h); y++) siteM.fill(1, y * W2 + Math.max(0, S2.x), y * W2 + Math.min(W2, S2.x + S2.w));
     const inSite = (x, y) => siteM[x + y * W2] === 1;
+    // 置けない場所の積分画像(はじめの状態)と、ここで置いた建物の矩形(32マスの升目で引く)。矩形の判定を1回の引き算にする
+    const S0 = new Int32Array((W2 + 1) * (H4 + 1));
+    for (let y = 0; y < H4; y++) {
+      let row = 0;
+      for (let x = 0; x < W2; x++) {
+        row += !land(x, y) || inSite(x, y) ? 1 : 0;
+        S0[(y + 1) * (W2 + 1) + x + 1] = S0[y * (W2 + 1) + x + 1] + row;
+      }
+    }
+    const placedG = /* @__PURE__ */ new Map(), GK = (gx, gy) => gx * 4096 + gy;
+    const freeRect = (x, y, w, h) => {
+      if (x < 1 || y < 1 || x + w > W2 - 1 || y + h > H4 - 1) return false;
+      if (rectSum(S0, W2, x, y, w, h)) return false;
+      for (let gx = x >> 5; gx <= x + w >> 5; gx++) for (let gy = y >> 5; gy <= y + h >> 5; gy++) for (const r of placedG.get(GK(gx, gy)) || []) if (x < r[0] + r[2] && r[0] < x + w && y < r[1] + r[3] && r[1] < y + h) return false;
+      return true;
+    };
+    const markPlaced = (x, y, w, h) => {
+      for (let gx = x >> 5; gx <= x + w >> 5; gx++) for (let gy = y >> 5; gy <= y + h >> 5; gy++) {
+        const k = GK(gx, gy);
+        (placedG.get(k) || placedG.set(k, []).get(k)).push([x, y, w, h]);
+      }
+    };
+    // 道路の升目の索引(16マス)。置く場所の候補は「入口の1〜2マス下が道路」になる位置だけ(道路は移設で変わらない)
+    const CS = 16, GW = Math.ceil(W2 / CS), GH = Math.ceil(H4 / CS), roadG = Array.from({ length: GW * GH }, () => []);
+    for (let k = 0; k < W2 * H4; k++) if (isRoad(k)) roadG[(k % W2 / CS | 0) + (k / W2 / CS | 0) * GW].push(k);
     for (const b of list) {
       let done2 = false;
-      // 近い順(正方形の輪)に探す。輪の上の点だけを回る(順序は従来と同じ)
-      // ふつうは近く(200マス以内)で見つかる。見つからなければ地図の広い範囲まで探す(建物を地図から消さない)
-      for (let r = 0; r <= 700 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx += Math.abs(dy) === r || dx === r ? 1 : 2 * r) {
-        const x = b.x + dx, y = b.y + dy;
-        if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
-        const dxk0 = x + (b.w >> 1);
-        if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
-        let ok = true;
-        for (let yy = y - 1; yy <= y + b.h && ok; yy++) for (let xx = x - 1; xx <= x + b.w && ok; xx++) if (!land(xx, yy) || inSite(xx, yy)) ok = false;
-        if (!ok) continue;
-        const dxk = x + (b.w >> 1), k1 = dxk + (y + b.h + 1) * W2, k2 = dxk + (y + b.h + 2) * W2;
-        if (!(isRoad(k1) || y + b.h + 2 < H4 && isRoad(k2))) continue;
-        for (let yy = y; yy < y + b.h; yy++) for (let xx = x; xx < x + b.w; xx++) {
-          const k = xx + yy * W2;
-          map2.bid[k] = b.idx;
-          map2.solid[k] = 1;
-          map2.deco[k] = 0;
+      // 近い順(正方形の輪 r=max(|dx|,|dy|)、同じ輪は dy・dx の小さい順。以前の探し方と同じ順)に、候補だけを調べる。
+      // ふつうは近く(200マス以内)で見つかる。見つからなければ地図の広い範囲(700マス)まで探す(建物を地図から消さない)
+      const hw = b.w >> 1, tx = b.x + hw, ty = b.y + b.h + 1, cx0 = Math.floor(tx / CS), cy0 = Math.floor(ty / CS);
+      const seenP = /* @__PURE__ */ new Set(), bucket = [];
+      let dNext = 0;
+      for (let R = 0; !done2; R++) {
+        for (let gy = cy0 - R; gy <= cy0 + R; gy++) for (let gx = cx0 - R; gx <= cx0 + R; gx += Math.abs(gy - cy0) === R || gx === cx0 + R ? 1 : 2 * R) {
+          if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+          for (const k of roadG[gx + gy * GW]) {
+            const rx = k % W2, ry = k / W2 | 0;
+            for (const off of [1, 2]) {
+              const x = rx - hw, y = ry - b.h - off, dx = x - b.x, dy = y - b.y, d = Math.max(Math.abs(dx), Math.abs(dy));
+              if (d > 700 || seenP.has(x * 4096 + y)) continue;
+              seenP.add(x * 4096 + y);
+              (bucket[d] || (bucket[d] = [])).push({ dx, dy, x, y });
+            }
+          }
         }
-        moved.push({ id: b.id, from: [b.x, b.y], to: [x, y] });
-        b.x = x;
-        b.y = y;
-        b.doorX = x + (b.w >> 1);
-        b.doorY = y + b.h;
-        const kd = b.doorX + b.doorY * W2;
-        map2.deco[kd] = 0;
-        map2.solid[kd] = 0;
-        if (!isRoad(kd)) map2.ground[kd] = T.PLAZA;
-        if (!isRoad(k1) && !isRoad(kd)) map2.ground[k1] = T.PLAZA;
-        done2 = true;
+        const last = (R - 1) * CS > 720, safe = last ? 700 : (R - 1) * CS - 3;
+        // 距離ごとの組(同じ距離は dy・dx の小さい順)
+        for (; dNext <= safe && !done2; dNext++) {
+          const L4 = bucket[dNext];
+          if (!L4) continue;
+          L4.sort((a, c) => a.dy - c.dy || a.dx - c.dx);
+          for (const c of L4) {
+            if (done2) break;
+            const { x, y } = c;
+            if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
+            const dxk0 = x + hw;
+            if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
+            if (!freeRect(x - 1, y - 1, b.w + 2, b.h + 2)) continue;
+            const k1 = dxk0 + (y + b.h + 1) * W2;
+            for (let yy = y; yy < y + b.h; yy++) for (let xx = x; xx < x + b.w; xx++) {
+              const k = xx + yy * W2;
+              map2.bid[k] = b.idx;
+              map2.solid[k] = 1;
+              map2.deco[k] = 0;
+            }
+            markPlaced(x, y, b.w, b.h);
+            moved.push({ id: b.id, from: [b.x, b.y], to: [x, y] });
+            b.x = x;
+            b.y = y;
+            b.doorX = x + (b.w >> 1);
+            b.doorY = y + b.h;
+            const kd = b.doorX + b.doorY * W2;
+            map2.deco[kd] = 0;
+            map2.solid[kd] = 0;
+            if (!isRoad(kd)) map2.ground[kd] = T.PLAZA;
+            if (!isRoad(k1) && !isRoad(kd)) map2.ground[k1] = T.PLAZA;
+            done2 = true;
+          }
+        }
+        if (last) break;
       }
       if (!done2) moved.push({ id: b.id, failed: true });
     }
@@ -47409,7 +47539,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
           c.fill();
           c.strokeStyle = "#fff";
           c.stroke();
-        } else if ((p.kind === "pitch" || p.kind === "lot") && typeof bigGround === "function") {
+        } else if ((p.kind === "pitch" || p.kind === "lot" || p.kind === "flower") && typeof bigGround === "function") {
           bigGround(c, P2, Z, p, quad, pt);
         } else if (p.kind === "tennis") {
           quad(p.x + 0.3, p.y + 0.3, p.x + p.w - 0.3, p.y + p.h - 0.3, "#3f7f5a", "#fff");
@@ -47476,7 +47606,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
         });
       }
       for (const p of s.props) {
-        if (["track", "diamond", "tennis", "pitch", "lot"].includes(p.kind)) continue;
+        if (["track", "diamond", "tennis", "pitch", "lot", "flower"].includes(p.kind)) continue;
         // 大きな設備(照明塔・煙突・屋台・待ち列など: bigsites.js)
         if (typeof BIG_DRAW !== "undefined" && BIG_DRAW[p.kind]) {
           bigPush(R5, push, P2, Z, p, hero, t);
@@ -48591,11 +48721,28 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     if (nn.length) return { id: nn[0], why: "おい・めい" };
     return { id: -1, why: "身寄りがないため、葬儀社と町内会が執り行う" };
   }
+  // きょうだい(同じ母か同じ父)。親子の索引(childrenOf)から求める(全員を見て回らない)
   function funeralSiblings(w, id) {
-    const p = w.pop, m = p.mother[id], f = p.father[id], out = [];
-    if (m < 0 && f < 0) return out;
-    for (let i = 0; i < p.n; i++) if (i !== id && (!p.gone[i] || typeof isOutKin === "function" && isOutKin(p, i)) && (m >= 0 && p.mother[i] === m || f >= 0 && p.father[i] === f)) out.push(i);
-    return out;
+    const p = w.pop, m = p.mother[id], f = p.father[id];
+    if (m < 0 && f < 0) return [];
+    const ok = (i) => i !== id && (!p.gone[i] || typeof isOutKin === "function" && isOutKin(p, i));
+    const set = new Set([...m >= 0 ? w.childrenOf(m) : [], ...f >= 0 ? w.childrenOf(f) : []].filter(ok));
+    return [...set].sort((a, b) => a - b);
+  }
+  // 同じ家・同じ職場の住民の索引(その月の初めに1度だけ作る。葬儀の参列者を探すのに使う)
+  function funeralIndex(w) {
+    if (w._funIdx && w._funIdx.M === w.M) return w._funIdx;
+    const p = w.pop, home = new Map(), work = new Map();
+    const push = (mp, k, i) => {
+      let a = mp.get(k);
+      if (!a) mp.set(k, a = []);
+      a.push(i);
+    };
+    for (let i = 0; i < p.n; i++) if (!p.gone[i]) {
+      if (p.home[i] >= 0) push(home, p.home[i], i);
+      if (p.work[i] >= 0) push(work, p.work[i], i);
+    }
+    return w._funIdx = { M: w.M, n: p.n, home, work };
   }
   // 法定相続分(民法の割合。金額は扱わない)
   function funeralHeirs(w, id, M) {
@@ -48637,8 +48784,10 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     for (const x of funeralSiblings(w, id)) att.add(x);
     // 同僚(同じ職場)・近所(同じ建物の別の世帯)は数人ずつ(ID順に決定的に)
     let cw = 0, nb = 0;
-    // 職場も家もない人(市外に住む親族など)は探さない(全員を見て回らない)
-    if (p.work[id] >= 0 || p.home[id] >= 0) for (let i = 0; i < p.n && (cw < 6 || nb < 4); i++) {
+    // 同じ職場・同じ家の人だけを、番号の小さい順に見る(索引: funeralIndex)
+    const FI = funeralIndex(w), cand = [.../* @__PURE__ */ new Set([...p.work[id] >= 0 ? FI.work.get(p.work[id]) || [] : [], ...p.home[id] >= 0 ? FI.home.get(p.home[id]) || [] : []])].sort((a, b) => a - b);
+    for (const i of cand) {
+      if (cw >= 6 && nb >= 4) break;
       if (!alive(i) || att.has(i)) continue;
       if (cw < 6 && p.work[id] >= 0 && p.work[i] === p.work[id] && uh(i, id) % 3 === 0) {
         att.add(i);
@@ -48648,7 +48797,17 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
         nb++;
       }
     }
-    const rec = { id, M, d, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall: funeralNearest(w, home, "funeral"), crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
+    // 式場の予約: 同じ葬儀場で同じ月の日が重ならないように、空いている日へ(通夜と告別式で2日使う)
+    const hall = funeralNearest(w, home, "funeral");
+    let dd = d;
+    const busy = new Set();
+    for (const f of w.funerals || []) if (f.M === M && f.hall === hall && !f.outside) busy.add(f.d).add(f.d + 1).add(f.d - 1);
+    for (let k = 0; k < 26 && busy.has(dd); k++) dd = 2 + (dd - 2 + 1) % 26;
+    // 火葬の予約: 同じ火葬場・同じ日の火葬は4つの炉に順に入り、5件目からは1時間ずつ遅らせる
+    const crem = funeralNearest(w, home, "crematorium");
+    let nC = 0;
+    for (const f of w.funerals || []) if (f.M === M && f.crem === crem && f.d === dd && !f.outside) nC++;
+    const rec = { id, M, d: dd, cremK: nC % 4, cremA: 13 * 60 + Math.floor(nC / 4) * 60, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall, crem, att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
     (w.funerals || (w.funerals = [])).push(rec);
     if (w.funerals.length > FUN_KEEP * 1.5) w.funerals = w.funerals.slice(-FUN_KEEP);
     return rec;
@@ -48656,13 +48815,14 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   var funeralOf = (w, id) => (w.funerals || []).find((r) => r.id === id) || null;
   // 予定(日付は亡くなった月の d 日。通夜は翌日18時・告別式は翌々日11時・火葬13時)
   function funeralSched(r) {
-    return { wake: { M: r.M, d: r.d + 1, a: 18 * 60, b: 20 * 60 }, rite: { M: r.M, d: r.d + 2, a: 10 * 60 + 30, b: 12 * 60 + 30 }, crem: { M: r.M, d: r.d + 2, a: 13 * 60, b: 14 * 60 + 30 }, d49: { M: r.M + 1, d: Math.min(28, r.d + 18) } };
+    return { wake: { M: r.M, d: r.d + 1, a: 18 * 60, b: 20 * 60 }, rite: { M: r.M, d: r.d + 2, a: 10 * 60 + 30, b: 12 * 60 + 30 }, crem: { M: r.M, d: r.d + 2, a: r.cremA || 13 * 60, b: (r.cremA || 13 * 60) + 90 }, d49: { M: r.M + 1, d: Math.min(28, r.d + 18) } };
   }
   // いまこの葬儀場で行われている式(なければ null)
   function funeralNow(g, bIdx) {
     const M = g.S.M, d = g.date().d, m = g.S.min;
     for (const r of g.world.funerals || []) {
-      if (r.hall !== bIdx || r.M !== M) continue;
+      // 市外の親族の葬儀は市外で行う(この街の式場には出ない)
+      if (r.hall !== bIdx || r.M !== M || r.outside) continue;
       const s = funeralSched(r);
       if (d === s.wake.d && m >= s.wake.a - 30 && m < s.wake.b) return { r, k: "通夜" };
       if (d === s.rite.d && m >= s.rite.a - 30 && m < s.rite.b) return { r, k: "告別式" };
@@ -48821,14 +48981,96 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     c.arc(s[0], s[1], 1.2 * Z, 0, 7);
     c.fill();
   };
+  // ---- 火葬場(告別式のあと・告別式の日の13:00〜14:30): 炉前ホール(火葬炉の扉・最後のお別れ)・待合室・収骨室・受付
+  FAC_RANGE.crematorium = () => ({ lo: 0, hi: 0, nf: 1 });
+  FAC_LABEL.crematorium = () => "炉前ホール・待合室・収骨室";
+  FAC_BUILD.crematorium = (b) => {
+    const W2 = 34, H4 = 20;
+    const P = plan(W2, H4, "floor_marble", "office");
+    P.lv = 0;
+    const dx = W2 >> 1;
+    P.door(dx);
+    P.windows(4);
+    // 炉前ホール(北): 火葬炉の扉4つと、お別れの台
+    P.room(1, 1, 21, 10, { doors: [[11, 10]], label: "炉前ホール", tile: "floor_marble" });
+    for (let k = 0; k < 4; k++) P.wide("vault", 3 + k * 5, 2, 2, 1, null, `火葬炉${k + 1}号の扉`);
+    P.wide("table", 9, 6, 4, 1, null, "最後のお別れの台(棺)");
+    P.add("fx_shoko", 15, 6, "fx_shoko", "焼香台", true);
+    P.staffSpots.push({ x: 5, y: 4 }, { x: 16, y: 4 });
+    // 収骨室(東)
+    P.room(22, 1, W2 - 2, 10, { doors: [[26, 10]], label: "収骨室" });
+    P.wide("table", 25, 4, 4, 2, null, "収骨の台");
+    P.staffSpots.push({ x: 27, y: 7 });
+    // 待合室(南西): 机と椅子・お茶
+    P.room(1, 11, 18, H4 - 2, { doors: [[10, 11]], label: "待合室", tile: "floor_tatami" });
+    for (let x = 3; x < 17; x += 4) for (const y of [13, 16]) {
+      P.wide("table", x, y, 2, 1, null, "待合室の机");
+      P.seatSpots.push({ x: x, y: y + 1 }, { x: x + 1, y: y + 1 });
+    }
+    P.add("watersrv", 2, 12, null, "お茶");
+    P.wide("counter", W2 - 9, H4 - 5, 4, 1, "info", "受付(火葬許可証の確認)");
+    P.staffSpots.push({ x: W2 - 7, y: H4 - 6 });
+    P.add("plant", W2 - 3, H4 - 3, null, "観葉植物");
+    return P.done({ floors: 1, floor: 0, lv: 0, lo: 0, hi: 0, wallH: 3.6, label: "炉前ホール・待合室・収骨室", crem: true });
+  };
+  // 火葬の時間に火葬場にいる遺族(喪主・配偶者・子・親・きょうだい)。13:00〜13:30 は炉前ホール、そのあと待合室、14:00〜 収骨室
+  function cremNow(g, bIdx) {
+    const M = g.S.M, d = g.date().d, m = g.S.min, out = [];
+    for (const r of g.world.funerals || []) {
+      if (r.crem !== bIdx || r.M !== M || r.outside) continue;
+      const s = funeralSched(r);
+      if (d === s.crem.d && m >= s.crem.a - 15 && m < s.crem.b) out.push({ r, k: m < s.crem.a + 30 ? "hall" : m < s.crem.a + 60 ? "wait" : "bones" });
+    }
+    return out.slice(0, 4);
+  }
+  function cremIndoor(C2, bIdx, I2, floor, res) {
+    const g = C2.g, b = g.world.map.buildings[bIdx];
+    if (!b || b.type !== "crematorium" || !I2.crem) return res;
+    const L4 = cremNow(g, bIdx);
+    if (!L4.length) return res;
+    const p = g.world.pop, seen = new Set(res.map((q) => q.id));
+    // 火葬炉ごとに家族が分かれる(炉1〜4の前・待合室の机・収骨室)
+    L4.forEach((f, fi) => {
+      const r = f.r;
+      const fam = [r.chief, p.spouse[r.id], p.mother[r.id], p.father[r.id], ...g.world.childrenOf(r.id), ...funeralSiblings(g.world, r.id)].filter((x, i, a) => x >= 0 && a.indexOf(x) === i && !p.gone[x] && x !== g.hero.id && !seen.has(x)).slice(0, 8);
+      const fk = f.r.cremK != null ? f.r.cremK : fi, x0 = f.k === "hall" ? 2 + fk * 5 : f.k === "bones" ? 23 : 0, y0 = f.k === "hall" ? 4 : 7;
+      fam.forEach((id, i) => {
+        seen.add(id);
+        let x, y, pose;
+        if (f.k !== "wait") {
+          x = x0 + i % 4;
+          y = y0 + (i >> 2) + (f.k === "bones" ? fi % 2 : 0);
+        } else {
+          const sp = I2.seatSpots[(fi * 4 + i) % I2.seatSpots.length];
+          x = sp.x;
+          y = sp.y;
+          pose = "sit";
+        }
+        res.push({ id, x: x + 0.5, y: y + 0.5, dir: "u", role: "mourner", pose });
+        (C2._mourn || (C2._mourn = /* @__PURE__ */ new Set())).add(id);
+      });
+    });
+    globalThis.__mourners = C2._mourn;
+    return res;
+  }
   // 身内を亡くして3か月以内の人は、まずその話になる(pri 3。明るい話題は選ばない)
   // src/talk.js — 会話の中身を、その人について本当にある事実から選ぶ(根拠つき)。作り話のほめ言葉や出来事は出さない。
   // 事実: 主人公との関係(同級生・同じ部活・同僚・同じ建物の住人)・今日の時間割(体育)・部活・仕事と職場・家族(子の入学)・
   // 身内を亡くして1年以内(葬儀の記録。喪主を務めたか)・近所の店の開店(街の記録)・今日の天気。選んだ文の根拠を一緒に表示する。
   function talkFacts(g, id) {
     const w = g.world, p = w.pop, B2 = w.map.buildings, h = g.hero, out = [];
-    if (id == null || id < 0 || p.gone[id]) return out;
+    const outKin = typeof isOutKin === "function" && isOutKin(p, id);
+    if (id == null || id < 0 || p.gone[id] && !outKin) return out;
     const say = (s, why, pri = 1) => out.push({ say: s, why, pri });
+    // 市外に住む親族の帰省(kinvisit.js): その日の予定と、迎える子の名前を根拠にする
+    if (outKin) {
+      const v = typeof kinVisitOf === "function" ? kinVisitOf(g, id) : null;
+      if (v) {
+        const hn = g.nameOf(v.host);
+        say(v.host === h.id ? `${v.label}だから会いに来たよ。元気そうでよかった。` : `${v.label}に${hn}の顔を見に来たんだよ。`, `帰省の予定(${v.label}・${hn}さんの家・${hhmm(v.arrive)}〜${hhmm(v.leave)})`, 3);
+        say(`ふだんは市外で暮らしているから、この街に来ると懐かしいねえ。`, "市外在住の親族(人物の記録)", 2);
+      } else say("今日は市外の家にいるよ。", "市外在住の親族(人物の記録)", 1);
+    }
     const age = ageYears(p, id, w.M), M = g.S.M;
     // 主人公との関係
     const myS = p.school[h.id] ?? -1, sb = p.school[id] >= 0 ? B2[p.school[id]] : null;
@@ -48865,7 +49107,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     // 担任の先生(主人公のいまの学校・学年・組・年度)
     if (h.edu && h.edu.cur > 0 && h.edu.b >= 0 && typeof homeroomOf === "function") {
       const lvH = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[(B2[h.edu.b] || {}).type] || 0;
-      const t = lvH >= 2 && lvH <= 4 ? homeroomOf(w, h.edu.b, cohOf(p, h.id), kumiOf(h.id, lvH), g.date().y) : -1;
+      const t = lvH >= 2 && lvH <= 4 ? homeroomOf(w, h.edu.b, cohOf(p, h.id), (typeof kumiAt === "function" && kumiAt(w, B2[h.edu.b], h.id) >= 0 ? kumiAt(w, B2[h.edu.b], h.id) : kumiOf(h.id, lvH, typeof schoolClasses === "function" ? schoolClasses(w, B2[h.edu.b]) : 3)), g.date().y) : -1;
       if (t === id) say(vary(["宿題は終わったかな。分からないところは聞きに来なさい。", "最近、授業中に眠そうだぞ。夜ふかしはほどほどに。"]), `担任(${B2[h.edu.b].name}・${g.date().y}年度)`, 2);
     }
     // その人の職歴(いちばん新しい入社・退職)
@@ -49440,7 +49682,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   // 形式は siteLayout と同じ(main/annex/ground/solid/props/gate)。門は南(南の通りに面する)。
   function islandLayout(type, W2, H4, hsh) {
     if (type === "zoo") {
-      const mid = H4 >> 1, L3 = { W: W2, H: H4, main: [(W2 >> 1) - 9, H4 - 6, 18, 5, 1], annex: [], ground: [], solid: [], props: [], gate: [W2 >> 1, H4 - 11], open: true };
+      const mid = H4 >> 1, L3 = { W: W2, H: H4, main: [(W2 >> 1) - 9, H4 - 9, 18, 5, 1], annex: [], ground: [], solid: [], props: [], gate: [W2 >> 1, H4 - 11], open: true };
       L3.ground.push(["paved", 3, 3, W2 - 6, 3], ["paved", 3, mid - 2, W2 - 6, 5], ["paved", 3, H4 - 12, W2 - 6, 3], ["paved", 3, 3, 3, H4 - 12], ["paved", W2 - 6, 3, 3, H4 - 12], ["paved", (W2 >> 1) - 3, mid, 6, H4 - mid - 6]);
       // 獣舎: 北の列と南の列(種類ごとに必要な広さの比で幅を分ける)
       const rowN = [["elephant", 6], ["giraffe", 5], ["lion", 4], ["monkey", 4]], rowS = [["flamingo", 3], ["kangaroo", 4], ["redpanda", 2.4], ["birds", 3]];
@@ -49547,7 +49789,8 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     p[SCH_LV[lv - 1]][id] = b;
   }
   var cohOf = (p, id) => Math.floor((p.born[id] - 3) / 12);
-  var kumiOf = (id, lv) => uh(id, 770 + lv) % 3;
+  // 組: 人ごとに決まる。nC はその学校のその年の学級数(在籍者から。interior_school.js)
+  var kumiOf = (id, lv, nC = 3) => uh(id, 770 + lv) % Math.max(1, nC);
   var sexW = (w, id, f, m) => w.isFem(id) ? f : m;
   // 親族の続柄(a から見た b)。なければ null
   function kinOf(w, a, b) {
@@ -49583,7 +49826,11 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
       if (sa < 0 || p[k][b] !== sa) continue;
       const d = cohOf(p, a) - cohOf(p, b), bn = w.map.buildings[sa];
       if (!bn) continue;
-      if (d === 0) out.push({ lv, b: sa, k: kumiOf(a, lv) === kumiOf(b, lv) && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
+      const nC = typeof schoolClasses === "function" ? schoolClasses(w, bn) : 3;
+      // 今その学校にいる2人は学級編成(kumiAt)で、卒業した学校は人ごとの値で同じ組か決める
+      const ka = typeof kumiAt === "function" && p.school[a] === sa ? kumiAt(w, bn, a) : -1, kb = typeof kumiAt === "function" && p.school[b] === sa ? kumiAt(w, bn, b) : -1;
+      const same = ka >= 0 && kb >= 0 ? ka === kb : kumiOf(a, lv, nC) === kumiOf(b, lv, nC);
+      if (d === 0) out.push({ lv, b: sa, k: same && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
       else if (Math.abs(d) <= 2) out.push({ lv, b: sa, k: d > 0 ? "senpai" : "kohai", years: Math.abs(d), name: bn.name, club: lv >= 3 && lv <= 4 && typeof campusClubOf === "function" && campusClubOf(a) === campusClubOf(b) && campusClubOf(a) !== "none" ? CLUB_NAME[campusClubOf(a)] : null });
     }
     return out;
@@ -49758,6 +50005,10 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
       ride("kart", 22, 142, 72, 30, [96, 160, 4, 12]);
       ride("haunt", W2 - 84, 140, 32, 20, [W2 - 78, 161, 18, 3]);
       s.push(["lake", cx - 66, 66, 44, 32]);
+      // 園の中央: 海賊船(スイング)・花壇・休憩の広場
+      ride("pirate", cx + 10, 118, 26, 14, [cx + 16, 133, 14, 3]);
+      for (const [x, y, w, h] of [[cx - 20, 64, 12, 6], [cx - 20, 80, 12, 6], [cx + 8, 64, 6, 18], [cx - 16, 100, 10, 5], [cx + 6, 140, 10, 5], [cx - 20, 140, 12, 5]]) p.push(["flower", x, y, w, h]);
+      for (let y = 112; y < 150; y += 6) p.push(["bench", cx - 9, y], ["bench", cx + 8, y]);
       // 屋台・ベンチ・木・街灯
       for (let y = 66; y < H4 - 20; y += 10) p.push(["kiosk", cx - 8, y], ["tree", cx + 7, y + 4], ["lamp", cx - 6, y + 6], ["bench", cx + 6, y + 8]);
       for (let x = 18; x < W2 - 18; x += 14) p.push(["tree", x, 18], ["tree", x + 6, H4 - 36], ["lamp", x + 3, 26]);
@@ -49866,7 +50117,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
     return (d.dow === 0 || d.dow === 6) && h >= 12 && h < 22;
   };
   // 高さ(画面の上下の範囲に使う)
-  var BIG_TOP = { ferris: 64, coaster: 36, drop: 60, castle: 32, merry: 8, cups: 4, kart: 2, haunt: 13, stand: 34, light: 42, chimney: 48, tank: 13, box: 16, kiosk: 4, truck: 4, queue: 2 };
+  var BIG_TOP = { pirate: 18, ferris: 64, coaster: 36, drop: 60, castle: 32, merry: 8, cups: 4, kart: 2, haunt: 13, stand: 34, light: 42, chimney: 48, tank: 13, box: 16, kiosk: 4, truck: 4, queue: 2 };
   var BIG_PROPS = /* @__PURE__ */ new Set(["light", "chimney", "kiosk", "truck", "queue"]);
   // siteOutdoor から: 大きな設備を奥行きの並べ替えに入れる
   function bigPush(R5, push, P2, Z, r, hero, t) {
@@ -49952,6 +50203,33 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
       }
       // 乗り場
       bbox(c, P2, cu - 6, r.y + r.h - 6, cu + 6, r.y + r.h - 1, 0, 4, "#7aa7d8");
+    },
+    // 海賊船「ブラックパール号」: 2本の脚のあいだで船が大きく揺れる
+    pirate(c, P2, Z, r, t) {
+      const u = r.x + r.w / 2, v = r.y + r.h / 2, zp = PXM * P2.Z, Hh = 14, piv = bpt(P2, u, v, Hh);
+      for (const du of [-9, 9]) for (const dv of [-4, 4]) bline(c, bpt(P2, u + du, v + dv, 0), bpt(P2, u + du * 0.15, v, Hh), "#7b5a3a", 0.8 * zp);
+      bline(c, bpt(P2, u - 2, v, Hh), bpt(P2, u + 2, v, Hh), "#5a4026", 0.9 * zp);
+      const a = Math.sin(t * 0.9) * 1.05, L3 = 10 * zp, bx = piv[0] + Math.sin(a) * L3, by = piv[1] + Math.cos(a) * L3;
+      bline(c, piv, [bx, by], "#5a4026", 0.6 * zp);
+      c.save();
+      c.translate(bx, by);
+      c.rotate(-a * 0.6);
+      c.fillStyle = "#4a2f1d";
+      c.beginPath();
+      c.moveTo(-9 * zp, -1.5 * zp);
+      c.lineTo(9 * zp, -1.5 * zp);
+      c.lineTo(6 * zp, 2.4 * zp);
+      c.lineTo(-6 * zp, 2.4 * zp);
+      c.closePath();
+      c.fill();
+      c.fillStyle = "#c9a54a";
+      c.fillRect(-9 * zp, -1.9 * zp, 18 * zp, 0.5 * zp);
+      for (let k = -3; k <= 3; k++) {
+        c.fillStyle = ["#e8505b", "#f6d743", "#4aa3df", "#5bc06b"][(k + 3) % 4];
+        c.fillRect(k * 2.2 * zp - 0.4 * zp, -2.8 * zp, 0.8 * zp, 0.9 * zp);
+      }
+      c.restore();
+      bbox(c, P2, u - 3, v + 5, u + 3, v + 7, 0, 1.5, "#9a7b55");
     },
     // フリーフォール「スカイドロップ」(約58m)
     drop(c, P2, Z, r, t) {
@@ -50052,7 +50330,7 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
       const zp = PXM * P2.Z, zi = 3, zo = 24, side = r.side, u0 = r.x, v0 = r.y, u1 = r.x + r.w, v1 = r.y + r.h;
       const full = gameDay(R5), seat = ["#2f6db5", "#3b7fd0", "#2a5f9e"], crowd = ["#e8505b", "#f2f2f2", "#2b2b2b", "#f6d743", "#4aa3df"];
       const p = (u, v, z) => bpt(P2, u, v, z);
-      const roofC = "#e9edf1", wallC = "#c8ccd2";
+      const roofC = "#d3d8de", wallC = "#9da4ad";
       if (side === "N" || side === "W") {
         // 座席の面が見える(内側の縁=低い)
         const rows = 14;
@@ -50093,12 +50371,14 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
         const ribs = Math.floor((side === "S" ? r.w : r.h) / 4);
         if (side === "S") {
           bpoly(c, [p(u0, v1, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u0, v1, zo + 2)], wallC);
-          for (let k = 0; k <= ribs; k++) bline(c, p(u0 + k * r.w / ribs, v1, 0), p(u0 + k * r.w / ribs, v1, zo + 2), "#a9afb7", 0.4 * zp);
+          for (let k = 0; k <= ribs; k++) bline(c, p(u0 + k * r.w / ribs, v1, 0), p(u0 + k * r.w / ribs, v1, zo + 2), "#7d848d", 0.4 * zp);
+          bpoly(c, [p(u0, v1, zo - 3), p(u1, v1, zo - 3), p(u1, v1, zo - 1), p(u0, v1, zo - 1)], "#2f6db5");
           bpoly(c, [p(u1, v0, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u1, v0, zi)], shadeC(wallC, 0.72));
           bpoly(c, [p(u0, v0 + r.h * 0.5, zo + 3), p(u1, v0 + r.h * 0.5, zo + 3), p(u1, v1 + 1, zo + 4), p(u0, v1 + 1, zo + 4)], roofC, "#b8bec6", 1);
         } else {
           bpoly(c, [p(u1, v0, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u1, v0, zo + 2)], shadeC(wallC, 0.78));
-          for (let k = 0; k <= ribs; k++) bline(c, p(u1, v0 + k * r.h / ribs, 0), p(u1, v0 + k * r.h / ribs, zo + 2), "#a0a6ae", 0.4 * zp);
+          for (let k = 0; k <= ribs; k++) bline(c, p(u1, v0 + k * r.h / ribs, 0), p(u1, v0 + k * r.h / ribs, zo + 2), "#7d848d", 0.4 * zp);
+          bpoly(c, [p(u1, v0, zo - 3), p(u1, v1, zo - 3), p(u1, v1, zo - 1), p(u1, v0, zo - 1)], "#2a5f9e");
           bpoly(c, [p(u0 + r.w * 0.5, v0, zo + 3), p(u1 + 1, v0, zo + 4), p(u1 + 1, v1, zo + 4), p(u0 + r.w * 0.5, v1, zo + 3)], roofC, "#b8bec6", 1);
         }
         // 入場口の明かり
@@ -50226,6 +50506,18 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
         k ? c.lineTo(...q) : c.moveTo(...q);
       }
       c.stroke();
+      return true;
+    }
+    if (p.kind === "flower") {
+      quad(p.x, p.y, p.x + p.w, p.y + p.h, "#5f9e4a");
+      const cols = ["#e8505b", "#f6d743", "#f4a3c4", "#ffffff", "#9b6ad6"];
+      for (let y = p.y + 0.5; y < p.y + p.h; y += 1) for (let x = p.x + 0.5; x < p.x + p.w; x += 1) {
+        const q = pt(x + (uh(x * 7, y) % 10) / 20, y);
+        c.fillStyle = cols[uh(x * 13 + y, 3) % cols.length];
+        c.beginPath();
+        c.arc(q[0], q[1], Math.max(1, 0.5 * Z * 2), 0, 7);
+        c.fill();
+      }
       return true;
     }
     if (p.kind === "lot") {
@@ -50471,6 +50763,328 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
         if (w.known.has(id) || w.known.has(host)) w.addEvent("visit_out", id, { host, obon: m === 7 ? 1 : 0 });
       }
     }
+  }
+  // src/kinvisit.js — 市外に住む親族の帰省を、実際の移動と対面にする(kinout.js の続き)。
+  // 正月(1月1〜3日)とお盆(8月13〜15日)のうち1日(人ごとに決定的)、最寄り駅に着いて歩いて子の家へ行き、
+  // 昼から夕方まで家の中にいて、また駅へ歩いて帰る。屋外では歩く姿、家の中では居間にいる。話しかけると帰省の話になる。
+  var KV_WIN = [[0, 1, 3, "正月"], [7, 13, 3, "お盆"]];
+  var kvCache = { key: -1, list: [] };
+  var kvStations = /* @__PURE__ */ new WeakMap();
+  function kvNearestStation(map2, hb) {
+    let L3 = kvStations.get(map2);
+    if (!L3) kvStations.set(map2, L3 = map2.buildings.filter((b) => b.type === "station"));
+    let best = null, bd = 1e9;
+    for (const s of L3) {
+      const d = Math.abs(s.doorX - hb.doorX) + Math.abs(s.doorY - hb.doorY);
+      if (d < bd) {
+        bd = d;
+        best = s;
+      }
+    }
+    return best ? { b: best, d: bd } : null;
+  }
+  // 今日の帰省の一覧(日ごとに1度だけ作る)
+  function kinVisitsToday(g) {
+    const w = g.world, dt = g.date(), key = dt.y * 400 + dt.m0 * 32 + dt.d;
+    if (kvCache.key === key && kvCache.w === w) return kvCache.list;
+    const list = [];
+    const win = KV_WIN.find(([m0, d0, n2]) => dt.m0 === m0 && dt.d >= d0 && dt.d < d0 + n2);
+    if (win && w.outKin && typeof isOutKin === "function") {
+      const p = w.pop, B2 = w.map.buildings, [m0, d0, n2, label] = win;
+      for (const id of w.outKin) {
+        if (!isOutKin(p, id) || d0 + uh(id, dt.y * 13 + m0) % n2 !== dt.d) continue;
+        const host = w.childrenOf(id).find((k) => !p.gone[k] && p.home[k] >= 0);
+        if (host == null) continue;
+        const hb = B2[p.home[host]], st = kvNearestStation(w.map, hb);
+        if (!hb || !st) continue;
+        // 歩く時間(1マス2m・分速80m)。駅から遠い家は最大60分
+        const wm = Math.max(6, Math.min(60, Math.round(st.d * 2 / 80)));
+        const arrive = 600 + uh(id, 51) % 150, leave = 960 + uh(id, 52) % 120;
+        list.push({ id, host, hb: hb.idx, st: st.b.idx, t0: arrive - wm, arrive, leave, t2: leave + wm, wm, label });
+      }
+    }
+    kvCache = { key, w, list };
+    return list;
+  }
+  var kinVisitOf = (g, id) => kinVisitsToday(g).find((v) => v.id === id) || null;
+  // 屋外: 駅と家の間を歩く(Crowd.outdoor から)
+  function kinVisitWalkers(C2, out, hx, hy, radius) {
+    const g = C2.g, m = g.S.min, B2 = g.world.map.buildings;
+    for (const v of kinVisitsToday(g)) {
+      if (m < v.t0 || m >= v.t2 || m >= v.arrive && m < v.leave) continue;
+      const hb = B2[v.hb], sb = B2[v.st];
+      if (Math.min(Math.abs(hb.doorX - hx) + Math.abs(hb.doorY - hy), Math.abs(sb.doorX - hx) + Math.abs(sb.doorY - hy)) > radius * 2.5) continue;
+      const going = m < v.arrive, r = going ? C2.path(v.st, v.hb) : C2.path(v.hb, v.st);
+      if (!r) continue;
+      const t = going ? (m - v.t0) / v.wm : (m - v.leave) / v.wm, q = C2.posAlong(r, t);
+      if (Math.abs(q.x - hx) > radius || Math.abs(q.y - hy) > radius * 0.8) continue;
+      out.push({ id: v.id, r, t0: t, v: 1 / v.wm, s: 3, x: q.x, y: q.y, dx: q.dx, dy: q.dy, kinVisit: v.hb });
+      if (out.length >= 180) return;
+    }
+  }
+  // 家の中: 子の家にいる時間(Crowd の屋内から)
+  // hosts: 集合住宅の住戸のときは、その住戸の世帯の人だけ(ほかの住戸への帰省は出さない)
+  function kinVisitInside(C2, bIdx, I2, hosts = null) {
+    const g = C2.g, m = g.S.min, out = [];
+    const here = kinVisitsToday(g).filter((v) => v.hb === bIdx && m >= v.arrive && m < v.leave && (!hosts || hosts.includes(v.host)));
+    if (!here.length) return out;
+    const sol = interiorSolid(I2), cells = [];
+    for (let y = 2; y < I2.H - 2; y++) for (let x = 1; x < I2.W - 1; x++) if (!sol[x + y * I2.W]) cells.push([x, y]);
+    if (!cells.length) return out;
+    here.forEach((v, i) => {
+      const c = cells[(uh(v.id, 53) + i * 3) % cells.length];
+      out.push({ id: v.id, x: c[0] + 0.5, y: c[1] + 0.5, dir: "d", role: "family" });
+    });
+    return out;
+  }
+  // 人物情報のいまの様子
+  function kinVisitStatus(id) {
+    if (typeof G3 === "undefined" || !G3) return null;
+    const v = kinVisitOf(G3, id);
+    if (!v) return null;
+    const m = G3.S.min, hn = G3.nameOf(v.host), sn = G3.bld(v.st).name;
+    if (m < v.t0) return `🧳 ${v.label}に${hn}さんの家へ来る予定(市外在住)`;
+    if (m < v.arrive) return `🚶 ${sn}から${hn}さんの家へ歩いています(${v.label}の帰省)`;
+    if (m < v.leave) return `🏠 ${v.label}の帰省で${hn}さんの家にいます(${hhmm(v.leave)}ごろまで)`;
+    if (m < v.t2) return `🚶 ${sn}へ帰るところ(${v.label}の帰省)`;
+    return `🚃 市外の家へ帰った(${v.label}の帰省)`;
+  }
+  // src/fac_public.js — 公共施設の全面改修: 警察署・消防署・市役所・裁判所・介護施設・福祉施設・研究所。
+  // 働く人の数(職の枠 slots)に見合う机と部屋を、複数の階に分けて置く。1階は来る人の窓口、上の階は執務室・専門の部屋。
+  // 市役所の窓口(act "hall")・警察の留置室・裁判官席など、v11 の操作に使う設備はそのまま残す。
+  var slotSum = (t) => Object.values(BTYPES[t].slots || {}).reduce((a, b) => a + b, 0);
+  // 執務室の机の島(2列ずつ向かい合わせ)。n 席ぶん置き、職員の立ち位置を足す
+  function pubDesks(P, x0, y0, x1, y1, n2, label = "職員の机", act = "work") {
+    let c = 0;
+    for (let y = y0; y + 1 <= y1 && c < n2; y += 3) for (let x = x0; x <= x1 && c < n2; x++) {
+      if ((x - x0) % 5 === 4) continue;
+      if (P.add("pcdesk", x, y, act, label, true)) {
+        P.staffSpots.push({ x, y: y - 1 < y0 - 1 ? y + 2 : y + 1 });
+        c++;
+      }
+    }
+    return c;
+  }
+  function pubStairs(P, lv, nf, x, label) {
+    if (lv > 0) P.stair(x, 1, lv - 1, `${label(lv - 1)}へ(階段)`);
+    if (lv < nf - 1) P.stair(x + 1, 1, lv + 1, `${label(lv + 1)}へ(階段)`);
+  }
+  var PUB_FLOORS = { police: 3, fire: 2, cityhall: 5, court: 2, nursing: 2, welfare: 2, lab: 3 };
+  var PUB_LABELS = {
+    police: ["1階 受付・相談・交通課", "2階 刑事課・生活安全課", "3階 署長室・会議室・道場"],
+    fire: ["1階 車庫・出動準備", "2階 事務室・仮眠室・食堂"],
+    cityhall: ["1階 総合窓口(住民票・戸籍)", "2階 税・保険・福祉の窓口", "3階 まちづくり・教育の課", "4階 市長室・総務課", "5階 議場"],
+    court: ["1階 受付・法廷", "2階 裁判官室・書記官室"],
+    nursing: ["1階 食堂・機能訓練・浴室", "2階 居室"],
+    welfare: ["1階 作業室・相談室", "2階 研修室・事務室"],
+    lab: ["1階 受付・会議室", "2階 実験室", "3階 研究室・計測室"]
+  };
+  for (const t of Object.keys(PUB_FLOORS)) {
+    FAC_RANGE[t] = () => ({ lo: 0, hi: PUB_FLOORS[t] - 1, nf: PUB_FLOORS[t] });
+    FAC_LABEL[t] = (b, lv) => PUB_LABELS[t][lv] || `${lv + 1}階`;
+    FAC_BUILD[t] = (b, floor, g) => pubBuild(t, b, Math.max(0, Math.min(PUB_FLOORS[t] - 1, floor | 0)), g);
+  }
+  function pubBuild(t, b, lv, g) {
+    const nf = PUB_FLOORS[t], staff = slotSum(t), perFloor = Math.ceil(staff / Math.max(1, nf - 1));
+    const W2 = Math.max(30, Math.min(56, 18 + Math.ceil(perFloor / 2) * 2)), H4 = 20;
+    const P = plan(W2, H4, t === "nursing" || t === "welfare" ? "floor_wood" : "floor_tile", "office");
+    P.lv = lv;
+    P.windows(3);
+    const dx = W2 >> 1, lab = (k) => PUB_LABELS[t][k] || `${k + 1}階`;
+    if (lv === 0) P.door(dx);
+    pubStairs(P, lv, nf, W2 - 4, lab);
+    if (t === "cityhall" || t === "police" || t === "lab" || t === "court") P.lifts(W2 - 8, 1, 1, 0, nf - 1);
+    P.add("toilet", 1, 1, "toilet", "トイレ");
+    const lobby = () => {
+      for (let x = dx - 6; x <= dx + 6; x += 3) P.add("bench", x, H4 - 5, "rest", "待合のベンチ", false);
+      P.add("plant", 2, H4 - 3, null, "観葉植物");
+      P.add("plant", W2 - 3, H4 - 3, null, "観葉植物");
+    };
+    const B = BTYPES[t];
+    if (t === "police") {
+      if (lv === 0) {
+        for (let x = 4; x < W2 - 8; x += 1) if (x % 6 !== 0) P.add("counter", x, 9, B.hall ? "hall" : "info", x < W2 / 2 ? "受付・相談窓口" : "交通課の窓口(免許・事故の届け)");
+        for (let x = 4; x < W2 - 8; x += 6) P.staffSpots.push({ x: x + 1, y: 8 });
+        pubDesks(P, 3, 4, W2 - 10, 6, Math.round(staff * 0.25), "当直・地域課の机");
+        P.add("board", 3, 1, "board", "掲示板(防犯・交通安全・指名手配)");
+        lobby();
+      } else if (lv === 1) {
+        P.room(1, 12, 9, H4 - 2, { doors: [[5, 12]], label: "取調室1" });
+        P.add("table", 4, 15, null, "取調室の机");
+        P.room(10, 12, 18, H4 - 2, { doors: [[14, 12]], label: "取調室2" });
+        P.add("table", 13, 15, null, "取調室の机");
+        P.wide("cell", W2 - 9, 13, 2, 2, null, "留置室");
+        P.wide("cell", W2 - 6, 13, 2, 2, null, "留置室");
+        pubDesks(P, 3, 4, W2 - 10, 10, Math.round(staff * 0.5), "刑事課・生活安全課の机");
+        P.add("whiteboard", 3, 1, "board", "捜査状況のボード");
+      } else {
+        P.room(1, 3, 12, 10, { doors: [[12, 6]], label: "署長室" });
+        P.add("desk", 6, 5, "work", "署長の机");
+        P.staffSpots.push({ x: 6, y: 6 });
+        P.add("sofa", 4, 8, "rest", "応接ソファ", false);
+        P.room(13, 3, 26, 10, { doors: [[19, 10]], label: "会議室" });
+        P.wide("table", 16, 5, 7, 2, null, "会議テーブル");
+        P.fill(2, 12, W2 - 3, H4 - 2, "floor_tatami");
+        P.sign(dx, 12, "道場(柔道・剣道)");
+        pubDesks(P, 28, 4, W2 - 6, 9, Math.round(staff * 0.15), "警務課の机");
+      }
+    } else if (t === "fire") {
+      if (lv === 0) {
+        // 車庫: 消防車・はしご車・救急車が前の道へ出られる
+        P.fill(1, 3, W2 - 12, H4 - 2, "floor_tile");
+        P.wide("firetruck", 2, 5, 3, 6, null, "消防車(ポンプ車)");
+        P.wide("firetruck", 7, 5, 3, 7, null, "はしご車");
+        P.wide("firetruck", 12, 5, 3, 5, null, "救急車");
+        P.wide("firetruck", 17, 5, 3, 6, null, "水槽付ポンプ車");
+        for (let y = 4; y < H4 - 4; y += 2) P.add("locker", W2 - 11, y, null, "防火衣ロッカー(出動準備)");
+        P.add("counter", W2 - 7, H4 - 5, B.hall ? "hall" : "info", "受付(119番の相談・防火の届け)");
+        P.staffSpots.push({ x: W2 - 7, y: H4 - 6 });
+        pubDesks(P, W2 - 9, 4, W2 - 3, 10, Math.round(staff * 0.2), "通信指令の机");
+      } else {
+        pubDesks(P, 3, 4, 20, 10, Math.round(staff * 0.4), "事務室の机");
+        P.room(22, 3, W2 - 2, 11, { doors: [[26, 11]], label: "仮眠室" });
+        for (let x = 24; x < W2 - 3; x += 3) P.add("bed", x, 5, "rest", "仮眠のベッド");
+        P.room(1, 12, 18, H4 - 2, { doors: [[10, 12]], label: "食堂" });
+        for (let x = 3; x < 16; x += 4) P.wide("table", x, 15, 2, 1, "eat", "食堂のテーブル");
+        P.add("fridge", 2, 13, null, "冷蔵庫");
+        P.add("sink", 4, 13, null, "流し");
+        P.add("board", 3, 1, "board", "出動表・訓練予定");
+      }
+    } else if (t === "cityhall") {
+      if (lv <= 1) {
+        // 窓口: 番号札・用途ごとのカウンター・待合
+        const CNT = lv === 0 ? ["住民票・印鑑登録", "戸籍・婚姻・出生", "転入・転出"] : ["税(市民税・固定資産税)", "国民健康保険・年金", "福祉・介護・子育て"];
+        const cw = Math.floor((W2 - 12) / 3);
+        CNT.forEach((nm, i) => {
+          for (let x = 3 + i * cw; x < 3 + (i + 1) * cw - 1; x++) P.add("counter", x, 8, "hall", `${nm}の窓口`);
+          P.sign(3 + i * cw + (cw >> 1), 9, nm);
+          for (let x = 4 + i * cw; x < 3 + (i + 1) * cw - 1; x += 2) P.staffSpots.push({ x, y: 7 });
+        });
+        pubDesks(P, 3, 3, W2 - 10, 5, Math.round(staff * 0.18), "窓口の後ろの机");
+        P.add("vending", 2, H4 - 4, "info", "番号札の発券機");
+        P.add("board", dx, H4 - 3, "board", "フロア案内");
+        lobby();
+        for (let x = 4; x < W2 - 6; x += 4) P.add("bench", x, 13, "rest", "窓口の待合", false);
+      } else if (lv < nf - 1) {
+        const KA = lv === 2 ? ["都市計画課", "道路・公園課", "教育委員会"] : ["市長室", "総務課", "秘書課"];
+        if (lv === 3) {
+          P.room(1, 3, 14, 11, { doors: [[14, 7]], label: "市長室" });
+          P.add("desk", 7, 5, "work", "市長の机");
+          P.add("flag", 2, 4, null, "市旗");
+          P.add("sofa", 5, 9, "rest", "応接ソファ", false);
+          P.staffSpots.push({ x: 7, y: 6 });
+          pubDesks(P, 17, 4, W2 - 6, H4 - 4, Math.round(staff * 0.22), "総務課・秘書課の机");
+        } else {
+          pubDesks(P, 3, 4, W2 - 6, H4 - 4, Math.round(staff * 0.25), KA.join("・") + "の机");
+          P.sign(dx, H4 - 3, KA.join("・"));
+        }
+      } else {
+        // 議場: 議長席・演壇・議員席(半円)・傍聴席
+        P.fill(1, 2, W2 - 2, H4 - 2, "floor_carpet");
+        P.wide("judgebench", dx - 2, 3, 5, 1, null, "議長席");
+        P.add("podium", dx, 5, null, "演壇");
+        for (let r = 0; r < 3; r++) for (let x = dx - 9 + r; x <= dx + 9 - r; x += 2) P.add("seat", x, 8 + r * 2, null, "議員席", false);
+        for (let x = 3; x < W2 - 3; x += 1) P.add("seat", x, H4 - 3, "rest", "傍聴席", false);
+        P.staffSpots.push({ x: dx, y: 4 });
+      }
+    } else if (t === "court") {
+      if (lv === 0) {
+        // 法廷2つ(裁判官席・証言台・原告/被告席・傍聴席)と受付
+        for (let k = 0; k < 2; k++) {
+          const x0 = 1 + k * ((W2 - 2) >> 1), x1 = x0 + ((W2 - 2) >> 1) - 1, cx = (x0 + x1) >> 1;
+          P.room(x0, 2, x1, 14, { doors: [[cx, 14]], label: `第${k + 1}法廷`, tile: "floor_wood" });
+          P.wide("judgebench", cx - 2, 3, 5, 1, null, "裁判官席");
+          P.add("podium", cx, 6, null, "証言台");
+          P.add("desk", x0 + 2, 6, "work", "原告(検察)側の席");
+          P.add("desk", x1 - 2, 6, "work", "被告(弁護)側の席");
+          P.staffSpots.push({ x: cx, y: 4 }, { x: x0 + 2, y: 7 }, { x: x1 - 2, y: 7 });
+          for (let y = 9; y <= 12; y++) for (let x = x0 + 2; x <= x1 - 2; x++) if (x !== cx) P.add("seat", x, y, "rest", "傍聴席", false);
+        }
+        P.wide("counter", 3, H4 - 4, 6, 1, "info", "受付(事件の手続き・傍聴の案内)");
+        P.staffSpots.push({ x: 5, y: H4 - 5 });
+        lobby();
+      } else {
+        P.room(1, 3, 16, H4 - 2, { doors: [[16, 8]], label: "裁判官室" });
+        pubDesks(P, 3, 5, 14, H4 - 4, BTYPES.court.slots.judge || 4, "裁判官の机");
+        P.add("bookcase", 2, 4, null, "法律書の書架");
+        pubDesks(P, 19, 4, W2 - 6, H4 - 4, BTYPES.court.slots.officeworker || 8, "書記官室の机");
+      }
+    } else if (t === "nursing") {
+      if (lv === 0) {
+        P.room(1, 2, 20, 12, { doors: [[10, 12]], label: "食堂・機能訓練室", tile: "floor_wood" });
+        for (let x = 3; x < 19; x += 4) for (const y of [4, 7]) {
+          P.wide("table", x, y, 2, 1, "eat", "食堂のテーブル");
+          P.add("chair", x, y + 1, "rest", "椅子", false);
+          P.seatSpots.push({ x: x + 1, y: y + 1 });
+        }
+        P.add("tv", 3, 10, null, "テレビ");
+        P.add("handrail", 15, 10, null, "歩行訓練の手すり");
+        P.room(21, 2, W2 - 2, 10, { doors: [[25, 10]], label: "浴室(機械浴・個浴)" });
+        P.wide("bath", 23, 4, 3, 2, null, "機械浴の浴槽");
+        P.wide("bath", 28, 4, 2, 2, null, "個浴の浴槽");
+        pubDesks(P, 22, 13, W2 - 4, 15, Math.round(staff * 0.3), "事務所・介護記録の机");
+        // 食堂と浴室の介助
+        for (let x = 4; x < 19; x += 4) P.staffSpots.push({ x, y: 9 });
+        P.staffSpots.push({ x: 24, y: 7 }, { x: 28, y: 7 });
+        lobby();
+      } else {
+        // 居室: 個室と2人部屋(ベッド・手すり・ナースコール)
+        const rooms = Math.floor((W2 - 2) / 6);
+        for (let k = 0; k < rooms; k++) {
+          const x0 = 1 + k * 6;
+          P.room(x0, 2, x0 + 6, 9, { doors: [[x0 + 3, 9]], label: `${201 + k}号室`, sign: false });
+          P.add("bed", x0 + 2, 4, "rest", `${201 + k}号室のベッド`);
+          if (k % 2) P.add("bed", x0 + 4, 4, "rest", `${201 + k}号室のベッド`);
+          P.seatSpots.push({ x: x0 + 2, y: 6 });
+        }
+        for (let k = 0; k < rooms; k++) {
+          const x0 = 1 + k * 6;
+          P.room(x0, 12, x0 + 6, H4 - 2, { doors: [[x0 + 3, 12]], label: `${221 + k}号室`, sign: false });
+          P.add("bed", x0 + 2, 15, "rest", `${221 + k}号室のベッド`);
+        }
+        for (let x = 3; x < W2 - 3; x += 4) P.staffSpots.push({ x, y: 10 });
+        P.add("counter", dx, 10, "info", "介護スタッフの詰所");
+      }
+    } else if (t === "welfare") {
+      if (lv === 0) {
+        P.room(1, 2, W2 - 12, 13, { doors: [[8, 13]], label: "作業室(軽作業・パン作り)", tile: "floor_wood" });
+        for (let x = 3; x < W2 - 14; x += 5) for (const y of [4, 8]) {
+          P.wide("table", x, y, 3, 1, "work", "作業台");
+          P.seatSpots.push({ x: x + 1, y: y + 1 });
+        }
+        P.room(W2 - 11, 2, W2 - 2, 9, { doors: [[W2 - 7, 9]], label: "相談室" });
+        P.add("table", W2 - 7, 5, "info", "相談の机");
+        P.staffSpots.push({ x: W2 - 7, y: 4 });
+        lobby();
+      } else {
+        P.room(1, 2, 18, 12, { doors: [[9, 12]], label: "研修室" });
+        for (let y = 4; y < 11; y += 2) for (let x = 3; x < 17; x += 2) P.add("desk", x, y, "class", "研修室の机");
+        P.add("kokuban", 4, 3, null, "ホワイトボード", true, { w: 6 });
+        pubDesks(P, 21, 4, W2 - 4, H4 - 4, Math.round(staff * 0.6), "事務室の机");
+      }
+    } else if (t === "lab") {
+      if (lv === 0) {
+        P.wide("counter", dx - 3, 9, 6, 1, "info", "受付(見学・来客)");
+        P.staffSpots.push({ x: dx, y: 8 });
+        P.room(1, 2, 14, 12, { doors: [[7, 12]], label: "会議室" });
+        P.wide("table", 4, 5, 7, 2, null, "会議テーブル");
+        P.add("showcase", W2 - 6, 4, null, "研究成果の展示");
+        lobby();
+      } else {
+        const benches = lv === 1;
+        for (let k = 0; k < 3; k++) {
+          const x0 = 1 + k * Math.floor((W2 - 2) / 3), x1 = x0 + Math.floor((W2 - 2) / 3) - 1;
+          P.room(x0, 2, x1, H4 - 6, { doors: [[x0 + 3, H4 - 6]], label: benches ? ["化学実験室", "生物実験室", "クリーンルーム"][k] : ["研究室A", "研究室B", "計測室"][k], tile: benches && k === 2 ? "floor_tile" : undefined });
+          for (let y = 5; y < H4 - 8; y += 3) {
+            P.wide(benches ? "table" : "desk", x0 + 2, y, x1 - x0 - 3, 1, "work", benches ? "実験台" : "研究者の机");
+            P.staffSpots.push({ x: x0 + 3, y: y + 1 });
+          }
+          if (benches) P.add("sink", x1 - 1, 3, null, "流し(実験用)");
+          else P.add("bookcase", x1 - 1, 3, null, "論文・資料の棚");
+        }
+      }
+    }
+    return P.done({ floors: nf, floor: lv, lv, lo: 0, hi: nf - 1, wallH: 3.2, label: lab(lv) });
   }
   boot();
 })();

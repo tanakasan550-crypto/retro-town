@@ -53,4 +53,4 @@
 
 合格 46 / 不合格 0(80年の通し回帰 life80 は別に実行: tools/scen/life80.mjs)
 
-別に実行した回帰(版 9bbc5d4・学級編成の修正の前): 80年の通し回帰 life80 合格(約111秒)・旧セーブの移行 migrate 合格。性能 perf.mjs の記録は docs/perf_80y.json
+別に実行した回帰: 80年の通し回帰 life80 は最新版 23e944e で合格(約110秒・人口の配列 122,491人)・旧セーブの移行 migrate 合格。性能 perf.mjs の記録は docs/perf_80y.json
