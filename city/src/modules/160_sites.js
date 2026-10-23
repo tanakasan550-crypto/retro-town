@@ -282,36 +282,64 @@
         (placedG.get(k) || placedG.set(k, []).get(k)).push([x, y, w, h]);
       }
     };
+    // 道路の升目の索引(16マス)。置く場所の候補は「入口の1〜2マス下が道路」になる位置だけ(道路は移設で変わらない)
+    const CS = 16, GW = Math.ceil(W2 / CS), GH = Math.ceil(H4 / CS), roadG = Array.from({ length: GW * GH }, () => []);
+    for (let k = 0; k < W2 * H4; k++) if (isRoad(k)) roadG[(k % W2 / CS | 0) + (k / W2 / CS | 0) * GW].push(k);
     for (const b of list) {
       let done2 = false;
-      // 近い順(正方形の輪)に探す。輪の上の点だけを回る(順序は従来と同じ)
-      // ふつうは近く(200マス以内)で見つかる。見つからなければ地図の広い範囲まで探す(建物を地図から消さない)
-      for (let r = 0; r <= 700 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx += Math.abs(dy) === r || dx === r ? 1 : 2 * r) {
-        const x = b.x + dx, y = b.y + dy;
-        if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
-        const dxk0 = x + (b.w >> 1);
-        if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
-        if (!freeRect(x - 1, y - 1, b.w + 2, b.h + 2)) continue;
-        const dxk = x + (b.w >> 1), k1 = dxk + (y + b.h + 1) * W2, k2 = dxk + (y + b.h + 2) * W2;
-        if (!(isRoad(k1) || y + b.h + 2 < H4 && isRoad(k2))) continue;
-        for (let yy = y; yy < y + b.h; yy++) for (let xx = x; xx < x + b.w; xx++) {
-          const k = xx + yy * W2;
-          map2.bid[k] = b.idx;
-          map2.solid[k] = 1;
-          map2.deco[k] = 0;
+      // 近い順(正方形の輪 r=max(|dx|,|dy|)、同じ輪は dy・dx の小さい順。以前の探し方と同じ順)に、候補だけを調べる。
+      // ふつうは近く(200マス以内)で見つかる。見つからなければ地図の広い範囲(700マス)まで探す(建物を地図から消さない)
+      const hw = b.w >> 1, tx = b.x + hw, ty = b.y + b.h + 1, cx0 = Math.floor(tx / CS), cy0 = Math.floor(ty / CS);
+      const seenP = /* @__PURE__ */ new Set(), bucket = [];
+      let dNext = 0;
+      for (let R = 0; !done2; R++) {
+        for (let gy = cy0 - R; gy <= cy0 + R; gy++) for (let gx = cx0 - R; gx <= cx0 + R; gx += Math.abs(gy - cy0) === R || gx === cx0 + R ? 1 : 2 * R) {
+          if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+          for (const k of roadG[gx + gy * GW]) {
+            const rx = k % W2, ry = k / W2 | 0;
+            for (const off of [1, 2]) {
+              const x = rx - hw, y = ry - b.h - off, dx = x - b.x, dy = y - b.y, d = Math.max(Math.abs(dx), Math.abs(dy));
+              if (d > 700 || seenP.has(x * 4096 + y)) continue;
+              seenP.add(x * 4096 + y);
+              (bucket[d] || (bucket[d] = [])).push({ dx, dy, x, y });
+            }
+          }
         }
-        markPlaced(x, y, b.w, b.h);
-        moved.push({ id: b.id, from: [b.x, b.y], to: [x, y] });
-        b.x = x;
-        b.y = y;
-        b.doorX = x + (b.w >> 1);
-        b.doorY = y + b.h;
-        const kd = b.doorX + b.doorY * W2;
-        map2.deco[kd] = 0;
-        map2.solid[kd] = 0;
-        if (!isRoad(kd)) map2.ground[kd] = T.PLAZA;
-        if (!isRoad(k1) && !isRoad(kd)) map2.ground[k1] = T.PLAZA;
-        done2 = true;
+        const last = (R - 1) * CS > 720, safe = last ? 700 : (R - 1) * CS - 3;
+        // 距離ごとの組(同じ距離は dy・dx の小さい順)
+        for (; dNext <= safe && !done2; dNext++) {
+          const L4 = bucket[dNext];
+          if (!L4) continue;
+          L4.sort((a, c) => a.dy - c.dy || a.dx - c.dx);
+          for (const c of L4) {
+            if (done2) break;
+            const { x, y } = c;
+            if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
+            const dxk0 = x + hw;
+            if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
+            if (!freeRect(x - 1, y - 1, b.w + 2, b.h + 2)) continue;
+            const k1 = dxk0 + (y + b.h + 1) * W2;
+            for (let yy = y; yy < y + b.h; yy++) for (let xx = x; xx < x + b.w; xx++) {
+              const k = xx + yy * W2;
+              map2.bid[k] = b.idx;
+              map2.solid[k] = 1;
+              map2.deco[k] = 0;
+            }
+            markPlaced(x, y, b.w, b.h);
+            moved.push({ id: b.id, from: [b.x, b.y], to: [x, y] });
+            b.x = x;
+            b.y = y;
+            b.doorX = x + (b.w >> 1);
+            b.doorY = y + b.h;
+            const kd = b.doorX + b.doorY * W2;
+            map2.deco[kd] = 0;
+            map2.solid[kd] = 0;
+            if (!isRoad(kd)) map2.ground[kd] = T.PLAZA;
+            if (!isRoad(k1) && !isRoad(kd)) map2.ground[k1] = T.PLAZA;
+            done2 = true;
+          }
+        }
+        if (last) break;
       }
       if (!done2) moved.push({ id: b.id, failed: true });
     }
