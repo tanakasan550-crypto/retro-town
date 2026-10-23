@@ -1122,7 +1122,10 @@
       const home = p.home[i];
       const group = [i];
       if (p.spouse[i] >= 0 && p.home[p.spouse[i]] === home) group.push(p.spouse[i]);
-      for (let k = 0; k < p.n && group.length < 8; k++) {
+      // 一緒に引っ越す未成年の子(親子の索引から。番号の小さい順)
+      const kids = [.../* @__PURE__ */ new Set([...this.childrenOf(i), ...group.length > 1 ? this.childrenOf(group[1]) : []])].sort((a, b) => a - b);
+      for (const k of kids) {
+        if (group.length >= 8) break;
         if (p.gone[k] || p.home[k] !== home || group.includes(k)) continue;
         if ((p.mother[k] === i || p.father[k] === i || group.length > 1 && (p.mother[k] === group[1] || p.father[k] === group[1])) && Math.floor((this.M - p.born[k]) / 12) < 18) group.push(k);
       }

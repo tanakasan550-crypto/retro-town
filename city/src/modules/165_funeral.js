@@ -27,11 +27,28 @@
     if (nn.length) return { id: nn[0], why: "おい・めい" };
     return { id: -1, why: "身寄りがないため、葬儀社と町内会が執り行う" };
   }
+  // きょうだい(同じ母か同じ父)。親子の索引(childrenOf)から求める(全員を見て回らない)
   function funeralSiblings(w, id) {
-    const p = w.pop, m = p.mother[id], f = p.father[id], out = [];
-    if (m < 0 && f < 0) return out;
-    for (let i = 0; i < p.n; i++) if (i !== id && (!p.gone[i] || typeof isOutKin === "function" && isOutKin(p, i)) && (m >= 0 && p.mother[i] === m || f >= 0 && p.father[i] === f)) out.push(i);
-    return out;
+    const p = w.pop, m = p.mother[id], f = p.father[id];
+    if (m < 0 && f < 0) return [];
+    const ok = (i) => i !== id && (!p.gone[i] || typeof isOutKin === "function" && isOutKin(p, i));
+    const set = new Set([...m >= 0 ? w.childrenOf(m) : [], ...f >= 0 ? w.childrenOf(f) : []].filter(ok));
+    return [...set].sort((a, b) => a - b);
+  }
+  // 同じ家・同じ職場の住民の索引(その月の初めに1度だけ作る。葬儀の参列者を探すのに使う)
+  function funeralIndex(w) {
+    if (w._funIdx && w._funIdx.M === w.M) return w._funIdx;
+    const p = w.pop, home = new Map(), work = new Map();
+    const push = (mp, k, i) => {
+      let a = mp.get(k);
+      if (!a) mp.set(k, a = []);
+      a.push(i);
+    };
+    for (let i = 0; i < p.n; i++) if (!p.gone[i]) {
+      if (p.home[i] >= 0) push(home, p.home[i], i);
+      if (p.work[i] >= 0) push(work, p.work[i], i);
+    }
+    return w._funIdx = { M: w.M, n: p.n, home, work };
   }
   // 法定相続分(民法の割合。金額は扱わない)
   function funeralHeirs(w, id, M) {
@@ -73,8 +90,10 @@
     for (const x of funeralSiblings(w, id)) att.add(x);
     // 同僚(同じ職場)・近所(同じ建物の別の世帯)は数人ずつ(ID順に決定的に)
     let cw = 0, nb = 0;
-    // 職場も家もない人(市外に住む親族など)は探さない(全員を見て回らない)
-    if (p.work[id] >= 0 || p.home[id] >= 0) for (let i = 0; i < p.n && (cw < 6 || nb < 4); i++) {
+    // 同じ職場・同じ家の人だけを、番号の小さい順に見る(索引: funeralIndex)
+    const FI = funeralIndex(w), cand = [.../* @__PURE__ */ new Set([...p.work[id] >= 0 ? FI.work.get(p.work[id]) || [] : [], ...p.home[id] >= 0 ? FI.home.get(p.home[id]) || [] : []])].sort((a, b) => a - b);
+    for (const i of cand) {
+      if (cw >= 6 && nb >= 4) break;
       if (!alive(i) || att.has(i)) continue;
       if (cw < 6 && p.work[id] >= 0 && p.work[i] === p.work[id] && uh(i, id) % 3 === 0) {
         att.add(i);

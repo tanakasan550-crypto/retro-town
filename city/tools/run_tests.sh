@@ -3,7 +3,7 @@
 # 使い方: python3 tools/build.py && bash tools/run_tests.sh   (JOBS=5 で並列数)
 cd "$(dirname "$0")/.." || exit 1
 OUTD=${OUTD:-/tmp/claude-0/tests}; JOBS=${JOBS:-5}; mkdir -p "$OUTD"
-SKIP="lib compare survey dbg2 dbg3 nav_dbg probe life80 migrate mapview"
+SKIP="lib compare survey dbg2 dbg3 nav_dbg probe life80 migrate mapview perf"
 names=()
 for f in tools/scen/*.mjs; do n=$(basename "$f" .mjs); case " $SKIP " in *" $n "*) continue;; esac; [[ $n == _* ]] && continue; names+=("$n"); done
 for n in "${names[@]}"; do
