@@ -51,7 +51,9 @@
       const nC = typeof schoolClasses === "function" ? schoolClasses(w, bn) : 3;
       // 今その学校にいる2人は学級編成(kumiAt)で、卒業した学校は人ごとの値で同じ組か決める
       const ka = typeof kumiAt === "function" && p.school[a] === sa ? kumiAt(w, bn, a) : -1, kb = typeof kumiAt === "function" && p.school[b] === sa ? kumiAt(w, bn, b) : -1;
-      const same = ka >= 0 && kb >= 0 ? ka === kb : kumiOf(a, lv, nC) === kumiOf(b, lv, nC);
+      // 卒業した学校は、記録した最後の組(cls2〜4)で比べる。記録がない(古いセーブの昔の在学)ときだけ人ごとの値で
+      const ca = p["cls" + lv] ? p["cls" + lv][a] : 255, cb = p["cls" + lv] ? p["cls" + lv][b] : 255;
+      const same = ka >= 0 && kb >= 0 ? ka === kb : ca !== 255 && cb !== 255 ? ca === cb : kumiOf(a, lv, nC) === kumiOf(b, lv, nC);
       if (d === 0) out.push({ lv, b: sa, k: same && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
       else if (Math.abs(d) <= 2) out.push({ lv, b: sa, k: d > 0 ? "senpai" : "kohai", years: Math.abs(d), name: bn.name, club: lv >= 3 && lv <= 4 && typeof campusClubOf === "function" && campusClubOf(a) === campusClubOf(b) && campusClubOf(a) !== "none" ? CLUB_NAME[campusClubOf(a)] : null });
     }

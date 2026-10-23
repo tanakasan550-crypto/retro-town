@@ -14,12 +14,22 @@
       const jid = p.job[i] < 255 ? JOB_IDS2[p.job[i]] : null;
       if (jid && CARE_JOBS.has(jid) && p.careM[i] < 65535) p.careM[i]++;
     }
+    ledgerClass(w, i, M);
     // 4月: 中学・高校の部員なら部活1年
     const ag = (M - p.born[i]) / 12;
     if (M % 12 === 3 && p.school[i] >= 0 && ag >= 12 && ag < 19 && typeof campusClubOf === "function") {
       const t = (w.map.buildings[p.school[i]] || {}).type;
       if ((t === "jh" || t === "hs") && campusClubOf(i) !== "none" && p.clubY[i] < 255) p.clubY[i]++;
     }
+  }
+  // 3月: 小学校・中学校・高校の組を記録(その学年の最後の組。卒業の年は卒業したときの組が残る)
+  function ledgerClass(w, i, M) {
+    const p = w.pop;
+    if (!p.cls2 || M % 12 !== 2 || p.school[i] < 0 || typeof kumiAt !== "function") return;
+    const b = w.map.buildings[p.school[i]], lv = { elem: 2, jh: 3, hs: 4 }[b && b.type];
+    if (!lv) return;
+    const k = kumiAt(w, b, i);
+    if (k >= 0) p["cls" + lv][i] = k;
   }
   function ledgerPromo(w, id) {
     const p = w.pop;

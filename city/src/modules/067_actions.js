@@ -691,6 +691,9 @@
     const hero = g.hero;
     const d = g.world.describe(id);
     const r = hero.rel[id];
+    // 前に話してからの月数(再会の話題: reunion.js)。はじめてなら null
+    const gapM = r ? g.S.M - (r.last ?? r.met ?? g.S.M) : null;
+    g._talkGap = { id, gapM };
     const base = 2 + hero.stats.charm / 40 + hero.stats.social / 50 + rng.next() * 2;
     g.meet(id, r ? base : Math.max(6, base));
     g.advance(10);
@@ -714,6 +717,11 @@
       if (g.hero.rel[id]) g.hero.rel[id].said = [...said.filter((x) => x !== f.why), f.why].slice(-6);
       line2 = `\u8A71\u3057\u307E\u3057\u305F\u3002\u300C${f.say}\u300D(\u6839\u62E0: ${f.why})`;
     }
+    if (typeof noteReunion === "function") try {
+      noteReunion(g, id, gapM);
+    } catch (e) {
+    }
+    g._talkGap = null;
     const rel = g.hero.rel[id];
     const rc = g.world.lives.has(id) && rng.next() < 0.6 ? recallLine(g.world, id, rng) : null;
     return { msg: `${g.nameOf(id)}\u3068${line2}(\u89AA\u3057\u3055 ${Math.round(rel.aff)})` + (rc ? `

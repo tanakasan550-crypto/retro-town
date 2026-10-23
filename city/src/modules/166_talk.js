@@ -32,6 +32,12 @@
         }
       }
     }
+    // 何十年ぶりの再会(reunion.js): 学校の縁がある大人どうし。前に話してからの間が長いほど、昔の話から
+    if (typeof reunionFacts === "function") try {
+      const gap = g._talkGap && g._talkGap.id === id ? g._talkGap.gapM : h.rel[id] ? M - (h.rel[id].last ?? M) : null;
+      for (const f of reunionFacts(g, id, gap)) out.push(f);
+    } catch (e) {
+    }
     // 人と人のつながり(ties.js: 親族・学校の在籍記録・職歴)。言い回しは日ごとに変える
     const vary = (L3) => L3[uh(id * 31 + M, g.date().d) % L3.length];
     if (typeof tiesOf === "function") for (const t of tiesOf(w, h.id, id)) {
