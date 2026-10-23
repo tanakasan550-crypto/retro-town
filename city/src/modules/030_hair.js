@@ -11,7 +11,9 @@
   var SHOP_PRE = ["\u30DF\u30E2\u30B6", "\u30EB\u30CA", "\u30BD\u30E9", "\u30EA\u30DC\u30F3", "\u30CF\u30CA", "\u30A2\u30F3", "\u30DF\u30EB\u30AF", "\u30D6\u30FC\u30B1"];
   function salonName(b, cur2) {
     const K3 = salonKind(b), old = K3.k === "barber" || K3.k === "oldbarber";
-    return (old ? cur2 && !/理容室|床屋/.test(cur2) ? cur2.slice(0, 3) : cur2 ? cur2.slice(0, 3) : "\u307E\u3061" : SHOP_PRE[hash2(b.idx, 4419) % SHOP_PRE.length]) + (K3.k === "salon" ? "\u7F8E\u5BB9\u5BA4" : K3.n);
+    // 昔ながらの理容室・床屋は、もとの店の屋号(ひらがなの部分)を受け継ぐ(途中で切らない)
+    const brand = (cur2 || "").match(/^[ぁ-ゖー]+/);
+    return (old ? brand ? brand[0] : "\u307E\u3061" : SHOP_PRE[hash2(b.idx, 4419) % SHOP_PRE.length]) + (K3.k === "salon" ? "\u7F8E\u5BB9\u5BA4" : K3.n);
   }
   function assignSalons(map2) {
     for (const b of map2.buildings) {

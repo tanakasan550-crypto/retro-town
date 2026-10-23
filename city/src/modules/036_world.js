@@ -111,6 +111,12 @@
       assignVoc(this.map);
       assignWa(this.map);
       assignUtil(this.map);
+      // 機械的な施設名を自然な名前へ(建物IDは変えない。names.js)
+      if (typeof naturalNames === "function") try {
+        naturalNames(this.map);
+      } catch (e) {
+        console.error("naturalNames", e);
+      }
       this.M = monthIdx(startYear, 0);
       this.pop = new Population();
       this.occ = new Int32Array(this.map.buildings.length);
@@ -247,7 +253,7 @@
     serialize() {
       const p = this.pop, arrays = {};
       for (const k of _World.ARRS) arrays[k] = p[k].slice(0, p.n);
-      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, bdyn: this.map.buildings.map((b) => ({ name: b.name, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {} })), surX: p.surX, givenOv: p.givenOv, sn: this.sn };
+      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {} })), surX: p.surX, givenOv: p.givenOv, sn: this.sn };
     }
     static restore(d) {
       const w = new _World(d.seed, d.startYear, { skipInit: true, ver: d.mapVer ?? 1 });
@@ -276,6 +282,12 @@
         Object.assign(w.map.buildings[i], x);
         if (!x.nf) delete w.map.buildings[i].nf;
       });
+      // セーブに残った旧い名前(〜第2 など)も同じ規則で自然な名前へ
+      if (typeof naturalNames === "function") try {
+        naturalNames(w.map);
+      } catch (e) {
+        console.error("naturalNames", e);
+      }
       return w;
     }
     dist(i, j) {
@@ -866,7 +878,11 @@
         } else if (b.status === "closed" && rng.chance(0.4)) {
           b.status = "open";
           const old = b.name;
-          b.name = b.salon ? salonName(b, old) : rng.pick(SHOP_PREFIX) + BTYPES[b.type].label;
+          // 新しい店の名前(乱数の使い方は従来どおり1回。names.js で自然な名前・重ならない名前に整える)
+          const cand = b.salon ? null : rng.pick(SHOP_PREFIX) + BTYPES[b.type].label;
+          const nm0 = b.salon ? salonName(b, old) : cand;
+          b.name = typeof shopOpenName === "function" ? shopOpenName(this.map, b, nm0) : nm0;
+          b.nameSim = 1;
           b.era = y < 1975 ? 0 : y < 2e3 ? 1 : 2;
           b.openYear = y;
           b.history.push({ y, text: `\u8DE1\u5730\u306B${b.name}\u304C\u958B\u5E97\u3057\u305F(\u65E7${old})` });
