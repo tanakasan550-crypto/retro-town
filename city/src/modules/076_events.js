@@ -255,10 +255,13 @@ ${parentsText(g)}
     const L2 = (_a = g.hero).memorial || (_a.memorial = []);
     if (id != null && !L2.some((x) => x.id === id)) L2.push({ id, M: g.S.M, name: g.nameOf(id) });
   };
-  E({ id: "family_loss", ages: [0, 90], w: 0, make: (g, ctx4) => ({ title: ctx4.title || "\u304A\u5225\u308C", text: ctx4.text + "\n\u901A\u591C\u30FB\u846C\u5100\u306B\u53C2\u5217\u3059\u308B\u304B\u3001\u9759\u304B\u306B\u898B\u9001\u308B\u304B\u3092\u9078\u3079\u307E\u3059\u3002", choices: [
-    { label: "\u901A\u591C\u30FB\u846C\u5100\u306B\u53C2\u5217\u3059\u308B(\u9999\u5178\u30FB\u8EAB\u652F\u5EA6)", apply: (g2) => {
+  E({ id: "family_loss", ages: [0, 90], w: 0, make: (g, ctx4) => ({ title: ctx4.title || "\u304A\u5225\u308C", text: ctx4.text + (typeof funeralText === "function" ? funeralText(g, ctx4.id) : "") + "\n\u901A\u591C\u30FB\u846C\u5100\u306B\u53C2\u5217\u3059\u308B\u304B\u3001\u9759\u304B\u306B\u898B\u9001\u308B\u304B\u3092\u9078\u3079\u307E\u3059\u3002", choices: [
+    { label: typeof funeralOf === "function" && funeralOf(g.world, ctx4.id)?.chief === g.hero.id ? "\u55AA\u4E3B\u3068\u3057\u3066\u901A\u591C\u30FB\u846C\u5100\u3092\u57F7\u308A\u884C\u3046(\u846C\u5100\u8CBB\u7528)" : "\u901A\u591C\u30FB\u846C\u5100\u306B\u53C2\u5217\u3059\u308B(\u9999\u5178\u30FB\u8EAB\u652F\u5EA6)", apply: (g2) => {
       const near2 = ctx4.id === g2.hero.mother || ctx4.id === g2.hero.father || g2.hero.rel[ctx4.id]?.family;
-      const fee = g2.yen(near2 ? 12e4 : 3e4);
+      // 喪主を務めるときは葬儀費用の多くを負担する(funeral.js の喪主の決まり)
+      const chief = typeof funeralOf === "function" && funeralOf(g2.world, ctx4.id)?.chief === g2.hero.id;
+      if (chief) g2.log("family", `${g2.nameOf(ctx4.id)}\u306E\u55AA\u4E3B\u3092\u52D9\u3081\u305F`);
+      const fee = g2.yen(chief ? 9e5 : near2 ? 12e4 : 3e4);
       g2.pay(Math.min(fee, Math.max(0, g2.hero.money)), near2 ? "\u846C\u5100\u306E\u8CBB\u7528(\u5BB6\u65CF\u306E\u5206\u62C5)" : "\u9999\u5178");
       g2.advance(600);
       memorial(g2, ctx4.id);

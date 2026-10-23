@@ -312,6 +312,7 @@
         if (po && po.pose === "sit") Object.assign(base, { pose: "sit", poseK: po.k ?? 1, seatPx: (P2.Y(x, y, 0.42) - P2.Y(x, y, 0)) * -1, hip: hipFrac(age) });
         R5.drawChar(c, X, Y2, look, age, dir || "d", !!mv, base);
         if (typeof bathTowel === "function") bathTowel(c, I2, x, y, X, Y2, Z, !!tubO);
+        if (typeof mourningDress === "function") mourningDress(c, id, X, Y2, Z);
       } });
     };
     const bubbles = [];
