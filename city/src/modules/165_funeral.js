@@ -103,7 +103,13 @@
         nb++;
       }
     }
-    const rec = { id, M, d, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall: funeralNearest(w, home, "funeral"), crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
+    // 式場の予約: 同じ葬儀場で同じ月の日が重ならないように、空いている日へ(通夜と告別式で2日使う)
+    const hall = funeralNearest(w, home, "funeral");
+    let dd = d;
+    const busy = new Set();
+    for (const f of w.funerals || []) if (f.M === M && f.hall === hall) busy.add(f.d).add(f.d + 1).add(f.d - 1);
+    for (let k = 0; k < 26 && busy.has(dd); k++) dd = 2 + (dd - 2 + 1) % 26;
+    const rec = { id, M, d: dd, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall, crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
     (w.funerals || (w.funerals = [])).push(rec);
     if (w.funerals.length > FUN_KEEP * 1.5) w.funerals = w.funerals.slice(-FUN_KEEP);
     return rec;

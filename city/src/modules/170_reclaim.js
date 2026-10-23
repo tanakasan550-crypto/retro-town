@@ -121,7 +121,7 @@
   // 形式は siteLayout と同じ(main/annex/ground/solid/props/gate)。門は南(南の通りに面する)。
   function islandLayout(type, W2, H4, hsh) {
     if (type === "zoo") {
-      const mid = H4 >> 1, L3 = { W: W2, H: H4, main: [(W2 >> 1) - 9, H4 - 6, 18, 5, 1], annex: [], ground: [], solid: [], props: [], gate: [W2 >> 1, H4 - 11], open: true };
+      const mid = H4 >> 1, L3 = { W: W2, H: H4, main: [(W2 >> 1) - 9, H4 - 9, 18, 5, 1], annex: [], ground: [], solid: [], props: [], gate: [W2 >> 1, H4 - 11], open: true };
       L3.ground.push(["paved", 3, 3, W2 - 6, 3], ["paved", 3, mid - 2, W2 - 6, 5], ["paved", 3, H4 - 12, W2 - 6, 3], ["paved", 3, 3, 3, H4 - 12], ["paved", W2 - 6, 3, 3, H4 - 12], ["paved", (W2 >> 1) - 3, mid, 6, H4 - mid - 6]);
       // 獣舎: 北の列と南の列(種類ごとに必要な広さの比で幅を分ける)
       const rowN = [["elephant", 6], ["giraffe", 5], ["lion", 4], ["monkey", 4]], rowS = [["flamingo", 3], ["kangaroo", 4], ["redpanda", 2.4], ["birds", 3]];

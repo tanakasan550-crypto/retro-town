@@ -27,7 +27,8 @@ export default async (p, shot) => {
   console.log('NPC FUNERAL', JSON.stringify(f));
   if (f.id < 0) throw new Error('no NPC with family found for the test');
   await p.waitForTimeout(2500);
-  const inside = await p.evaluate((id) => { const G = NLS.G, r = NLS.fun.funeralOf(G.world, id); const here = new Set((NLS.U.people || []).map(q => q.id)); return { shown: r.att.filter(x => here.has(x)).length, chiefHere: here.has(r.chief), deadHere: here.has(id) }; }, f.id);
+  const inside = await p.evaluate((id) => { const G = NLS.G, r = NLS.fun.funeralOf(G.world, id); const here = new Set((NLS.U.people || []).map(q => q.id)); const I2 = NLS.nav.interiorOf(G, r.hall, 0).I, b = G.world.map.buildings[r.hall], P = G.world.pop; const dbg = { type: b.type, fh: !!I2.funeralHall, big: !!I2.big, now: !!NLS.fun.funeralNow(G, r.hall), alive: r.att.filter(x => !P.gone[x]).length, ind: NLS.C.indoor(r.hall, I2, 0).filter(q => q.role === 'mourner').length, ui: (NLS.U.people || []).length, loc: [G.S.loc.k, G.S.loc.b] };
+    return { dbg, shown: r.att.filter(x => here.has(x)).length, chiefHere: here.has(r.chief), deadHere: here.has(id) }; }, f.id);
   console.log('HALL', JSON.stringify(inside)); await shot('wake');
   if (!inside.shown || !inside.chiefHere || inside.deadHere) throw new Error('mourners not shown at the wake');
   const acts = await p.evaluate(() => { const G = NLS.G, { I } = NLS.nav.interiorOf(G, G.S.loc.b, 0); const t = { kind: 'obj', o: I.objs.find(o => o.act === 'fx_shoko') }; const b = { kind: 'obj', o: I.objs.find(o => o.act === 'fx_fboard') }; const a = NLS.bus.targetActions(G, t).map(x => x.label); const r = NLS.bus.runAction(G, 'fboard', b); return { shoko: a, board: r && r.msg }; });
