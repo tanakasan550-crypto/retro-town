@@ -13,6 +13,7 @@
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 将来の夢と人生の連続性(185_dreams.js・dreams.mjs): すべての住民と主人公の夢(dr1/dr2/drS/drBy/drM)、資格の道(trk/trkY・p.lic2。養成→試験→資格、資格を取る前は就職しない: eligibleFor→holdsJob)、仕事の需要からの資格、夢の職への転職・諦め・再挑戦・独立(dreamFound)、憧れた人との再会、会話(dreamFacts)・日記(heroDreamPanel)・表彰(dreamAwards)・エンディング(heroDreamEnding)。主人公は 6/12/15/18歳の4月に夢を選び、大学の学部(医学部・薬学部は6年)と3月の資格試験(qual_exam)。速さの確認は tools/scen/_prof.mjs(Chromium の CPU プロファイル)
 - 汎用の中の作り直し(段階): 一戸建て 181_fac_house.js(houses.mjs)・集合住宅の住戸 buildUnitHome(aptunits.mjs)・飲食店 182_fac_food.js(foods.mjs)・小さな店 183_fac_retail.js(retail.mjs)・職場/小さな施設 184_fac_work.js(works.mjs)。どれも全件で設備・寝る場所/席・歩いて行けるか・間取りの違いを試験
 - 小学校の敷地(160_sites.js): 体育館の屋上プール・都市部の小さな小学校の作り(elem_compact)で、敷地を広げず全校が設置基準以上(elemland.mjs)
 - 職種監査(jobaudit.mjs → docs/job_audit.md/csv): 全81職に職場・雇用・作業(180_worktask.js の WORK_TASKS)・仕事のできごと。工務店・土木・電気工事・設備・造園・ビル管理のテナント。施設の警備員

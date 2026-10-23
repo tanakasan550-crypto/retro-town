@@ -447,7 +447,7 @@
         if (p.apt[id] < (J.edu >= 5 ? 120 : J.edu >= 4 ? 95 : 70) || age < J.minAge + (J.exp ? 6 : 1)) return false;
       }
       // 資格・免許の要る職は、実際に持っている人だけ(dreams.js の試験で取る。資格を取る前に就職させない)
-      if ((J.qual || J.lic) && this.pop.lic2 && typeof holdsFor === "function") return holdsFor(this, id, J);
+      if ((J.qual || J.lic) && this.pop.lic2 && typeof holdsJob === "function") return holdsJob(p, id, JOB_INDEX[jobId]);
       if (J.qual) {
         const qi = QUAL_IDS2.indexOf(J.qual);
         if (!(p.quals[id] & 1 << qi)) {

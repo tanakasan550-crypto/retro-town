@@ -9,7 +9,14 @@
     return by + GRAD_AGE[lv] + 1;
   }
   // 職歴(prof.hist)から、その年にその学校で教員だった人
+  // 学校と年ごとに覚えておく(職歴をすべて見るので。月が変わったら作り直す)
   function teachersAt(w, b, year) {
+    const c = w._tAt && w._tAtM === w.M ? w._tAt : (w._tAtM = w.M, w._tAt = /* @__PURE__ */ new Map());
+    const k = b * 4e3 + year;
+    if (!c.has(k)) c.set(k, teachersAt0(w, b, year));
+    return c.get(k);
+  }
+  function teachersAt0(w, b, year) {
     const out = [], M0 = (year - 1900) * 12 + 3;
     for (const [id, pr] of w.prof || []) {
       if (!pr.hist) continue;

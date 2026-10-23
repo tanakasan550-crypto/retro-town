@@ -69,6 +69,27 @@
   var LIC2 = ["curator", "forklift", "elec2", "heavy", "sekou2", "mechanic", "beautician", "pilot"];
   var LIC2_NAME = { curator: "学芸員", forklift: "フォークリフト運転技能講習", elec2: "第二種電気工事士", heavy: "車両系建設機械の講習", sekou2: "2級施工管理技士", mechanic: "自動車整備士", beautician: "美容師免許", pilot: "事業用操縦士" };
   var hasLic2 = (p, i, l) => !!(p.lic2 && p.lic2[i] & 1 << LIC2.indexOf(l));
+  // 職の番号ごとの必要な資格のビット(仕事探しの中で何度も確かめるので、文字列を探さずにビットで比べる)
+  var REQQ = null, REQL = null;
+  function reqBits() {
+    if (REQQ && REQQ.length === JOB_IDS2.length) return;
+    REQQ = new Uint16Array(JOB_IDS2.length);
+    REQL = new Uint8Array(JOB_IDS2.length);
+    JOB_IDS2.forEach((j, k) => {
+      const J = JOBS[j];
+      for (const x of [J.qual, J.lic]) {
+        if (!x) continue;
+        const qi = QUAL_IDS2.indexOf(x);
+        if (qi >= 0) REQQ[k] |= 1 << qi;
+        else if (LIC2.includes(x)) REQL[k] |= 1 << LIC2.indexOf(x);
+      }
+    });
+  }
+  function holdsJob(p, i, k) {
+    reqBits();
+    const q = REQQ[k], l = REQL[k];
+    return (p.quals[i] & q) === q && (!l || !p.lic2 || (p.lic2[i] & l) === l);
+  }
   // その職に就くための資格・免許を持っているか(資格の要らない職は true)
   function holdsFor(w, i, J) {
     const p = w.pop;
@@ -191,8 +212,18 @@
     const p = w.pop, D = DREAMS[d];
     if (!D.jobs) return -1;
     for (const f of [p.mother[i], p.father[i]]) if (f >= 0 && !p.gone[f] && p.job[f] < 255 && D.jobs.includes(JOB_IDS2[p.job[f]])) return f;
-    if (D.k === "teacher" && p.school[i] >= 0 && typeof teachersAt === "function") {
-      const L3 = teachersAt(w, p.school[i], 1900 + Math.floor(M / 12));
+    if (D.k === "teacher" && p.school[i] >= 0) {
+      // 今その学校で教えている先生(職の枠から。月に一度まとめる)
+      if (w._curTM !== M) {
+        w._curTM = M;
+        w._curT = /* @__PURE__ */ new Map();
+        const T1 = JOB_INDEX.teacher, T2 = JOB_INDEX.special_teacher;
+        for (let s = 0; s < w.slots.b.length; s++) {
+          const j = w.slots.job[s], who = w.slots.who[s];
+          if (who >= 0 && (j === T1 || j === T2)) (w._curT.get(w.slots.b[s]) || w._curT.set(w.slots.b[s], []).get(w.slots.b[s])).push(who);
+        }
+      }
+      const L3 = w._curT.get(p.school[i]) || [];
       if (L3.length) return L3[uh(i, M) % L3.length];
     }
     return -1;
