@@ -24,7 +24,21 @@
       add("\u8857\u306E\u8868\u5F70", ledgerAwards(g).map((a) => ({ text: `${a.title} ${a.name}\u3055\u3093 \u2014 ${a.evidence}`, rule: a.rule, who: a.id })));
     } catch (e) {
     }
-    const facts = { ...h.testMode?.used ? { \u30C6\u30B9\u30C8\u4F7F\u7528: "\u8A66\u9A13\u7528\u306E\u6240\u6301\u91D1MAX\u3092\u4F7F\u7528(\u901A\u5E38\u30D7\u30EC\u30A4\u306E\u8A18\u9332\u3067\u306F\u3042\u308A\u307E\u305B\u3093)" } : {}, \u5E74\u9F62: g.age(), \u846C\u5100\u53C2\u5217: h.flags.funeral || 0, \u5893\u53C2\u308A: h.flags.graveVisit || 0, \u5584\u884C: h.flags.goodDeed || 0, \u682A\u5F0F\u306E\u6642\u4FA1: Math.round(Object.entries(h.stocks || {}).reduce((a, [k, v]) => a + v.n * (g.S.stk?.px?.[k] || 0) * g.pi(), 0)), \u5BFF\u547D\u8A2D\u5B9A: S2.lifeMode === "natural" ? "\u500B\u4EBA\u5DEE\u3042\u308A" : "80\u5E74\u56FA\u5B9A", \u53CB\u4EBA\u6570: Object.values(h.rel).filter((r) => r.aff >= 50 && !r.family).length, \u5B50\u3069\u3082: h.kids.length, \u50CD\u3044\u305F\u6642\u9593: S2.stats.workHours, \u4E57\u8ECA\u56DE\u6570: S2.stats.rides, \u6240\u6301\u91D1: Math.round(h.money), \u501F\u5165: Math.round(h.debt), \u6295\u8CC7\u8CC7\u7523: Math.round(h.invest?.bal || 0), \u4F4F\u5B85\u30ED\u30FC\u30F3\u6B8B: Math.round(h.mort?.bal || 0), \u6301\u3061\u5BB6: h.owned.length };
+    // 街の発展(住民の記録から: towndev.js)。数と、主人公の家に近い出来事
+    if (g.world.dev && g.world.dev.length) try {
+      const w = g.world, hb = w.map.buildings[h.homeB] || { doorX: 0, doorY: 0 }, KN = { school_ext: "校舎の増築", school_less: "学級の削減", care_ext: "介護施設の増築", ward: "病棟の増設", shop_open: "空き店舗への出店" };
+      const cnt = {};
+      for (const e of w.dev) cnt[e.kind] = (cnt[e.kind] || 0) + 1;
+      const near = w.dev.slice().sort((a, c) => {
+        const A = w.map.buildings[a.b], C = w.map.buildings[c.b];
+        return Math.abs(A.doorX - hb.doorX) + Math.abs(A.doorY - hb.doorY) - (Math.abs(C.doorX - hb.doorX) + Math.abs(C.doorY - hb.doorY)) || a.y - c.y;
+      }).slice(0, 5);
+      add("街の発展(住民の記録から)", [{ text: Object.entries(cnt).map(([k, n2]) => `${KN[k] || k} ${n2}件`).join("・"), rule: "在籍者・近くに住む人・80歳以上の人数の記録だけで決めた(乱数なし)" }, ...near.map((e) => ({ text: `${e.y}年 ${w.map.buildings[e.b].name}: ${e.text}`, rule: e.ev }))]);
+    } catch (e) {
+    }
+    // 主人公の実績(活動の記録: ledger.js)
+    const LR = g.world.pop.workM ? { 働いた月数: g.world.pop.workM[h.id], 昇進: g.world.pop.promo[h.id], 卒業した学校: gradCount(g.world.pop.grads[h.id]), 部活の年数: g.world.pop.clubY[h.id] } : {};
+    const facts = { ...LR, ...h.testMode?.used ? { \u30C6\u30B9\u30C8\u4F7F\u7528: "\u8A66\u9A13\u7528\u306E\u6240\u6301\u91D1MAX\u3092\u4F7F\u7528(\u901A\u5E38\u30D7\u30EC\u30A4\u306E\u8A18\u9332\u3067\u306F\u3042\u308A\u307E\u305B\u3093)" } : {}, \u5E74\u9F62: g.age(), \u846C\u5100\u53C2\u5217: h.flags.funeral || 0, \u5893\u53C2\u308A: h.flags.graveVisit || 0, \u5584\u884C: h.flags.goodDeed || 0, \u682A\u5F0F\u306E\u6642\u4FA1: Math.round(Object.entries(h.stocks || {}).reduce((a, [k, v]) => a + v.n * (g.S.stk?.px?.[k] || 0) * g.pi(), 0)), \u5BFF\u547D\u8A2D\u5B9A: S2.lifeMode === "natural" ? "\u500B\u4EBA\u5DEE\u3042\u308A" : "80\u5E74\u56FA\u5B9A", \u53CB\u4EBA\u6570: Object.values(h.rel).filter((r) => r.aff >= 50 && !r.family).length, \u5B50\u3069\u3082: h.kids.length, \u50CD\u3044\u305F\u6642\u9593: S2.stats.workHours, \u4E57\u8ECA\u56DE\u6570: S2.stats.rides, \u6240\u6301\u91D1: Math.round(h.money), \u501F\u5165: Math.round(h.debt), \u6295\u8CC7\u8CC7\u7523: Math.round(h.invest?.bal || 0), \u4F4F\u5B85\u30ED\u30FC\u30F3\u6B8B: Math.round(h.mort?.bal || 0), \u6301\u3061\u5BB6: h.owned.length };
     const summary = `${h.name}\u306E${g.age()}\u5E74\u3002${sections.reduce((n2, s) => n2 + s.lines.length, 0)}\u306E\u601D\u3044\u51FA\u304C\u3001\u8857\u306E\u3069\u3053\u304B\u306B\u523B\u307E\u308C\u3066\u3044\u307E\u3059\u3002`;
     return { summary, sections, facts, ok: true };
   }

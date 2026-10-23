@@ -15,7 +15,8 @@
       if (jid && CARE_JOBS.has(jid) && p.careM[i] < 65535) p.careM[i]++;
     }
     // 4月: 中学・高校の部員なら部活1年
-    if (M % 12 === 3 && p.school[i] >= 0 && typeof campusClubOf === "function") {
+    const ag = (M - p.born[i]) / 12;
+    if (M % 12 === 3 && p.school[i] >= 0 && ag >= 12 && ag < 19 && typeof campusClubOf === "function") {
       const t = (w.map.buildings[p.school[i]] || {}).type;
       if ((t === "jh" || t === "hs") && campusClubOf(i) !== "none" && p.clubY[i] < 255) p.clubY[i]++;
     }

@@ -283,7 +283,7 @@
     serialize() {
       const p = this.pop, arrays = {};
       for (const k of _World.ARRS) arrays[k] = p[k].slice(0, p.n);
-      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {} })), surX: p.surX, givenOv: p.givenOv, sn: this.sn };
+      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {}, ...b.devFl || b.devOver || b.devUnder || b.devLess ? { devFl: b.devFl || 0, devOver: b.devOver || 0, devUnder: b.devUnder || 0, devLess: b.devLess || 0 } : {} })), dev: this.dev || [], surX: p.surX, givenOv: p.givenOv, sn: this.sn };
     }
     static restore(d) {
       const w = new _World(d.seed, d.startYear, { skipInit: true, ver: d.mapVer ?? 1 });
@@ -310,6 +310,7 @@
       w.known = new Set(d.known);
       w.events = d.events;
       w.funerals = d.funerals || [];
+      w.dev = d.dev || [];
       w.newsLog = d.newsLog;
       w.tickCount = d.tickCount;
       w.stats = d.stats;
@@ -962,6 +963,8 @@
         this.newsLog.push({ y, kind: "town", text: `${b.name}\u304C\u5EFA\u3066\u66FF\u3048\u3089\u308C\u305F(${b.addr})`, b: b.idx });
         changes++;
       }
+      // 住民の記録から決まる発展(towndev.js)
+      if (typeof townDev === "function") changes += townDev(this, y);
       return changes;
     }
     vacateBuildingJobs(bidx2) {

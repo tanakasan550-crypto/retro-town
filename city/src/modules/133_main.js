@@ -2082,7 +2082,16 @@ ${householdAtBirth(G3).map(esc4).join("\n")}</div><div class="row">${btn("\u9589
   }
   function diaryModal() {
     const L2 = G3.S.log.filter((e) => !["auto", "news", "event", "history"].includes(e.kind) || e.kind === "news" && G3.hero.rel[e.who]?.aff >= 60).slice(-80).reverse();
-    showModal(`<h2>\u65E5\u8A18(\u3053\u308C\u307E\u3067\u306E\u51FA\u6765\u4E8B)</h2><div class="tx small">\u30ED\u30B0 ${G3.S.log.length}\u4EF6(\u30A8\u30F3\u30C7\u30A3\u30F3\u30B0\u306E\u56DE\u60F3\u306F\u3001\u3053\u306E\u8A18\u9332\u3060\u3051\u304B\u3089\u4F5C\u3089\u308C\u307E\u3059)</div><div class="tx">${L2.map((e) => `${fmtM(e.M)} ${esc4(e.text)}`).join("\n") || "(\u307E\u3060\u4F55\u3082\u3042\u308A\u307E\u305B\u3093)"}</div><div class="row">${btn("\u9589\u3058\u308B", "sec")}</div>`, (c) => c.querySelector(".btn").onclick = closeModal);
+    // 人生の目標(実績の記録から)と、最近の街の発展(住民の記録から)
+    let goal = "";
+    try {
+      const w = G3.world, P = w.pop, id = G3.hero.id, ms = lifeMission(w, id);
+      const rec = P.workM ? `働いた月数 ${P.workM[id]}・昇進 ${P.promo[id]}回・卒業 ${gradCount(P.grads[id])}校・部活 ${P.clubY[id]}年` : "";
+      const dv = devRecent(w, 3).map((e) => `${e.y}年 ${esc4(e.name || "")}: ${esc4(e.text)}(${esc4(e.ev)})`).join("\n");
+      goal = `<div class="tx small">${ms ? `人生の目標: ${esc4(ms.title)}(${Math.round(ms.prog * 100)}%・根拠: ${esc4(ms.ev)})<br>` : ""}${rec ? `実績: ${rec}` : ""}${dv ? `<br>最近の街の発展:\n${dv}` : ""}</div>`;
+    } catch (e) {
+    }
+    showModal(`<h2>\u65E5\u8A18(\u3053\u308C\u307E\u3067\u306E\u51FA\u6765\u4E8B)</h2>${goal}<div class="tx small">\u30ED\u30B0 ${G3.S.log.length}\u4EF6(\u30A8\u30F3\u30C7\u30A3\u30F3\u30B0\u306E\u56DE\u60F3\u306F\u3001\u3053\u306E\u8A18\u9332\u3060\u3051\u304B\u3089\u4F5C\u3089\u308C\u307E\u3059)</div><div class="tx">${L2.map((e) => `${fmtM(e.M)} ${esc4(e.text)}`).join("\n") || "(\u307E\u3060\u4F55\u3082\u3042\u308A\u307E\u305B\u3093)"}</div><div class="row">${btn("\u9589\u3058\u308B", "sec")}</div>`, (c) => c.querySelector(".btn").onclick = closeModal);
   }
   function skipModal() {
     showModal(`<h2>\u6642\u9593\u3092\u3059\u3059\u3081\u308B</h2><div class="tx">\u5BDD\u308B\u30FB\u30B9\u30AD\u30C3\u30D7\u4E2D\u306F\u3001\u6BCE\u65E5\u306E\u66AE\u3089\u3057(\u767B\u6821\u30FB\u52E4\u52D9\u30FB\u98DF\u4E8B\u306A\u3069)\u304C\u81EA\u52D5\u3067\u9032\u307F\u307E\u3059\u3002\u91CD\u8981\u306A\u9078\u629E(\u9032\u8DEF\u30FB\u7D50\u5A5A\u30FB\u9000\u8077\u306A\u3069)\u306E\u6240\u3067\u6B62\u307E\u308A\u307E\u3059\u3002</div><div class="list"><button class="btn item" data-k="day">\u6B21\u306E\u671D\u307E\u3067(1\u65E5)</button><button class="btn item" data-k="week">1\u9031\u9593</button><button class="btn item" data-k="month">1\u304B\u6708(\u6708\u306E\u307E\u3068\u3081\u3078)</button><button class="btn item" data-k="year">1\u5E74</button></div><div class="row">${btn("\u3084\u3081\u308B", "sec")}</div>`, (c) => {
