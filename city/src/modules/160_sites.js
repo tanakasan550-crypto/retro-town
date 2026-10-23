@@ -140,43 +140,30 @@
     if (!map2 || (map2.ver || 1) < 4 || map2.sitesV === SITES_VER) return;
     map2.sitesV = SITES_VER;
     map2.fsites = [];
+    const t0 = performance.now();
     const W2 = map2.W, placed = [];
     const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
     const F = sitesLandMap(map2, todo);
+    const tm = { land: Math.round(performance.now() - t0), find: 0, apply: 0 };
     const report = [], displaced = [];
     for (const b of todo) {
       if (b.siteI != null) continue;
-      let L3 = siteLayout(b);
-      if (!L3) continue;
-      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-      let best = null;
-      // 元の場所の近く(学校は120タイル・大学と動物園は200タイル以内)で、使えない土地を含まず、南に道路が接し、立ち退きが少なく近い場所
-      const RR = L3.W * L3.H > 4e3 ? 200 : 120, ST = RR > 120 ? 4 : 3;
-      for (let dy = -RR; dy <= RR; dy += ST) for (let dx = -RR; dx <= RR; dx += ST) {
-        const x = Math.round(cx + dx - L3.W / 2), y = Math.round(cy + dy - L3.H / 2);
-        if (x < 2 || y < 2 || x + L3.W >= W2 - 2 || y + L3.H >= map2.H - 3) continue;
-        if (!siteRectOk(map2, F, b, x, y, L3.W, L3.H)) continue;
-        if (placed.some((p) => x < p.x + p.w + 2 && p.x < x + L3.W + 2 && y < p.y + p.h + 2 && p.y < y + L3.H + 2)) continue;
-        const mov = rectSum(F.mov, W2, x, y, L3.W, L3.H);
-        const score = mov * 0.35 + Math.hypot(dx, dy);
-        if (best && score >= best.score) continue;
-        const gx = siteRoadSouth(map2, x, y, L3.W, L3.H);
-        if (gx < 0) continue;
-        best = { x, y, gx, d: Math.round(Math.hypot(dx, dy)), score, mov };
-      }
-      if (!best && !b._siteScaled) {
-        // 入らないときは、同じ設計を縮めた敷地(85%→72%)で探し直す
-        for (const f2 of [0.85, 0.72]) {
+      const L0 = siteLayout(b);
+      if (!L0) continue;
+      // 実際の基準に近い広さ(SITE_GROW)から試し、入らなければ標準→85%→72%の順に探す
+      let L3 = L0, best = null;
+      const t1 = performance.now();
+      for (const f2 of [...(SITE_GROW[b.type] || []), 1, 0.85, 0.72]) {
+        const r2 = siteFind(map2, b, f2 === 1 ? L0 : scaleLayout(L0, f2), F, placed, W2);
+        if (r2) {
+          best = r2.best;
+          L3 = r2.L3;
           b._siteScaled = f2;
-          const r2 = siteFind(map2, b, scaleLayout(L3, f2), F, placed, W2);
-          if (r2) {
-            best = r2.best;
-            L3 = r2.L3;
-            break;
-          }
+          break;
         }
       }
+      tm.find += performance.now() - t1;
       if (!best) {
         report.push({ id: b.id, name: b.name, type: b.type, moved: false, why: "近くに使える土地がない(元の建物のまま)" });
         continue;
@@ -197,17 +184,28 @@
       }
       placed.push({ x: best.x, y: best.y, w: L3.W, h: L3.H });
       applySite(map2, b, L3, best, displaced);
-      report.push({ id: b.id, name: b.name, type: b.type, moved: true, from: [b.x0, b.y0], to: [best.x, best.y], dist: best.d, site: [L3.W, L3.H], displaced: out.size });
+      report.push({ id: b.id, name: b.name, type: b.type, moved: true, from: [b.x0, b.y0], to: [best.x, best.y], dist: best.d, site: [L3.W, L3.H], scale: b._siteScaled, displaced: out.size });
     }
+    const t2 = performance.now();
     map2.siteMoved = siteRelocate(map2, displaced, placed);
+    tm.reloc = Math.round(performance.now() - t2);
+    tm.find = Math.round(tm.find);
     map2.siteReport = report;
     // 道路を取り込んだので、道路の情報(車線・交差点)は作り直す
     cache4.delete(map2);
+    // 高架道路は敷地の上を通さない(敷地内の4タイル幅の園路を道路の帯と見なさないように、移設後の敷地で作り直す)
+    map2.siteRects = [...(map2.sites || []).map((S2) => [S2.x, S2.y, S2.w, S2.h]), ...map2.fsites.map((S2) => [S2.x, S2.y, S2.w, S2.h])];
+    cache5.delete(map2);
+    map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
+  // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
+  var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [1.6, 1.4, 1.2], jh: [1.5, 1.3, 1.15], elem: [1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
-    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, RR = 200;
+    // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)
+    const far = b.type === "zoo" || b.type === "univ";
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, RR = far ? 420 : L3.W * L3.H > 4e3 ? 200 : 120, ST = far ? 6 : RR > 120 ? 4 : 3;
     let best = null;
-    for (let dy = -RR; dy <= RR; dy += 4) for (let dx = -RR; dx <= RR; dx += 4) {
+    for (let dy = -RR; dy <= RR; dy += ST) for (let dx = -RR; dx <= RR; dx += ST) {
       const x = Math.round(cx + dx - L3.W / 2), y = Math.round(cy + dy - L3.H / 2);
       if (x < 2 || y < 2 || x + L3.W >= W2 - 2 || y + L3.H >= map2.H - 3) continue;
       if (!siteRectOk(map2, F, b, x, y, L3.W, L3.H)) continue;
@@ -234,12 +232,18 @@
       const k = x + y * W2, gd = map2.ground[k];
       return map2.bid[k] < 0 && (!map2.solid[k] || map2.deco[k]) && (gd === T.GRASS || gd === T.FARM || gd === T.FOREST || gd === T.PADDY);
     };
-    const inSite = (x, y) => placed.some((p) => x >= p.x - 1 && x < p.x + p.w + 1 && y >= p.y - 1 && y < p.y + p.h + 1);
+    // 敷地(と1タイルの余白)の印。毎回 placed を走査しない
+    const siteM = new Uint8Array(W2 * H4);
+    for (const p of placed) for (let y = Math.max(0, p.y - 1); y < Math.min(H4, p.y + p.h + 1); y++) siteM.fill(1, y * W2 + Math.max(0, p.x - 1), y * W2 + Math.min(W2, p.x + p.w + 1));
+    const inSite = (x, y) => siteM[x + y * W2] === 1;
     for (const b of list) {
       let done2 = false;
-      for (let r = 0; r <= 200 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      // 近い順(正方形の輪)に探す。輪の上の点だけを回る(順序は従来と同じ)
+      for (let r = 0; r <= 200 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx += Math.abs(dy) === r || dx === r ? 1 : 2 * r) {
         const x = b.x + dx, y = b.y + dy;
+        if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
+        const dxk0 = x + (b.w >> 1);
+        if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
         let ok = true;
         for (let yy = y - 1; yy <= y + b.h && ok; yy++) for (let xx = x - 1; xx <= x + b.w && ok; xx++) if (!land(xx, yy) || inSite(xx, yy)) ok = false;
         if (!ok) continue;

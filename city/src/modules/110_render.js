@@ -122,7 +122,7 @@
       this.cv.height = Math.round(ch * dpr);
       this.dpr = dpr;
       let base = this.iso ? Math.max(3, Math.round(2.5 * dpr0)) : Math.max(2, Math.round(dpr * 1.35));
-      this.zl = Math.max(-4, Math.min(14, this.zl || 0));
+      this.zl = Math.max(this.zlMin ?? -4, Math.min(14, this.zl || 0));
       this.baseS = base;
       const maxS = this.iso ? Math.min(12, Math.max(8, Math.floor(cw * dpr0 / 48))) : Math.max(1, Math.floor(cw * dpr0 / (16 * 8))), minS = 1;
       const S2i = Math.max(minS, Math.min(maxS, base + this.zl));
