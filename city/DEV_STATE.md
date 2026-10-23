@@ -9,10 +9,11 @@
 
 ## 試験(ヘッドレス Chromium・Pixel 7 横画面)
 - 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
-- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral compare enter joy nav2 nav3 tap11 tour
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral talk compare enter joy nav2 nav3 tap11 tour
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 会話の根拠(166_talk.js): 話題をその人の事実(同じ学校・体育・部活・職場・同じ建物・子の入学・身内の死・近所の開店・天気)から選び、根拠を表示。身内を亡くして3か月以内はまずその話
 - 亡くなったあとの流れ(165_funeral.js): 喪主の決まり・通夜/告別式/火葬の日程・参列者・法定相続分の記録(world.funerals をセーブ)。葬儀場の式場・焼香・香典・掲示。住民どうしの葬儀も参列者が集まる。主人公への知らせに喪主と日程
 - 銭湯・日帰り温泉の作り直し(164_fac_bath.js): 受付・脱衣所・ガラスの仕切り・洗い場(壁ぎわと島)・大きな湯船・ジェットバス・水風呂・サウナ・露天の岩風呂・銭湯の壁画。浴室の人はタオルを巻いた姿。入浴の操作と料金は v11 のまま
 - 施設名の整理(163_names.js): 「〜第2」などを自然な架空名へ(建物IDは不変)。生成時とセーブ読み込み後に同じ規則で決め、街の移り変わりで付いた名前(nameSim・歴史の「開店」)は変えない。新しく開店する店の名前も重ならないように(shopOpenName)。一覧 docs/facility_renames.csv

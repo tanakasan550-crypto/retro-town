@@ -699,7 +699,15 @@
       g.world.lives.get(id).nHero++;
     }
     const topic = TOPICS[rng.int(TOPICS.length)];
-    const line2 = d.age >= 60 && rng.next() < 0.4 ? "\u3080\u304B\u3057\u306E\u8857\u306E\u8A71\u3092\u805E\u304B\u305B\u3066\u304F\u308C\u307E\u3057\u305F\u3002" : `${topic}\u3092\u8A71\u3057\u307E\u3057\u305F\u3002`;
+    let line2 = d.age >= 60 && rng.next() < 0.4 ? "\u3080\u304B\u3057\u306E\u8857\u306E\u8A71\u3092\u805E\u304B\u305B\u3066\u304F\u308C\u307E\u3057\u305F\u3002" : `${topic}\u3092\u8A71\u3057\u307E\u3057\u305F\u3002`;
+    // その人について本当にある事実からの話題(根拠つき。talk.js)。天気より具体的な事実を優先
+    const facts = typeof talkFacts === "function" ? talkFacts(g, id) : [];
+    const top = facts.filter((f) => f.pri >= 3);
+    const spec = top.length ? top : facts.filter((f) => !/^今日の天気/.test(f.why));
+    if (facts.length && (top.length || rng.next() < 0.8)) {
+      const f = (spec.length ? spec : facts)[rng.int((spec.length ? spec : facts).length)];
+      line2 = `\u8A71\u3057\u307E\u3057\u305F\u3002\u300C${f.say}\u300D(\u6839\u62E0: ${f.why})`;
+    }
     const rel = g.hero.rel[id];
     const rc = g.world.lives.has(id) && rng.next() < 0.6 ? recallLine(g.world, id, rng) : null;
     return { msg: `${g.nameOf(id)}\u3068${line2}(\u89AA\u3057\u3055 ${Math.round(rel.aff)})` + (rc ? `
