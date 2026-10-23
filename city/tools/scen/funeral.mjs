@@ -31,6 +31,18 @@ export default async (p, shot) => {
     return { dbg, shown: r.att.filter(x => here.has(x)).length, chiefHere: here.has(r.chief), deadHere: here.has(id) }; }, f.id);
   console.log('HALL', JSON.stringify(inside)); await shot('wake');
   if (!inside.shown || !inside.chiefHere || inside.deadHere) throw new Error('mourners not shown at the wake');
+  // 告別式の日の火葬(13:00〜): 火葬場の炉前ホールに遺族がいる
+  const crem = await p.evaluate((id) => {
+    const G = NLS.G, r = NLS.fun.funeralOf(G.world, id), s = NLS.fun.funeralSched(r);
+    // 同じ月の火葬の日・時刻へ(日付を直接合わせる)
+    G.S.day = s.crem.d; G.S.min = s.crem.a + 10;
+    const L = G.S.loc; L.k = 'in'; L.b = r.crem; L.floor = 0; const { I } = NLS.nav.interiorOf(G, r.crem, 0); L.x = I.door.x + 0.5; L.y = I.H - 2.5; NLS.U.cwAt = -999;
+    return { crem: G.world.map.buildings[r.crem].name, fp: G.world.map.buildings[r.crem].w + 'x' + G.world.map.buildings[r.crem].h, isCrem: !!I.crem, chief: r.chief };
+  }, f.id);
+  await p.waitForTimeout(2500);
+  const cremIn = await p.evaluate((c) => { const G = NLS.G, L = G.S.loc, I = NLS.nav.interiorOf(G, L.b, 0).I, ind = NLS.C.indoor(L.b, I, 0); return { chiefHere: (NLS.U.people || []).some(q => q.id === c.chief), n: (NLS.U.people || []).filter(q => q.role === 'mourner').length, min: G.S.min, d: G.date().d }; }, crem);
+  console.log('CREM', JSON.stringify({ ...crem, ...cremIn })); await shot('crematorium');
+  if (!crem.isCrem || !cremIn.chiefHere) throw new Error('family not at the crematorium');
   const acts = await p.evaluate(() => { const G = NLS.G, { I } = NLS.nav.interiorOf(G, G.S.loc.b, 0); const t = { kind: 'obj', o: I.objs.find(o => o.act === 'fx_shoko') }; const b = { kind: 'obj', o: I.objs.find(o => o.act === 'fx_fboard') }; const a = NLS.bus.targetActions(G, t).map(x => x.label); const r = NLS.bus.runAction(G, 'fboard', b); return { shoko: a, board: r && r.msg }; });
   console.log('ACTS', JSON.stringify(acts));
   // 亡くなった人が日常の場面(通り・駅・店・学校)に出ないこと

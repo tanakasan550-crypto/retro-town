@@ -31,6 +31,8 @@
     if (t === "nursing") return { W: 30, H: 24, main: [3, 3, 18, 9, 2], annex: [], ground: [["paved", 1, 13, 28, 4], ["paved", 13, 17, 5, 7], ["field", 22, 3, 7, 10]], solid: [], props: [["tree", 24, 5], ["tree", 27, 9], ["bench", 24, 11], ["bench", 3, 18], ["tree", 6, 21], ["tree", 24, 21]], gate: [15, 20] };
     if (t === "welfare") return { W: 26, H: 22, main: [3, 3, 16, 8, 2], annex: [], ground: [["paved", 1, 12, 24, 4], ["paved", 11, 16, 5, 6], ["field", 20, 3, 5, 9]], solid: [], props: [["tree", 21, 5], ["bench", 21, 10], ["tree", 4, 18]], gate: [13, 18] };
     if (t === "lab") return { W: 34, H: 26, main: [3, 3, 20, 10, 3], annex: [], ground: [["paved", 1, 14, 32, 5], ["paved", 15, 19, 5, 7], ["paved", 25, 3, 8, 11]], solid: [], props: [["lot", 25, 3, 8, 11], ["fountain", 12, 16], ["tree", 3, 21], ["tree", 30, 21], ["lamp", 8, 17], ["lamp", 22, 17]], gate: [17, 22] };
+    // 火葬場: 本館(炉前ホール・待合室)と静かな前庭・駐車場
+    if (t === "crematorium") return { W: 30, H: 24, main: [4, 3, 17, 9, 1], annex: [], ground: [["paved", 1, 13, 28, 4], ["paved", 11, 17, 5, 7], ["paved", 23, 3, 6, 10], ["field", 2, 18, 8, 5]], solid: [], props: [["lot", 23, 3, 6, 10], ["tree", 3, 19], ["tree", 7, 21], ["tree", 22, 19], ["tree", 26, 21], ["lamp", 10, 15]], gate: [13, 20] };
     if (t === "special") return { W: 30, H: 24, main: [2, 2, 18, 6, 2], annex: [["wing", 22, 2, 6, 8, 2, "実習棟", "s_wing"]], ground: [["paved", 1, 9, 28, 2], ["yard", 2, 12, 26, 9]], solid: [], props: [["slide", 4, 14], ["swing", 8, 14], ["bike", 24, 12]], gate: [12, 18] };
     if (t === "univ") {
       const FAC = ["工学部", "文学部", "経済学部", "理学部", "法学部", "教育学部", "医学部", "農学部", "情報学部", "国際学部"];
@@ -155,7 +157,7 @@
     map2.fsites = [];
     const t0 = performance.now();
     const W2 = map2.W, placed = [];
-    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab"];
+    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab", "crematorium"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
     const report = [], displaced = [];
     // 埋立地の島に移す施設(動物園・大学の本キャンパス・水族館・遊園地・スタジアム・工場)を先に置く(reclaim.js)。
@@ -215,7 +217,7 @@
     map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
   // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
-  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab"]);
+  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab", "crematorium"]);
   var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [2, 1.8, 1.6, 1.4, 1.2], jh: [1.8, 1.65, 1.5, 1.3, 1.15], elem: [1.8, 1.65, 1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
     // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)

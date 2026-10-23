@@ -107,9 +107,13 @@
     const hall = funeralNearest(w, home, "funeral");
     let dd = d;
     const busy = new Set();
-    for (const f of w.funerals || []) if (f.M === M && f.hall === hall) busy.add(f.d).add(f.d + 1).add(f.d - 1);
+    for (const f of w.funerals || []) if (f.M === M && f.hall === hall && !f.outside) busy.add(f.d).add(f.d + 1).add(f.d - 1);
     for (let k = 0; k < 26 && busy.has(dd); k++) dd = 2 + (dd - 2 + 1) % 26;
-    const rec = { id, M, d: dd, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall, crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
+    // 火葬の予約: 同じ火葬場・同じ日の火葬は4つの炉に順に入り、5件目からは1時間ずつ遅らせる
+    const crem = funeralNearest(w, home, "crematorium");
+    let nC = 0;
+    for (const f of w.funerals || []) if (f.M === M && f.crem === crem && f.d === dd && !f.outside) nC++;
+    const rec = { id, M, d: dd, cremK: nC % 4, cremA: 13 * 60 + Math.floor(nC / 4) * 60, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall, crem, att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
     (w.funerals || (w.funerals = [])).push(rec);
     if (w.funerals.length > FUN_KEEP * 1.5) w.funerals = w.funerals.slice(-FUN_KEEP);
     return rec;
@@ -117,13 +121,14 @@
   var funeralOf = (w, id) => (w.funerals || []).find((r) => r.id === id) || null;
   // 予定(日付は亡くなった月の d 日。通夜は翌日18時・告別式は翌々日11時・火葬13時)
   function funeralSched(r) {
-    return { wake: { M: r.M, d: r.d + 1, a: 18 * 60, b: 20 * 60 }, rite: { M: r.M, d: r.d + 2, a: 10 * 60 + 30, b: 12 * 60 + 30 }, crem: { M: r.M, d: r.d + 2, a: 13 * 60, b: 14 * 60 + 30 }, d49: { M: r.M + 1, d: Math.min(28, r.d + 18) } };
+    return { wake: { M: r.M, d: r.d + 1, a: 18 * 60, b: 20 * 60 }, rite: { M: r.M, d: r.d + 2, a: 10 * 60 + 30, b: 12 * 60 + 30 }, crem: { M: r.M, d: r.d + 2, a: r.cremA || 13 * 60, b: (r.cremA || 13 * 60) + 90 }, d49: { M: r.M + 1, d: Math.min(28, r.d + 18) } };
   }
   // いまこの葬儀場で行われている式(なければ null)
   function funeralNow(g, bIdx) {
     const M = g.S.M, d = g.date().d, m = g.S.min;
     for (const r of g.world.funerals || []) {
-      if (r.hall !== bIdx || r.M !== M) continue;
+      // 市外の親族の葬儀は市外で行う(この街の式場には出ない)
+      if (r.hall !== bIdx || r.M !== M || r.outside) continue;
       const s = funeralSched(r);
       if (d === s.wake.d && m >= s.wake.a - 30 && m < s.wake.b) return { r, k: "通夜" };
       if (d === s.rite.d && m >= s.rite.a - 30 && m < s.rite.b) return { r, k: "告別式" };
@@ -282,3 +287,75 @@
     c.arc(s[0], s[1], 1.2 * Z, 0, 7);
     c.fill();
   };
+  // ---- 火葬場(告別式のあと・告別式の日の13:00〜14:30): 炉前ホール(火葬炉の扉・最後のお別れ)・待合室・収骨室・受付
+  FAC_RANGE.crematorium = () => ({ lo: 0, hi: 0, nf: 1 });
+  FAC_LABEL.crematorium = () => "炉前ホール・待合室・収骨室";
+  FAC_BUILD.crematorium = (b) => {
+    const W2 = 34, H4 = 20;
+    const P = plan(W2, H4, "floor_marble", "office");
+    P.lv = 0;
+    const dx = W2 >> 1;
+    P.door(dx);
+    P.windows(4);
+    // 炉前ホール(北): 火葬炉の扉4つと、お別れの台
+    P.room(1, 1, 21, 10, { doors: [[11, 10]], label: "炉前ホール", tile: "floor_marble" });
+    for (let k = 0; k < 4; k++) P.wide("vault", 3 + k * 5, 2, 2, 1, null, `火葬炉${k + 1}号の扉`);
+    P.wide("table", 9, 6, 4, 1, null, "最後のお別れの台(棺)");
+    P.add("fx_shoko", 15, 6, "fx_shoko", "焼香台", true);
+    P.staffSpots.push({ x: 5, y: 4 }, { x: 16, y: 4 });
+    // 収骨室(東)
+    P.room(22, 1, W2 - 2, 10, { doors: [[26, 10]], label: "収骨室" });
+    P.wide("table", 25, 4, 4, 2, null, "収骨の台");
+    P.staffSpots.push({ x: 27, y: 7 });
+    // 待合室(南西): 机と椅子・お茶
+    P.room(1, 11, 18, H4 - 2, { doors: [[10, 11]], label: "待合室", tile: "floor_tatami" });
+    for (let x = 3; x < 17; x += 4) for (const y of [13, 16]) {
+      P.wide("table", x, y, 2, 1, null, "待合室の机");
+      P.seatSpots.push({ x: x, y: y + 1 }, { x: x + 1, y: y + 1 });
+    }
+    P.add("watersrv", 2, 12, null, "お茶");
+    P.wide("counter", W2 - 9, H4 - 5, 4, 1, "info", "受付(火葬許可証の確認)");
+    P.staffSpots.push({ x: W2 - 7, y: H4 - 6 });
+    P.add("plant", W2 - 3, H4 - 3, null, "観葉植物");
+    return P.done({ floors: 1, floor: 0, lv: 0, lo: 0, hi: 0, wallH: 3.6, label: "炉前ホール・待合室・収骨室", crem: true });
+  };
+  // 火葬の時間に火葬場にいる遺族(喪主・配偶者・子・親・きょうだい)。13:00〜13:30 は炉前ホール、そのあと待合室、14:00〜 収骨室
+  function cremNow(g, bIdx) {
+    const M = g.S.M, d = g.date().d, m = g.S.min, out = [];
+    for (const r of g.world.funerals || []) {
+      if (r.crem !== bIdx || r.M !== M || r.outside) continue;
+      const s = funeralSched(r);
+      if (d === s.crem.d && m >= s.crem.a - 15 && m < s.crem.b) out.push({ r, k: m < s.crem.a + 30 ? "hall" : m < s.crem.a + 60 ? "wait" : "bones" });
+    }
+    return out.slice(0, 4);
+  }
+  function cremIndoor(C2, bIdx, I2, floor, res) {
+    const g = C2.g, b = g.world.map.buildings[bIdx];
+    if (!b || b.type !== "crematorium" || !I2.crem) return res;
+    const L4 = cremNow(g, bIdx);
+    if (!L4.length) return res;
+    const p = g.world.pop, seen = new Set(res.map((q) => q.id));
+    // 火葬炉ごとに家族が分かれる(炉1〜4の前・待合室の机・収骨室)
+    L4.forEach((f, fi) => {
+      const r = f.r;
+      const fam = [r.chief, p.spouse[r.id], p.mother[r.id], p.father[r.id], ...g.world.childrenOf(r.id), ...funeralSiblings(g.world, r.id)].filter((x, i, a) => x >= 0 && a.indexOf(x) === i && !p.gone[x] && x !== g.hero.id && !seen.has(x)).slice(0, 8);
+      const fk = f.r.cremK != null ? f.r.cremK : fi, x0 = f.k === "hall" ? 2 + fk * 5 : f.k === "bones" ? 23 : 0, y0 = f.k === "hall" ? 4 : 7;
+      fam.forEach((id, i) => {
+        seen.add(id);
+        let x, y, pose;
+        if (f.k !== "wait") {
+          x = x0 + i % 4;
+          y = y0 + (i >> 2) + (f.k === "bones" ? fi % 2 : 0);
+        } else {
+          const sp = I2.seatSpots[(fi * 4 + i) % I2.seatSpots.length];
+          x = sp.x;
+          y = sp.y;
+          pose = "sit";
+        }
+        res.push({ id, x: x + 0.5, y: y + 0.5, dir: "u", role: "mourner", pose });
+        (C2._mourn || (C2._mourn = /* @__PURE__ */ new Set())).add(id);
+      });
+    });
+    globalThis.__mourners = C2._mourn;
+    return res;
+  }
