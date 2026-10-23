@@ -73,7 +73,8 @@
     for (const x of funeralSiblings(w, id)) att.add(x);
     // 同僚(同じ職場)・近所(同じ建物の別の世帯)は数人ずつ(ID順に決定的に)
     let cw = 0, nb = 0;
-    for (let i = 0; i < p.n && (cw < 6 || nb < 4); i++) {
+    // 職場も家もない人(市外に住む親族など)は探さない(全員を見て回らない)
+    if (p.work[id] >= 0 || p.home[id] >= 0) for (let i = 0; i < p.n && (cw < 6 || nb < 4); i++) {
       if (!alive(i) || att.has(i)) continue;
       if (cw < 6 && p.work[id] >= 0 && p.work[i] === p.work[id] && uh(i, id) % 3 === 0) {
         att.add(i);
@@ -83,7 +84,7 @@
         nb++;
       }
     }
-    const rec = { id, M, d, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall: funeralNearest(w, home, "funeral"), crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M) };
+    const rec = { id, M, d, age: funAge(p, id, M), chief: ch.id, why: ch.why, hall: funeralNearest(w, home, "funeral"), crem: funeralNearest(w, home, "crematorium"), att: [...att].slice(0, 30), heirs: funeralHeirs(w, id, M), ...typeof isOutKin === "function" && isOutKin(p, id) ? { outside: 1 } : {} };
     (w.funerals || (w.funerals = [])).push(rec);
     if (w.funerals.length > FUN_KEEP * 1.5) w.funerals = w.funerals.slice(-FUN_KEEP);
     return rec;
