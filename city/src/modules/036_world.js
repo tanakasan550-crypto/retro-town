@@ -101,6 +101,12 @@
       this.targetPop = this.ver >= 4 ? TARGET_POP_V4 : TARGET_POP;
       this.map = generateMap(seed, { ver: this.ver });
       augmentTransit(this.map);
+      if (typeof planSites === "function") try {
+        planSites(this.map);
+      } catch (e) {
+        this.map.siteErr = String(e && e.stack || e).slice(0, 600);
+        console.error("planSites", e);
+      }
       assignSalons(this.map);
       assignVoc(this.map);
       assignWa(this.map);

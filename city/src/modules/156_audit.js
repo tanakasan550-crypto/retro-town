@@ -29,7 +29,7 @@
     put("culture", "shrine temple museum edovillage cemetery");
     return m;
   })();
-  var auditCat = (b) => AUDIT_TYPE_CAT[b.type] || "other";
+  var auditCat = (b) => b.type === "annex" && b.parentB != null && G3 ? AUDIT_TYPE_CAT[G3.bld(b.parentB).type] || "other" : AUDIT_TYPE_CAT[b.type] || "other";
   // 自動試験(tools/scen)のうち、その施設の利用を実際に通して確かめているもの
   var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp", station: "st,stpeople,metro", metro: "metro", stadium: "sd", airport: "fly", hospital: "ho", zoo: "zoo" };
   var auditFactC = /* @__PURE__ */ new Map();
@@ -89,7 +89,8 @@
     return true;
   }
   function auditFrame(b) {
-    const s = Math.max(b.w, b.h);
+    const st0 = b.siteI != null && G3.world.map.fsites ? G3.world.map.fsites[b.siteI] : null;
+    const s = st0 ? Math.max(st0.w, st0.h) * 0.6 : Math.max(b.w, b.h);
     if (AUD.zl0 == null) AUD.zl0 = R4.zl || 0;
     R4.zl = s >= 30 ? -4 : s >= 16 ? -3 : s >= 9 ? -2 : -1;
     R4.resize();
@@ -119,6 +120,11 @@
         // 建物全体が入るように、入口の少し手前から引いて見る
         L2.y = b.doorY + 0.6 + Math.min(6, Math.max(1, b.h * 0.3));
         L2.x = b.x + b.w / 2;
+        const st0 = b.siteI != null && G3.world.map.fsites ? G3.world.map.fsites[b.siteI] : null;
+        if (st0) {
+          L2.x = st0.x + st0.w / 2;
+          L2.y = st0.y + st0.h * 0.62;
+        }
         const map2 = G3.world.map, k = Math.floor(L2.x) + Math.floor(L2.y) * map2.W;
         if (map2.solid[k]) {
           L2.x = b.doorX + 0.5;

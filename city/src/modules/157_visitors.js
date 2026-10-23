@@ -69,7 +69,7 @@
   function visitsOf(C2, b, m, have) {
     const g = C2.g, w = g.world, p = w.pop, dt = g.date(), wkend = dt.dow === 0 || dt.dow === 6;
     const day = Math.floor(g.absMin() / 1440), v = VISIT[b.type], out = [];
-    if (!v || b.status === "closed") return out;
+    if (!v || b.status === "closed" || b.campusOf != null) return out;
     const org = visitOrigins(w, b);
     if (!org.length) return out;
     const hour = Math.floor(m / 60);

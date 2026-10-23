@@ -54,8 +54,26 @@
       }
       SX.shops = { open, izk, park, res, zoo, kon };
     }
+    // 屋外の動物園(敷地 fsites): 展示中の獣舎までの距離
+    s.zooSp = [];
+    for (const fs of map2.fsites || []) {
+      if (fs.type !== "zoo" || x < fs.x - 6 || x > fs.x + fs.w + 6 || y < fs.y - 6 || y > fs.y + fs.h + 6) continue;
+      for (const r of fs.solid) if (r.kind === "ex") s.zooSp.push({ sp: r.sp, d: Math.hypot(Math.max(r.x, Math.min(x, r.x + r.w)) - x, Math.max(r.y, Math.min(y, r.y + r.h)) - y) });
+    }
     Object.assign(s, { openShopN: SX.shops.open, izakayaN: SX.shops.izk, parkD: SX.shops.park, resN: SX.shops.res, zooD: SX.shops.zoo, konD: SX.shops.kon });
     return s;
+  }
+  // 近くの獣舎の動物だけが鳴く(鳴かない種類は声を出さない)
+  function zooVoices(s) {
+    for (const z of s.zooSp || []) {
+      const S2 = ZOO_SP[z.sp], v = S2 && S2.voice && ZOO_VOICE[S2.voice];
+      if (!v || z.d > 12) continue;
+      const k = Math.max(0.15, 1 - z.d / 12);
+      every("zoo_" + z.sp, v.every[0] + rnd2() * (v.every[1] - v.every[0]), () => {
+        cap("zoo_" + z.sp, v.cap, 5e3);
+        v.play(k);
+      });
+    }
   }
   // 声のような音(言葉にはしない。意味は字幕で伝える)
   function voiceish(f0, syl, gain, at = 0, pan = 0) {
@@ -121,7 +139,8 @@
         if (h >= 6.5 && h < 8) every("morning", 40, () => cap("morning", "朝の住宅地(戸の開け閉め・「いってきます」)", 6e4));
         if (h >= 17 && h < 19) every("supper", 45, () => cap("supper", "夕飯の支度の音とテレビの音(住宅地)", 6e4));
       }
-      if (s.zooD != null && s.zooD < 14) every("zoofar", 30 + rnd2() * 20, () => {
+      zooVoices(s);
+      if (!s.zooSp.length && s.zooD != null && s.zooD < 14) every("zoofar", 30 + rnd2() * 20, () => {
         const v = [ZOO_VOICE.trumpet, ZOO_VOICE.roar, ZOO_VOICE.honk][rnd2() * 3 | 0];
         cap("zoofar", "動物園の方から " + v.cap, 3e4);
         v.play(0.35);
@@ -131,17 +150,7 @@
     // 屋内
     const bt = s.btype || "";
     setL("crowd", Math.min(0.12, (s.peopleN || 0) * 0.005), 800);
-    if (bt === "zoo") {
-      for (const z of s.zooSp || []) {
-        const S2 = ZOO_SP[z.sp], v = S2 && S2.voice && ZOO_VOICE[S2.voice];
-        if (!v || z.d > 12) continue;
-        const k = Math.max(0.15, 1 - z.d / 12);
-        every("zoo_" + z.sp, v.every[0] + rnd2() * (v.every[1] - v.every[0]), () => {
-          cap("zoo_" + z.sp, v.cap, 5e3);
-          v.play(k);
-        });
-      }
-    }
+    if (bt === "zoo") zooVoices(s);
     if ((bt === "station" || bt === "metro") && !s.platform) {
       const n2 = s.commuterN || 0;
       if (n2 > 0) every("gate", Math.max(0.35, 3 / (1 + n2 / 3)), () => {

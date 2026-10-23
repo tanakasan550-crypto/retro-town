@@ -305,6 +305,18 @@
   }
   function start(g, loaded) {
     G3 = g;
+    // 敷地の整備などで建物や柵の位置が変わったとき、保存時の屋外の位置が通れない場所なら近くの通れる場所へ
+    try {
+      const L0 = G3.S.loc, m0 = G3.world.map;
+      if (L0.k === "out" && m0.solid[Math.floor(L0.x) + Math.floor(L0.y) * m0.W]) {
+        const f0 = nearWalkOut(L0.x, L0.y);
+        if (f0) {
+          L0.x = f0[0] + 0.5;
+          L0.y = f0[1] + 0.5;
+        }
+      }
+    } catch (e) {
+    }
     C = new Crowd(G3);
     R4 = new Renderer(cv, A, G3, C);
     try {
@@ -326,7 +338,7 @@
     U.walkers = [];
     U.people = [];
     clearInteriorCache();
-    window.NLS = { G: G3, R: R4, C, U, AW, CTL, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, snd: { soundState: () => soundState(G3, R4, G3.S.loc), unlock: () => sfx.unlock() }, vis: { visitsOf, visitOrigins, visitCount, visitNow }, audit: { rows: () => auditRows(), begin: () => auditBegin(), view: (i, o) => auditView(i, o), end: () => auditEnd(), modal: () => auditModal(), shotName: (i) => auditShotName(G3.bld(i)), AUD, cats: AUDIT_CATS }, bus: { busCommuteIndex, busNet, busFleet, busUpdate, busEtas, busNpcStatus, BUSSIM, facOutdoorTargets, targetActions, runAction, targetsFor, transitPlan, tripOptions, tripStart, tripModal, busMapModal, busOfHero }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
+    window.NLS = { G: G3, R: R4, C, U, AW, CTL, handleTap, homeBtn, ctlModal, tryEnter, runAction, moveHero, input, step, setStreet, ui: { jTicketModal, jBoardModal, jInfoModal, jShuttle, jAwayPanel, rideScreen, startRide, RD, rideAction, pressA, mapModal, railModal, jobsModal, housingModal, financeModal, stockModal, bizModal, skipModal, planModal, peopleModal, itemsModal, diaryModal, cfgModal, timetableModal, devOpen: () => devPanel(devCtx()) }, T: T, BTYPES, sitesLandMap, siteRoadSouth, snd: { soundState: () => soundState(G3, R4, G3.S.loc), unlock: () => sfx.unlock() }, vis: { visitsOf, visitOrigins, visitCount, visitNow }, audit: { rows: () => auditRows(), begin: () => auditBegin(), view: (i, o) => auditView(i, o), end: () => auditEnd(), modal: () => auditModal(), shotName: (i) => auditShotName(G3.bld(i)), AUD, cats: AUDIT_CATS }, bus: { busCommuteIndex, busNet, busFleet, busUpdate, busEtas, busNpcStatus, BUSSIM, facOutdoorTargets, targetActions, runAction, targetsFor, transitPlan, tripOptions, tripStart, tripModal, busMapModal, busOfHero }, nav: { Game, toJSON, fromJSON, planRail, planTrip, simulateTrip, navTo, navStop, goHome: navGoHome, interiorOf, navStairs, npcStatus, registry, storeys, levelRange, get NAV() {
       return NAV;
     } } };
     if (!loaded && !(G3.S.life && G3.S.life.env)) {

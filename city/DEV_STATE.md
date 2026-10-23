@@ -1,6 +1,6 @@
 # 再開用の開発状態(人生物語・日本モデル都市 / Claude Code)
 
-最終更新: 2026-10-22。作業ブランチ: `ccr-2a73e5bf-wii4bj`(main へはマージしない・一般公開は HOLD)。
+最終更新: 2026-10-23。作業ブランチ: `ccr-2a73e5bf-wii4bj`(main へはマージしない・一般公開は HOLD)。
 
 ## 正本・構成
 - 正本: `original/lifestory_v11_single.html`(SHA256 は `original/SHA256SUMS`)。v11 を分割した `src/modules/NNN_*.js`(順序は `src/modules/ORDER.txt`)。
@@ -9,10 +9,15 @@
 
 ## 試験(ヘッドレス Chromium・Pixel 7 横画面)
 - 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
-- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 敷地と縮尺の作り直し(160_sites.js・設計修正指示 第1〜3章の一部): 地図の生成後に決定的に実行(セーブは座標を持たないため旧セーブもそのまま読める)。
+  幼稚園20×16・小学校40×34・中学46×38・高校56×44・専門30×24・大学96×70・動物園88×58(タイル=2m)。校庭(トラック・遊具・バックネット・ゴール)・体育館・プール・テニス・部室棟・駐輪場・正門・外周フェンス。
+  大学は同名の別棟を学部棟としてまとめ(建物IDは変えない)、足りない棟は付属棟(annex)を末尾に追加。場所が足りないときは小さな空き建物(入居者なし)を近くへ移す(368棟・失敗0)。施設のIDは移設後も同じ。
+  動物園は屋外の園路と8つの獣舎(実寸に近い動物・柵・岩山と堀・木)。正門の建物は券売所とゲート。獣舎の前でA操作=観察・もぐもぐタイム。鳴き声は近くの鳴く種類だけ。
+  未了: 学校体育館の中の作り・NPCが校庭/体育館/部室を時間割で使うこと・改築前後の同縮尺比較画像・大学キャンパスの広場の作り込み
 - 動物園の改築(159_fac_zoo.js)・場所ごとの生活音(158_soundscape.js)
 - 店・施設への来客(157_visitors.js): 時間帯・曜日別に住民が近所や店から歩いて来て、店で過ごして帰る。人物情報に表示
 - 通り視点の改良(098_streetview.js): 解像度・人の大きさ・目の高さ・看板・ひさし・人物の合成予算

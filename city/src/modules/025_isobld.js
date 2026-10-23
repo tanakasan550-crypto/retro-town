@@ -116,7 +116,7 @@
   };
   var signEra = (year) => year < 1992 ? 0 : year < 2012 ? 1 : 2;
   function baseStoreys(b) {
-    const kit = KIT[b.type] || { f: [1, 2] };
+    const kit = KIT[b.kit || b.type] || { f: [1, 2] };
     let nf = kit.f[0] + (kit.f[1] > kit.f[0] ? H3(b.idx, 11) % (kit.f[1] - kit.f[0] + 1) : 0);
     if (kit.k === "res" && b.type === "house" && b.w * b.h <= 9) nf = 2;
     if (b.type === "apt" && b.w >= 6) nf = Math.max(nf, 4);
@@ -138,7 +138,7 @@
     return Math.max(low, Math.round(low + (base - low) * eraProgress(b.zone, year)));
   }
   function bldSpec(b, map2, year) {
-    const kit = KIT[b.type] || { k: "shop", f: [1, 2], roof: "flat", wall: "shop" };
+    const kit = KIT[b.kit || b.type] || { k: "shop", f: [1, 2], roof: "flat", wall: "shop" };
     const h0 = H3(b.idx, 7), h1 = H3(b.idx, 11), h22 = H3(b.idx, 13), h3 = H3(b.idx, 17);
     const pal = PAL[kit.wall === "glass" && year < 1980 ? "conc" : kit.wall] || PAL.shop;
     const wp2 = pal[h0 % pal.length];

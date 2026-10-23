@@ -1222,7 +1222,7 @@
   function facOutdoorTargets(g, L2) {
     const net = busNet(g.world.map);
     if (!net) return [];
-    const out = [];
+    const out = typeof zooOutdoorTargets === "function" ? zooOutdoorTargets(g, L2) : [];
     for (const s of net.stops) if (Math.abs(s.x + 0.5 - L2.x) < 2.6 && Math.abs(s.y + 0.5 - L2.y) < 2.6) {
       out.push({ kind: "fx", act: "fx_busstop", x: s.x, y: s.y, stop: s, label: `バス停「${s.name}」` });
       if (s.kind === "terminal") out.push({ kind: "fx", act: "fx_taxistand", x: s.x, y: s.y, stop: s, label: "タクシーのりば" });

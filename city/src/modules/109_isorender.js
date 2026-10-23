@@ -145,6 +145,7 @@
     }
     ctx4.imageSmoothingQuality = "medium";
     if (map2.lots) drawLots(ctx4, P2, Z, map2.lots, hero);
+    if (map2.fsites) drawSiteGround(ctx4, P2, Z, map2, hero, R5.time || 0);
     if (map2.estates && map2.estates.length) drawEstateGround(ctx4, P2, Z, map2.estates, hero, R5.time || 0);
     for (const hb of map2.hubs || []) if (hb.kind === "airport" && hb.runway) {
       const hr0 = g.S.min / 60;
@@ -871,6 +872,7 @@
     {
       R5._pushVeh = pushVeh;
       const bi = facOutdoor(R5, hero, push, P2, Z);
+      siteOutdoor(R5, hero, push, P2, Z);
       if (bi && g.S.onBus) heroIt = bi;
     }
     for (const sg of hwy.segs) {

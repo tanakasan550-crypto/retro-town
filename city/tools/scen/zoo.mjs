@@ -15,11 +15,12 @@ export default async (p, shot) => {
   const tk = await p.evaluate(() => { const G = NLS.G, { I } = NLS.nav.interiorOf(G, G.S.loc.b, 0); const o = I.objs.find(o => o.act === 'fx_zooticket'); NLS.nav.navTo({ kind: 'obj', o }); return !!o; });
   for (let i = 0; i < 30 && !(await p.evaluate(() => NLS.U.modal)); i++) await p.waitForTimeout(500);
   console.log('ticket', await pick(p, '入園券を買う'), await p.evaluate(() => document.getElementById('toast').textContent));
-  // ゾウの獣舎の前へ
-  await p.evaluate(() => { const G = NLS.G, { I } = NLS.nav.interiorOf(G, G.S.loc.b, 0); const o = I.objs.find(o => o.sp === 'elephant'); NLS.nav.navTo({ kind: 'obj', o }); globalThis.__NAVSPEED = 3; });
-  for (let i = 0; i < 40 && !(await p.evaluate(() => NLS.U.modal)); i++) await p.waitForTimeout(500);
-  console.log('acts', await p.evaluate(() => [...document.querySelectorAll('#card button.item')].map(b => b.textContent).join(' | ')));
-  console.log('feed', await pick(p, 'もぐもぐタイムを見る'), await p.evaluate(() => document.getElementById('toast').textContent.slice(0, 80)));
+  // 屋外の園内へ: ゾウの獣舎の柵の前(敷地 fsites の solid "ex")
+  const ex = await p.evaluate(() => { const G = NLS.G, m = G.world.map, s = m.fsites.find(s => s.type === 'zoo'); const r = s.solid.find(r => r.kind === 'ex' && r.sp === 'elephant'); const L = G.S.loc; L.k = 'out'; delete L.b; delete L.floor; L.x = r.x + r.w / 2 + 0.5; L.y = r.y + r.h + 0.9; NLS.U.cwAt = -999; G.S.min = 11 * 60 + 2; return { site: [s.x, s.y, s.w, s.h], ex: s.solid.filter(r => r.kind === 'ex').map(r => r.sp), at: [L.x, L.y] }; });
+  console.log('ZOO site', JSON.stringify(ex));
+  const r = await p.evaluate(() => { const G = NLS.G, t = NLS.bus.facOutdoorTargets(G, G.S.loc).find(t => t.sp === 'elephant'); if (!t) return { err: 'no target' }; const acts = NLS.bus.targetActions(G, t); const fa = acts.find(a => a.id.startsWith('zoofeed:') && !a.disabled); return { acts: acts.map(a => a.label).join(' | '), feed: fa ? NLS.bus.runAction(G, fa.id, t).msg.slice(0, 80) : null }; });
+  console.log('acts', r.acts); console.log('feed', r.feed);
+  if (!r.feed) throw new Error('zoo outdoor feed failed ' + JSON.stringify(r));
   await p.waitForTimeout(800);
   await p.evaluate(() => { globalThis.__capLog = []; });
   await p.waitForTimeout(12000);

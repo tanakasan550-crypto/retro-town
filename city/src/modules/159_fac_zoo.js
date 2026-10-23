@@ -15,6 +15,7 @@
   };
   var ZOO_LAYOUT = [["elephant", 3, 3], ["giraffe", 17, 3], ["lion", 30, 3], ["monkey", 43, 3], ["flamingo", 3, 22], ["kangaroo", 15, 23], ["redpanda", 37, 23], ["birds", 46, 22]];
   FAC_BUILD.zoo = (b, floor, g) => {
+    if (b.siteI != null) return zooGateHall(b);
     const W2 = 58, H4 = 38;
     const P = plan(W2, H4, "floor_grass", "leisure");
     P.lv = 0;
@@ -236,4 +237,35 @@
       E(Math.sin(fl * 0.7) * 3, yy, 0.35, 0.22, col);
       E(Math.sin(fl * 0.7) * 3 - 0.1, yy + 0.25 + flap, 0.3, 0.1, col);
     }
+  }
+  // 敷地のある動物園(sites.js): 正門の建物は入園券売り場とゲート。動物は屋外の園内で見る
+  function zooGateHall(b) {
+    const W2 = 24, H4 = 12;
+    const P = plan(W2, H4, "floor_tile", "leisure");
+    P.lv = 0;
+    const dx = 12;
+    P.door(dx);
+    P.wide("ticketbooth", 3, 2, 4, 1, "fx_zooticket", "入園券売り場");
+    P.add("board", 9, 1, "fx_zooinfo", "園内マップ・もぐもぐタイムの時間", true);
+    P.wide("kiosk", 16, 2, 4, 1, "fx_zooshop", "売店(ぬいぐるみ・アイス)");
+    P.add("gate", 10, 6, null, "入園ゲート", false);
+    P.add("gate", 14, 6, null, "入園ゲート", false);
+    P.sign(12, 5, "ようこそ 動物園へ(園内は外の通路から)");
+    P.add("toilet", W2 - 2, H4 - 3, "toilet", "トイレ");
+    P.staffSpots.push({ x: 4, y: 3, role: "ticket" }, { x: 17, y: 3, role: "shop" });
+    return P.done({ floors: 1, floor: 0, lv: 0, lo: 0, hi: 0, wallH: 3, label: "正門・チケット" });
+  }
+  // 屋外の獣舎(sites.js の solid "ex")に近づいたときの操作
+  function zooOutdoorTargets(g, L2) {
+    const m = g.world.map, out = [];
+    if (!m.fsites) return out;
+    for (const s of m.fsites) {
+      if (s.type !== "zoo" || L2.x < s.x - 2 || L2.x > s.x + s.w + 2 || L2.y < s.y - 2 || L2.y > s.y + s.h + 2) continue;
+      for (const r of s.solid) {
+        if (r.kind !== "ex") continue;
+        const nx = Math.max(r.x, Math.min(L2.x, r.x + r.w)), ny = Math.max(r.y, Math.min(L2.y, r.y + r.h));
+        if (Math.hypot(nx - L2.x, ny - L2.y) < 1.8) out.push({ kind: "fx", act: "fx_zoowatch", sp: r.sp, x: Math.floor(nx), y: Math.floor(ny), label: `${ZOO_SP[r.sp].name}の展示` });
+      }
+    }
+    return out;
   }
