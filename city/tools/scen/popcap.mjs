@@ -6,13 +6,13 @@ export default async (p) => {
     const G = NLS.G, w = G.world, P = w.pop;
     const cap0 = P.cap, n0 = P.n;
     // 故人の記録として埋める(生まれて亡くなった人を足す)。IDは連番のまま
-    const rng = { next: () => 0.5, int: (n) => 0, chance: () => false };
+    const rng = G.actRng('popcap');
     let lastId = -1;
     while (P.n < 61500) { const id = w.newPerson(rng, 600, G.S.M); P.gone[id] = 1; P.goneAt[id] = G.S.M; lastId = id; }
     // 6万を超えたところで、生きている夫婦に子が生まれる(birth の経路)
     let mom = -1, dad = -1;
     for (let i = 0; i < n0 && mom < 0; i++) if (!P.gone[i] && P.spouse[i] >= 0 && !P.gone[P.spouse[i]] && w.isFem(i) && Math.floor((G.S.M - P.born[i]) / 12) < 40 && P.home[i] >= 0) { mom = i; dad = P.spouse[i]; }
-    const nb = P.n; w.birth({ next: () => 0.3, int: () => 0, chance: () => true, pick: (a) => a[0] }, mom, dad, G.S.M);
+    const nb = P.n; w.birth(G.actRng('popcap2'), mom, dad, G.S.M);
     const child = P.n > nb ? P.n - 1 : -1;
     const kidOk = child >= 0 && P.mother[child] === mom && P.home[child] === P.home[mom] && !P.gone[child];
     // 1年すすめる(月次の処理で出生・死亡が続く)

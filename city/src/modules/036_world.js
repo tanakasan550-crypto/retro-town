@@ -43,6 +43,12 @@
       this.slot = new Int32Array(c).fill(-1);
       // 学校の在籍記録(幼稚園・小学校・中学校・高校・大学の建物ID。ties.js)。卒業しても・亡くなっても残す
       for (const k of ["sch1", "sch2", "sch3", "sch4", "sch5"]) this[k] = new Int16Array(c).fill(-1);
+      // 活動の実績(ledger.js): 働いた月数・人を支える仕事の月数・昇進・卒業(ビット)・部活の年数
+      this.workM = new Uint16Array(c);
+      this.careM = new Uint16Array(c);
+      this.promo = new Uint8Array(c);
+      this.grads = new Uint8Array(c);
+      this.clubY = new Uint8Array(c);
       this.n = 0;
       this.cap = c;
       this.surX = [];
@@ -844,6 +850,7 @@
       const entryAges = [3, 6, 12, 15, 18];
       if (!want) {
         if (cur2 >= 0) {
+          if (typeof ledgerGrad === "function") ledgerGrad(this, i, this.schoolLevelOf(cur2));
           p.school[i] = -1;
           p.flags[i] &= ~F_STUDENT;
         }
@@ -857,6 +864,8 @@
       const curLevel = cur2 >= 0 ? BTYPES[this.map.buildings[cur2].type].support ? 0 : this.schoolLevelOf(cur2) : -1;
       if (force || entryAges.includes(a) || cur2 >= 0 && curLevel !== need && curLevel !== 0) {
         const s = this.schoolFor(rng, i, a);
+        // 前の段階の学校を卒業(段階が上がったとき)
+        if (cur2 >= 0 && curLevel > 0 && curLevel < need && typeof ledgerGrad === "function") ledgerGrad(this, i, curLevel);
         if (s >= 0) {
           p.school[i] = s;
           if (typeof schRecord === "function") schRecord(this, i, need, s);
@@ -985,6 +994,7 @@
           this.kill(i, M, 1);
           continue;
         }
+        if (typeof ledgerMonth === "function") ledgerMonth(this, i, M);
         if (hero) continue;
         if (m0 === 3) this.updateSchool(rng, i, M);
         growNpc(this, i, M, rng, age);
@@ -1262,7 +1272,7 @@
       return { id, name: nameOf(this.seed, id, this.pop), age, job: jid ? JOBS[jid].name : p.flags[id] & F_RETIRED ? "\u9000\u8077" : p.flags[id] & F_STUDENT ? "\u5B66\u751F\u30FB\u5150\u7AE5" : p.flags[id] & F_HOMEMAKER ? "\u5BB6\u4E8B\u30FB\u80B2\u5150" : p.flags[id] & F_OUTWORK ? "\u5E02\u5916\u52E4\u52D9" : age < 3 ? "\u4E73\u5E7C\u5150" : "\u7121\u8077\u30FB\u6C42\u8077\u4E2D", home: p.home[id] >= 0 ? B2[p.home[id]].name + " " + B2[p.home[id]].addr : "-", work: p.work[id] >= 0 ? B2[p.work[id]].name : "", school: p.school[id] >= 0 ? B2[p.school[id]].name : "", alive: p.gone[id] === 0, goneHow: p.gone[id], needs: p.needs[id] };
     }
   };
-  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5"]);
+  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5", "workM", "careM", "promo", "grads", "clubY"]);
   var World = _World;
   function shiftOf(id, job) {
     const h = hash2(id, 77);

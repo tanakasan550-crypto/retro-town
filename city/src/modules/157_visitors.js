@@ -57,7 +57,15 @@
     if (L2) return L2;
     L2 = [];
     const R5 = BTYPES[b.type].cat === "sight" || ["dept", "mall", "hospital", "cinema"].includes(b.type) ? 110 : 60;
-    for (const q of w.map.buildings) if (BTYPES[q.type].cat === "res" && Math.abs(q.doorX - b.doorX) + Math.abs(q.doorY - b.doorY) < R5) L2.push(q.idx);
+    // 埋立地の施設: 島には家がないので、いちばん近い橋のたもと(本土側)の近くの家から、橋を渡って来る
+    const I3 = w.map.island;
+    let cx = b.doorX, cy = b.doorY, R6 = R5;
+    if (I3 && b.doorY >= I3.y && b.doorX >= I3.x && b.doorX < I3.x + I3.w && I3.bridges.length) {
+      cx = I3.bridges.slice().sort((a, c) => Math.abs(a - b.doorX) - Math.abs(c - b.doorX))[0];
+      cy = I3.y - 20;
+      R6 = 120;
+    }
+    for (const q of w.map.buildings) if (BTYPES[q.type].cat === "res" && Math.abs(q.doorX - cx) + Math.abs(q.doorY - cy) < R6) L2.push(q.idx);
     // 商店街: 近くの店からの「はしご」(店から店へ通りを歩く人)。住宅と同じくらいの重みで加える
     const near2 = w.map.buildings.filter((q) => q !== b && VISIT[q.type] && !["hospital", "zoo", "aquarium", "museum", "shrine", "temple"].includes(q.type) && Math.abs(q.doorX - b.doorX) + Math.abs(q.doorY - b.doorY) < 30);
     if (near2.length >= 4 && !["hospital", "clinic", "zoo", "aquarium"].includes(b.type)) {

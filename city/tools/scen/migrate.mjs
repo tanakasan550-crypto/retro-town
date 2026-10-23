@@ -31,8 +31,8 @@ export default async (p, shot) => {
     let badHome = 0; for (let i = 0; i < P.n; i++) if (!P.gone[i] && P.home[i] >= 0 && !m.buildings[P.home[i]]) badHome++;
     // 2回目の往復
     const G3 = N.Game.load(N.fromJSON(N.toJSON(G2.serialize())));
-    return { nb: m.buildings.length, n: P.n, sameIds, sameHomes, badHome, home: G2.hero.homeB, homeName: m.buildings[G2.hero.homeB].name, M: G2.S.M, money: G2.hero.money, loc: [L.k, L.b, L.floor], interiorOk, zooNow: [zoo.idx, zoo.type, zoo.x, zoo.y, zoo.siteI != null && m.fsites[zoo.siteI].y >= m.island.y], again: G3.world.map.buildings.length === m.buildings.length && G3.S.M === G2.S.M };
+    return { nb: m.buildings.length, n: P.n, sameIds, sameHomes, badHome, home: G2.hero.homeB, homeName: m.buildings[G2.hero.homeB].name, M: G2.S.M, money: G2.hero.money, loc: [L.k, L.b, L.floor], interiorOk, zooNow: [zoo.idx, zoo.type, zoo.x, zoo.y, zoo.siteI != null && m.fsites[zoo.siteI].y >= m.island.y], again: G3.world.map.buildings.length === m.buildings.length && G3.S.M === G2.S.M, schBackfill: (() => { let n = 0; for (let i = 0; i < P.n; i++) if (P.school[i] >= 0 && !P.gone[i]) { const lv = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[m.buildings[P.school[i]].type]; if (lv && P['sch' + lv][i] === P.school[i]) n++; } return n; })() };
   }, A);
   console.log('NEW', JSON.stringify(B));
-  if (!B.sameIds || !B.sameHomes || B.badHome || B.home !== A.home || B.n !== A.n || B.M !== A.M || B.money !== A.money || B.interiorOk !== true || !B.zooNow[4] || !B.again) throw new Error('old save migration failed');
+  if (!B.sameIds || !B.sameHomes || B.badHome || B.home !== A.home || B.n !== A.n || B.M !== A.M || B.money !== A.money || B.interiorOk !== true || !B.zooNow[4] || !B.again || !B.schBackfill) throw new Error('old save migration failed');
 };

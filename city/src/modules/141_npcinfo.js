@@ -39,12 +39,19 @@
         if (BUSSIM.drivers && BUSSIM.drivers.has(id)) who = "市営バスの運転士";
       }
     }
-    return { who, age, now, goal };
+    // 人生の目標と進み具合(ledger.js の実績から)・主人公とのつながり(ties.js)
+    let mission = null, ties = null;
+    try {
+      mission = typeof lifeMission === "function" ? lifeMission(G3.world, id) : null;
+      ties = typeof tiesOf === "function" ? tiesOf(G3.world, G3.hero.id, id).map((t) => t.k === "kin" ? t.rel : { classmate: `${t.name}で同じクラス`, gradeMate: `${t.name}で同じ学年`, senpai: `${t.name}の先輩`, kohai: `${t.name}の後輩`, boss: `${t.name}の上司`, coworker: `${t.name}の同僚`, excoworker: `${t.name}の元同僚` }[t.k]).filter(Boolean) : null;
+    } catch (e) {
+    }
+    return { who, age, now, goal, mission, ties };
   }
   function npcActivityHtml(id) {
     try {
       const s = npcStatus(id);
-      return `<div class="tx small" style="background:#0d1a3399;border-radius:8px;padding:6px 8px;margin:4px 0">${s.age}歳${s.who ? "・" + esc4(s.who) : ""}<br>いま: ${esc4(s.now)}${s.goal ? `<br>このあと: ${esc4(s.goal)}` : ""}</div>`;
+      return `<div class="tx small" style="background:#0d1a3399;border-radius:8px;padding:6px 8px;margin:4px 0">${s.age}歳${s.who ? "・" + esc4(s.who) : ""}${s.ties && s.ties.length ? `<br>あなたとの関係: ${esc4(s.ties.join("・"))}` : ""}<br>いま: ${esc4(s.now)}${s.goal ? `<br>このあと: ${esc4(s.goal)}` : ""}${s.mission ? `<br>目標: ${esc4(s.mission.title)}(${Math.round(s.mission.prog * 100)}%・根拠: ${esc4(s.mission.ev)})` : ""}</div>`;
     } catch (e) {
       return "";
     }

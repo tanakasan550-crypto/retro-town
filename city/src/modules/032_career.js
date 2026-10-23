@@ -141,6 +141,7 @@
     tbl.cnt[b * 6 + pr.rank]++;
     pr.lxp += 25;
     pushHist(pr, { M, k: "promo", job: jid, b, rank: pr.rank });
+    if (typeof ledgerPromo === "function") ledgerPromo(world, id);
     return rankName(jid, pr.rank);
   }
   function promoteRound(world, M, rng) {

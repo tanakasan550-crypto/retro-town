@@ -21,11 +21,17 @@ export default async (p) => {
     // 実際の会話(行動として)
     const t = { kind: 'npc', id: kid }; const res = NLS.bus.runAction(G, 'chat', t);
     out.talkMsg = res && res.msg;
+    // 在籍記録とつながり: 小学校が同じで同じ学年の住民どうし・主人公の親族
+    let rec = 0, pair = null; for (let i = 0; i < P.n; i++) if (P.sch2[i] >= 0) { rec++; if (!pair) { for (let j = i + 1; j < Math.min(P.n, i + 4000); j++) if (P.sch2[j] === P.sch2[i] && Math.floor((P.born[j] - 3) / 12) === Math.floor((P.born[i] - 3) / 12)) { pair = [i, j]; break; } } }
+    out.schRecords = rec;
+    out.pairTies = pair ? NLS.tiesOf(w, pair[0], pair[1]).map(t => t.k + ':' + (t.name || t.rel)) : null;
+    const kinIds = [P.mother[h.id], P.father[h.id]].filter(x => x >= 0); out.heroKin = kinIds.map(x => NLS.tiesOf(w, h.id, x).map(t => t.rel || t.k).join(','));
     return out;
   });
   console.log('TALK', JSON.stringify(r, null, 1));
   const has = (o, re) => o && o.facts.some(f => re.test(f.why));
   if (r.mate && !(r.mate.sameSchool && has(r.mate, /同じ学校/))) throw new Error('classmate fact missing or wrong');
+  if (!r.schRecords || !r.pairTies || !r.pairTies.some(x => /classmate|gradeMate/.test(x)) || !r.heroKin.every(x => /母|父/.test(x))) throw new Error('school records or ties missing');
   if (!r.bereaved.inRecord || !has(r.bereaved, /葬儀の記録/)) throw new Error('bereavement fact missing');
   if (r.mate && r.mate.facts.some(f => /同じ職場/.test(f.why))) throw new Error('false coworker fact for a student');
   if (!r.talkMsg) throw new Error('talk produced no message');
