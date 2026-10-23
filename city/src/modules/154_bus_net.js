@@ -28,7 +28,7 @@
     const anchor = (key) => {
       if (key.startsWith("b:")) {
         const b = map2.buildings[+key.slice(2)];
-        return b ? { x: b.doorX, y: b.doorY + 1, name: null, b: b.idx } : null;
+        return b ? { x: b.doorX, y: b.doorY + 1, name: ["univ", "zoo", "aquarium"].includes(b.type) ? b.name.split(" ")[0] + "前" : null, b: b.idx } : null;
       }
       if (key.startsWith("st:")) {
         const s = map2.stations.find((q) => q.id === key.slice(3));
@@ -182,6 +182,11 @@
         if (st3.id !== "aoumi_chuo") via.push("st:aoumi_chuo");
         feeders.push({ id: String(5 + i), no: String(5 + i), name: area + "線", dest: st3.name + "駅", color: cols[i], headway: 15, via, res: true });
       });
+    }
+    // 埋立地(青海新都心)の大学・動物園へ: 新都心線(青海中央駅 → 橋 → 大学 → 動物園)
+    if (map2.island) {
+      const isl = map2.buildings.filter((b) => (b.type === "univ" || b.type === "zoo" || b.type === "aquarium") && b.siteI != null && map2.fsites && map2.fsites[b.siteI] && map2.fsites[b.siteI].y >= map2.island.y).sort((a, c) => c.doorX - a.doorX);
+      if (isl.length) feeders.push({ id: "9", no: "9", name: "新都心線", dest: "青海新都心", color: "#00897b", headway: 12, via: ["st:aoumi_chuo", ...isl.map((b) => "b:" + b.idx)] });
     }
     net.feeders = feeders.length;
     for (const R5 of [...BUS_ROUTES, ...feeders]) {

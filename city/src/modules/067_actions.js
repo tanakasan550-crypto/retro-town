@@ -705,7 +705,13 @@
     const top = facts.filter((f) => f.pri >= 3);
     const spec = top.length ? top : facts.filter((f) => !/^今日の天気/.test(f.why));
     if (facts.length && (top.length || rng.next() < 0.8)) {
-      const f = (spec.length ? spec : facts)[rng.int((spec.length ? spec : facts).length)];
+      // 同じ人に同じ話を続けない: 最近話した話題(根拠)を覚えておき、まだ話していない事実から選ぶ。つながり(pri 2)を優先
+      const said = (g.hero.rel[id] && g.hero.rel[id].said) || [];
+      const pool0 = spec.length ? spec : facts, best = Math.max(...pool0.map((f) => f.pri || 1));
+      const fresh = pool0.filter((f) => !said.includes(f.why));
+      const pool = (fresh.length ? fresh : pool0).filter((f) => (f.pri || 1) >= (fresh.length ? Math.min(best, Math.max(...fresh.map((x) => x.pri || 1))) : best));
+      const f = pool[rng.int(pool.length)];
+      if (g.hero.rel[id]) g.hero.rel[id].said = [...said.filter((x) => x !== f.why), f.why].slice(-6);
       line2 = `\u8A71\u3057\u307E\u3057\u305F\u3002\u300C${f.say}\u300D(\u6839\u62E0: ${f.why})`;
     }
     const rel = g.hero.rel[id];

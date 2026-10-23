@@ -18,6 +18,8 @@
   function assignSalons(map2) {
     for (const b of map2.buildings) {
       if (b.type !== "shop" || b.salon || b.spec && ![22, 26, 27, 28].includes(b.spec)) continue;
+      // 学校・大学・動物園の敷地の中の店(売店・フードコート)は美容室にしない(sites.js)
+      if (b.campusOf != null) continue;
       if (hash2(b.idx, 4417) % 3 !== 0) continue;
       const ks = SALON_KINDS.filter((q) => q.k !== "kids" || hash2(b.idx, 4420) % 3 === 0);
       const K3 = ks[hash2(b.idx, 4418) % ks.length];

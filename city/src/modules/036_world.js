@@ -1,5 +1,8 @@
   // src/world.js
-  var CAP = 6e4;
+  // 人口の配列(人物ID=配列の番号)。故人も記録として残す(IDを変えないため詰めない)。
+  // CAP は最初の大きさ。いっぱいになったら1.5倍に広げる(grow)。POP_LIMIT は暴走を止めるための安全上限(80年で約6万なので十分遠い)。
+  var CAP = 6e4, POP_LIMIT = 4e5;
+  var POP_FILL = { sch1: -1, sch2: -1, sch3: -1, sch4: -1, sch5: -1, goneAt: -1, spouse: -1, mother: -1, father: -1, home: -1, work: -1, job: 255, school: -1, sur: 255, slot: -1 };
   var JOB_IDS2 = Object.keys(JOBS);
   var JOB_INDEX = Object.fromEntries(JOB_IDS2.map((k, i) => [k, i]));
   var QUAL_IDS2 = Object.keys(QUALS);
@@ -38,9 +41,24 @@
       this.quals = new Uint16Array(c);
       this.kids = new Uint8Array(c);
       this.slot = new Int32Array(c).fill(-1);
+      // 学校の在籍記録(幼稚園・小学校・中学校・高校・大学の建物ID。ties.js)。卒業しても・亡くなっても残す
+      for (const k of ["sch1", "sch2", "sch3", "sch4", "sch5"]) this[k] = new Int16Array(c).fill(-1);
       this.n = 0;
+      this.cap = c;
       this.surX = [];
       this.givenOv = {};
+    }
+    // 配列を広げる(中身はそのまま・新しい分は既定値)。人物IDは変わらない
+    grow(need) {
+      if (need <= this.cap) return;
+      const nc = Math.max(need, Math.ceil(this.cap * 1.5));
+      for (const k of _World.ARRS) {
+        const a = this[k], b = new a.constructor(nc);
+        if (POP_FILL[k] != null) b.fill(POP_FILL[k]);
+        b.set(a);
+        this[k] = b;
+      }
+      this.cap = nc;
     }
     alive(i) {
       return this.gone[i] === 0;
@@ -100,6 +118,12 @@
       this.ver = opts.ver ?? 3;
       this.targetPop = this.ver >= 4 ? TARGET_POP_V4 : TARGET_POP;
       this.map = generateMap(seed, { ver: this.ver });
+      // 埋立地(青海新都心)。地下鉄・バスの追加と敷地の整備の前(reclaim.js)
+      if (typeof reclaimLand === "function") try {
+        reclaimLand(this.map);
+      } catch (e) {
+        console.error("reclaimLand", e);
+      }
       augmentTransit(this.map);
       if (typeof planSites === "function") try {
         planSites(this.map);
@@ -258,7 +282,13 @@
     static restore(d) {
       const w = new _World(d.seed, d.startYear, { skipInit: true, ver: d.mapVer ?? 1 });
       const p = w.pop;
+      p.grow(d.n || 0);
       for (const k of _World.ARRS) if (d.arrays[k]) p[k].set(d.arrays[k]);
+      // 在籍記録のない旧いセーブ: いま在籍している学校だけは記録に入れる(過去の学校は分からない)
+      if (!d.arrays.sch1) for (let i = 0; i < d.n; i++) if (p.school[i] >= 0) {
+        const bt = BTYPES[(w.map.buildings[p.school[i]] || {}).type];
+        if (bt && bt.level) p["sch" + Math.min(5, bt.level)][i] = p.school[i];
+      }
       p.surX = d.surX || [];
       p.givenOv = d.givenOv || {};
       w.sn = d.sn || {};
@@ -581,6 +611,7 @@
     // ---------- 人物生成
     newPerson(rng, ageM, M, opts = {}) {
       const p = this.pop;
+      if (p.n >= p.cap) p.grow(p.n + 1);
       const id = p.n++;
       p.born[id] = M - ageM;
       p.gone[id] = 0;
@@ -828,6 +859,7 @@
         const s = this.schoolFor(rng, i, a);
         if (s >= 0) {
           p.school[i] = s;
+          if (typeof schRecord === "function") schRecord(this, i, need, s);
           p.flags[i] |= F_STUDENT;
           p.edu[i] = Math.max(p.edu[i], need - 1);
         } else {
@@ -870,6 +902,8 @@
       let changes = 0;
       for (const b of B2) {
         if (!["shop", "ramen", "restaurant", "cafe", "clothes", "bookstore", "izakaya", "fishshop", "greengrocer", "liquor", "gamecenter"].includes(b.type)) continue;
+        // 敷地の中の店(大学の学食・動物園のフードコートなど)は街の店の入れ替わりに入れない
+        if (b.campusOf != null) continue;
         if (b.status === "open" && rng.chance(0.022)) {
           b.status = "closed";
           b.history.push({ y, text: `${b.name}\u304C\u9589\u5E97\u3057\u305F` });
@@ -893,7 +927,7 @@
       }
       const REB = /* @__PURE__ */ new Set(["house", "apt", "shop", "office", "ramen", "restaurant", "cafe", "izakaya", "clothes", "bookstore", "pharmacy", "clinic", "konbini", "fishshop", "greengrocer", "liquor", "gym", "warehouse", "factory", "bizhotel", "hotel"]);
       for (const b of B2) {
-        if (!REB.has(b.type) || b.status === "closed" || y - b.openYear < 40 || b.tenant) continue;
+        if (!REB.has(b.type) || b.status === "closed" || y - b.openYear < 40 || b.tenant || b.campusOf != null) continue;
         if (!rng.chance(0.015)) continue;
         const oldY = b.openYear;
         b.openYear = y;
@@ -1112,7 +1146,7 @@
     }
     birth(rng, i, j, M) {
       const p = this.pop;
-      if (p.n >= CAP - 5) return;
+      if (p.n >= POP_LIMIT - 5) return;
       const c = this.newPerson(rng, 0, M, { mother: i, father: j });
       p.home[c] = p.home[i];
       this.occ[p.home[i]]++;
@@ -1135,7 +1169,7 @@
     }
     immigrateHousehold(rng, M) {
       const p = this.pop;
-      if (p.n > CAP - 20) return;
+      if (p.n > POP_LIMIT - 20) return;
       const a = rng.range(22, 55);
       const ids = [];
       const x = this.newPerson(rng, a * 12 + rng.int(12), M);
@@ -1228,7 +1262,7 @@
       return { id, name: nameOf(this.seed, id, this.pop), age, job: jid ? JOBS[jid].name : p.flags[id] & F_RETIRED ? "\u9000\u8077" : p.flags[id] & F_STUDENT ? "\u5B66\u751F\u30FB\u5150\u7AE5" : p.flags[id] & F_HOMEMAKER ? "\u5BB6\u4E8B\u30FB\u80B2\u5150" : p.flags[id] & F_OUTWORK ? "\u5E02\u5916\u52E4\u52D9" : age < 3 ? "\u4E73\u5E7C\u5150" : "\u7121\u8077\u30FB\u6C42\u8077\u4E2D", home: p.home[id] >= 0 ? B2[p.home[id]].name + " " + B2[p.home[id]].addr : "-", work: p.work[id] >= 0 ? B2[p.work[id]].name : "", school: p.school[id] >= 0 ? B2[p.school[id]].name : "", alive: p.gone[id] === 0, goneHow: p.gone[id], needs: p.needs[id] };
     }
   };
-  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur"]);
+  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5"]);
   var World = _World;
   function shiftOf(id, job) {
     const h = hash2(id, 77);

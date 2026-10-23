@@ -22,6 +22,37 @@
         }
       }
     }
+    // 人と人のつながり(ties.js: 親族・学校の在籍記録・職歴)。言い回しは日ごとに変える
+    const vary = (L3) => L3[uh(id * 31 + M, g.date().d) % L3.length];
+    if (typeof tiesOf === "function") for (const t of tiesOf(w, h.id, id)) {
+      if (t.k === "kin") {
+        const KL = { 祖母: ["ちゃんと食べてるかい。顔を見せてくれてうれしいよ。", "昔はお父さんもこの道を走り回っていたんだよ。"], 祖父: ["大きくなったなあ。今度、釣りにでも行くか。", "体には気をつけるんだぞ。"], おじ: ["大きくなったな。お母さんは元気か?", "正月にはまた家に寄りなさい。"], おば: ["あら、元気そうね。ご両親によろしく。", "お盆にはみんなで集まりましょうね。"], いとこ: ["久しぶり。親戚の集まり以来だね。", "おばあちゃんの家で遊んだの覚えてる?"], おい: [`${w.isFem(h.id) ? "おばさん" : "おじさん"}のところ、また遊びに行っていい?`], めい: [`${w.isFem(h.id) ? "おばさん" : "おじさん"}、また遊びに行ってもいい?`] };
+        const L3 = KL[t.rel] || [`${t.rel}として、いつも気にかけているよ。`];
+        say(vary(L3), `続柄(${t.rel}・親子の記録から)`, 2);
+      } else if (t.k === "classmate" || t.k === "gradeMate") {
+        const past = (p.school[h.id] ?? -1) !== t.b;
+        say(past ? vary([`${t.name}で${t.k === "classmate" ? "同じクラス" : "同じ学年"}だったよね。覚えてる?`, `${t.name}のころの${t.k === "classmate" ? "クラス" : "学年"}のみんな、元気かな。`]) : vary([`${t.name}で同じ${t.k === "classmate" ? "クラス" : "学年"}だね。`, "次のテスト、自信ある?"]), `在籍記録(${t.name}・同じ学年${t.k === "classmate" ? "・同じ組" : ""})`, 2);
+      } else if (t.k === "senpai" || t.k === "kohai") {
+        const role = t.k === "senpai" ? "先輩" : "後輩";
+        say(t.club ? `${t.name}の${t.club}で一緒だった${role}です。` : `${t.name}の${t.years}学年${t.k === "senpai" ? "上" : "下"}の${role}です。`, `在籍記録(${t.name}・${t.years}学年ちがい${t.club ? "・" + t.club : ""})`, 2);
+      } else if (t.k === "boss") say(vary(["例の書類、今日中にまとめておいてくれるかな。", "最近がんばってるね。その調子で頼むよ。"]), `職場の上司(${t.name}・職位が上)`, 2);
+      else if (t.k === "coworker") say(vary([`${t.name}の仕事、最近どう?`, "お昼、一緒にどう?"]), `同じ職場(${t.name})`, 2);
+      else if (t.k === "excoworker") say(vary([`${t.name}にいたころは、お世話になりました。`, `${t.name}のみんな、どうしてるかな。`]), `職歴の重なり(${t.name}・${1900 + Math.floor(t.from / 12)}年〜)`, 2);
+    }
+    // 担任の先生(主人公のいまの学校・学年・組・年度)
+    if (h.edu && h.edu.cur > 0 && h.edu.b >= 0 && typeof homeroomOf === "function") {
+      const lvH = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[(B2[h.edu.b] || {}).type] || 0;
+      const t = lvH >= 2 && lvH <= 4 ? homeroomOf(w, h.edu.b, cohOf(p, h.id), kumiOf(h.id, lvH), g.date().y) : -1;
+      if (t === id) say(vary(["宿題は終わったかな。分からないところは聞きに来なさい。", "最近、授業中に眠そうだぞ。夜ふかしはほどほどに。"]), `担任(${B2[h.edu.b].name}・${g.date().y}年度)`, 2);
+    }
+    // その人の職歴(いちばん新しい入社・退職)
+    const pr = w.prof && w.prof.get(id);
+    if (pr && pr.hist && pr.hist.length) {
+      const e = pr.hist[pr.hist.length - 1], bn = B2[e.b];
+      const yrs = Math.floor((M - e.M) / 12);
+      if (bn && e.k === "start" && yrs <= 3) say(yrs ? `${yrs}年前から${bn.name}で働いているんです。` : `この春から${bn.name}で働き始めました。`, `職歴(${1900 + Math.floor(e.M / 12)}年${(e.M % 12) + 1}月 ${bn.name}に入る)`);
+      else if (bn && e.k !== "start" && M - e.M <= 24) say(`${bn.name}を辞めて、いまは少しゆっくりしています。`, `職歴(${1900 + Math.floor(e.M / 12)}年${(e.M % 12) + 1}月 ${bn.name}を離れる)`);
+    }
     if (sb && (sb.type === "jh" || sb.type === "hs") && typeof campusClubOf === "function") {
       const c = campusClubOf(id);
       if (c !== "none") say(`${CLUB_NAME[c]}の練習、毎日18時まであるんだ。`, `部活の所属(${CLUB_NAME[c]})`);

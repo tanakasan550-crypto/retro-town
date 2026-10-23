@@ -2,7 +2,7 @@
   // 学校・大学・動物園などを、用途に合った広さの敷地(校舎・付属棟・校庭・体育館・プール・テニスコート・獣舎・外周フェンス・門)として
   // 近くの空き地に置き直す。移した施設は同じ番号のまま座標だけが変わり、元の場所は空き地になる。付属棟は建物一覧の末尾に足す。
   // セーブは建物ごとの属性(名前・歴史など)を番号で持つので、読み込み時に同じ後処理をすれば同じ配置になる。
-  var SITES_VER = 2;
+  var SITES_VER = 3;
   BTYPES.annex = { label: "付属棟", w: 4, h: 4, cat: "school", enter: true, interior: "school", floors: 1, slots: {} };
   KIT.s_gym = { k: "school", f: [2, 2], roof: "saw", wall: "school" };
   KIT.s_wing = { k: "school", f: [3, 3], roof: "flat", wall: "school" };
@@ -149,6 +149,8 @@
     const F = sitesLandMap(map2, todo);
     const tm = { land: Math.round(performance.now() - t0), find: 0, apply: 0 };
     const report = [], displaced = [];
+    // 埋立地の島に移す施設(動物園・大学の本キャンパス)を先に置く(reclaim.js)
+    if (map2.island && typeof islandPlan === "function") islandPlan(map2, todo, placed, report, displaced);
     for (const b of todo) {
       if (b.siteI != null) continue;
       const L0 = siteLayout(b);
@@ -548,7 +550,8 @@
             c.beginPath(); c.ellipse(g1[0], g1[1], 1.1 * zp, 0.8 * zp, 0, 0, 7); c.fill();
           }
           // 動物: 種類ごとの定位置のまわりをゆっくり歩く(瞬間移動しない)
-          const n2 = Math.round(S2.n * (r.sp === "birds" || r.sp === "monkey" ? 1.4 : 1));
+          // 広い獣舎ほど群れを大きく(最大2.5倍)
+          const n2 = Math.round(S2.n * (r.sp === "birds" || r.sp === "monkey" ? 1.4 : 1) * Math.min(2.5, Math.max(1, Math.sqrt(r.w * r.h / 320))));
           for (let i = 0; i < n2; i++) {
             const ph = i * 1.7 + r.x, sp2 = 0.05 * (1 + i % 3) / (r.sp === "elephant" || r.sp === "giraffe" ? 2 : 1);
             const bx = 0.15 + 0.7 * ((uh(r.x * 13 + i, 11) % 1e3) / 1e3), by = 0.25 + 0.6 * ((uh(r.y * 17 + i, 12) % 1e3) / 1e3);
@@ -596,6 +599,8 @@
   var ZOO_OUT_K = 0.3;
   function drawSiteProp(c, P2, Z, p, t) {
     const u = p.x + 0.5, v = p.y + 0.5, pt = (a, b, z) => [P2.X(a, b), P2.Y(a, b, z)];
+    // 高さ1単位の画面上の長さ(木・ベンチ・噴水の大きさはこれに合わせる)
+    const zp = P2.Y(u, v, 0) - P2.Y(u, v, 1);
     const line = (a, b, col, w) => {
       c.strokeStyle = col;
       c.lineWidth = Math.max(1, w * Z);
@@ -651,11 +656,42 @@
       c.fillRect(a[0] - 0.6 * Z, b2[1], 1.2 * Z, a[1] - b2[1]);
       c.fillStyle = "#4f8a3e";
       c.beginPath();
-      c.ellipse(b2[0], b2[1], 4 * Z, 3 * Z, 0, 0, 7);
+      c.ellipse(b2[0], b2[1], 1.5 * zp, 1.15 * zp, 0, 0, 7);
+      c.fill();
+      c.fillStyle = "#5f9a4a";
+      c.beginPath();
+      c.ellipse(b2[0] - 0.4 * zp, b2[1] - 0.45 * zp, 0.9 * zp, 0.7 * zp, 0, 0, 7);
       c.fill();
     } else if (p.kind === "bench") {
       c.fillStyle = "#8d6e4f";
-      const a = pt(u, v, 0.5);
-      c.fillRect(a[0] - 4 * Z, a[1], 8 * Z, 1.4 * Z);
+      const a = pt(u, v, 0.45);
+      c.fillRect(a[0] - 0.9 * zp, a[1], 1.8 * zp, 0.25 * zp);
+      c.fillRect(a[0] - 0.9 * zp, a[1] - 0.35 * zp, 1.8 * zp, 0.18 * zp);
+    } else if (p.kind === "fountain") {
+      // 噴水: 丸い池と水しぶき
+      const a = pt(u, v, 0.3);
+      c.fillStyle = "#c9c2b0";
+      c.beginPath();
+      c.ellipse(a[0], a[1], 3.4 * zp, 1.7 * zp, 0, 0, 7);
+      c.fill();
+      c.fillStyle = "#6cbfe0";
+      c.beginPath();
+      c.ellipse(a[0], a[1], 2.9 * zp, 1.45 * zp, 0, 0, 7);
+      c.fill();
+      for (let i = 0; i < 6; i++) {
+        const ph = ((t * 0.8 + i / 6) % 1 + 1) % 1, b2 = pt(u, v, 0.4 + ph * 3.5);
+        c.fillStyle = `rgba(255,255,255,${(0.8 * (1 - ph)).toFixed(2)})`;
+        c.beginPath();
+        c.arc(b2[0] + Math.cos(i) * ph * 0.9 * zp, b2[1], (0.2 + ph * 0.15) * zp, 0, 7);
+        c.fill();
+      }
+    } else if (p.kind === "lamp") {
+      const a = pt(u, v, 0), b2 = pt(u, v, 4);
+      c.fillStyle = "#4a4f58";
+      c.fillRect(a[0] - 0.4 * Z, b2[1], 0.8 * Z, a[1] - b2[1]);
+      c.fillStyle = "#fff6d0";
+      c.beginPath();
+      c.arc(b2[0], b2[1], 1.4 * Z, 0, 7);
+      c.fill();
     }
   }

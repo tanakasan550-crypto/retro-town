@@ -900,6 +900,12 @@
       if (h.edu.cur > 0) p.flags[h.id] |= F_STUDENT;
       else p.flags[h.id] &= ~F_STUDENT;
       p.school[h.id] = h.edu.cur > 0 ? h.edu.b : -1;
+      // 主人公の在籍記録(ties.js): 学校の種類から段階を決める
+      if (h.edu.cur > 0 && h.edu.b >= 0 && typeof schRecord === "function") {
+        const bt = this.world.map.buildings[h.edu.b];
+        const lv = bt ? { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[bt.type] : 0;
+        if (lv) schRecord(this.world, h.id, lv, h.edu.b);
+      }
       p.edu[h.id] = h.edu.level;
       if (h.job) {
         p.work[h.id] = h.job.b;
