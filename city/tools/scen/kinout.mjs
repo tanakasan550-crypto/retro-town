@@ -16,7 +16,7 @@ export default async (p) => {
     const outIds = (w.outKin || []).slice(), ev = { died: 0, visit: 0 }, f0 = (w.funerals || []).length;
     for (let k = 0; k < 36; k++) { w.tickMonth(); for (const e of w.events) { if (e.type === 'visit_out') ev.visit++; } }
     for (const x of outIds) if (P.gone[x] === 1) ev.died++;
-    const outFun = (w.funerals || []).slice(f0).filter(f => outIds.includes(f.id ?? f.dead)).length, fkeys = Object.keys((w.funerals || [])[0] || {}).join(',');
+    const outSet = new Set(outIds), outFun = (w.funerals || []).filter(f => f.M >= M && outSet.has(f.id ?? f.dead)).length, fkeys = Object.keys((w.funerals || [])[0] || {}).join(',');
     const N = NLS.nav, G2 = N.Game.load(N.fromJSON(N.toJSON(G.serialize()))), P2 = G2.world.pop;
     const same = P2.n === P.n && (G2.world.outKin || []).length === (w.outKin || []).length && P2.mother[P.mother[h]] === P.mother[P.mother[h]];
     return { out, made, old, none, nonePct: Math.round(none / old * 100), gp: gp.length, gpRel, ev, outFun, fkeys, same, n: P.n };

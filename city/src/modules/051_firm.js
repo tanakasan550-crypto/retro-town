@@ -13,6 +13,8 @@
     return EC[EC.length - 1][1];
   }
   var SEASON = [0.92, 0.88, 1, 1, 1.02, 1, 1.04, 1.08, 1, 1, 1.04, 1.2];
+  // 事業 → ビルの区画の業種(案内板・中の作り)
+  var IND2OFF = { travel: "travel", cram: "cram", tutor: "cram", prepschool: "cram", edu_corp: "cram", taxacc: "tax", accounting: "tax", lawoffice: "law", insurer: "ins", insagent: "ins", realestate: "realty", gp: "clinic", dental: "clinic", derm: "clinic", gardener: "zouen", cleaningco: "bmgmt", security: "bmgmt", homerepair: "koumu", waterworks: "setsubi", printing: "press" };
   function sites(g, indId, limit = 6) {
     const ind = IND[indId];
     if (!ind) return [];
@@ -24,6 +26,14 @@
       if (!ind.hosts.includes(b.type) || used.has(b.idx)) continue;
       if (onlySalon && !b.salon) continue;
       if (b.type === "office" && b.tenant) continue;
+      // 複数テナントのオフィスビル: 空いている区画(階)を借りる(建物まるごとは借りない。tenants.js)
+      if (typeof isTenantOffice === "function" && isTenantOffice(b)) {
+        const v = officeTenants(g.world, b).find((t) => t.vacant);
+        if (!v) continue;
+        const m2 = Math.round(b.w * b.h * 4 / v.parts);
+        out.push({ b: b.idx, sec: v.key, name: `${b.name} ${floorName(v.lv)}の空室(約${m2}㎡)`, type: b.type, zone: b.zone, d: g.world.dist(h.homeB, b.idx), loc: ZLOC[b.zone] || 1 });
+        continue;
+      }
       out.push({ b: b.idx, name: b.name, type: b.type, zone: b.zone, d: g.world.dist(h.homeB, b.idx), loc: ZLOC[b.zone] || 1 });
     }
     out.sort((a, c) => a.d - c.d || a.b - c.b);
@@ -66,6 +76,15 @@
     g.pay(need, `\u958B\u696D(${ind.n})`);
     const id = h.firmSeq = (h.firmSeq || 0) + 1;
     const f2 = { id, ind: indId, name: name || `${g.bld(siteB).name.slice(0, 6)}\u306E${ind.n}`, b: siteB, state: "open", M0: g.S.M, capital, equip, deposit, cash: Math.round(capital * 0.25), staff: [], mgr: null, price: 1, stock: 2, hrs: ind.hrs.split("-").map(Number), rep: 40, loss: 0, boom: 0, comp: 0, tax: 0, carry: 0, last: null, hist: [], regulars: [], owner: h.id, hoursWorked: 0 };
+    // ビルの空室を借りたとき: その区画を主人公の会社として記録する(入居企業の一覧・案内板・セーブに出る)
+    if (st3.sec) {
+      const w = g.world;
+      w.bizOv || (w.bizOv = {});
+      w.bizFz || (w.bizFz = {});
+      const ov = w.bizOv[siteB] || (w.bizOv[siteB] = {});
+      ov[st3.sec] = { hero: 1, firm: id, kind: IND2OFF[indId] || "trade", name: f2.name, from: g.year() };
+      f2.sec = st3.sec;
+    }
     F.push(f2);
     hire(g, id);
     g.log("biz", `${ind.n}\u300C${f2.name}\u300D\u3092\u958B\u696D\u3057\u305F(${yenS(need)})`, { b: siteB });
@@ -259,6 +278,8 @@
     else if (owe - ret > 0) g.pay(owe - ret, `\u9589\u5E97\u306E\u7CBE\u7B97(\u672A\u6255\u3044\u30FB${f2.name})`);
     f2.staff = [];
     f2.mgr = null;
+    // 借りていた区画は空室に戻る
+    if (f2.sec && g.world.bizOv && g.world.bizOv[f2.b]) g.world.bizOv[f2.b][f2.sec] = { vacant: 1, M: g.S.M, prev: f2.name };
     g.log("biz", forced ? `\u300C${f2.name}\u300D\u306F\u8CC7\u91D1\u7E70\u308A\u306B\u884C\u304D\u8A70\u307E\u308A\u3001\u9589\u5E97\u3057\u305F` : `\u300C${f2.name}\u300D\u3092\u9589\u5E97\u3057\u305F(\u7CBE\u7B97 ${yenS(ret - owe)})`);
     return { ok: true, msg: forced ? "\u9589\u5E97\u3057\u307E\u3057\u305F\u3002" : `\u9589\u5E97\u3057\u307E\u3057\u305F(\u7CBE\u7B97 ${yenS(ret - owe)})\u3002` };
   }

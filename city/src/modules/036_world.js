@@ -285,7 +285,7 @@
     serialize() {
       const p = this.pop, arrays = {};
       for (const k of _World.ARRS) arrays[k] = p[k].slice(0, p.n);
-      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {}, ...b.devFl || b.devOver || b.devUnder || b.devLess ? { devFl: b.devFl || 0, devOver: b.devOver || 0, devUnder: b.devUnder || 0, devLess: b.devLess || 0 } : {} })), dev: this.dev || [], kinOutV: this.kinOutV || 0, outKin: this.outKin || [], surX: p.surX, givenOv: p.givenOv, sn: this.sn };
+      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {}, ...b.devFl || b.devOver || b.devUnder || b.devLess ? { devFl: b.devFl || 0, devOver: b.devOver || 0, devUnder: b.devUnder || 0, devLess: b.devLess || 0 } : {} })), dev: this.dev || [], kinOutV: this.kinOutV || 0, outKin: this.outKin || [], surX: p.surX, givenOv: p.givenOv, sn: this.sn, ...this.bizOv ? { bizOv: this.bizOv, bizFz: this.bizFz || {} } : {} };
     }
     static restore(d) {
       const w = new _World(d.seed, d.startYear, { skipInit: true, ver: d.mapVer ?? 1 });
@@ -308,7 +308,8 @@
       w.occ.set(d.occ);
       w.slots = d.slots;
       w.vacant = d.vacant;
-      w.extendSlots();
+      // 入居企業の記録(tenants.js)は枠の拡張より先に戻す
+      if (d.bizOv) w.bizOv = d.bizOv, w.bizFz = d.bizFz || {};
       w.known = new Set(d.known);
       w.events = d.events;
       w.funerals = d.funerals || [];
@@ -324,6 +325,8 @@
         Object.assign(w.map.buildings[i], x);
         if (!x.nf) delete w.map.buildings[i].nf;
       });
+      // 建物の階数などを戻してから職の枠を拡張する(オフィスビルの入居企業は階数で決まる)
+      w.extendSlots();
       // 旧セーブ: 市外に住む親族を1度だけ足す(人物IDは末尾に追加)
       if (typeof kinOutside === "function" && w.heroId >= 0) try {
         kinOutside(w);

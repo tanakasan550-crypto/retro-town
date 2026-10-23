@@ -56,10 +56,18 @@
   var offCache = /* @__PURE__ */ new Map();
   function officeTenants(w, b) {
     if (!isTenantOffice(b)) return [];
-    const ov = w && w.bizOv && w.bizOv[b.idx] || null, key = (w ? w.startYear : 0) + ":" + (ov ? JSON.stringify(ov) : "");
+    // 最初の階数を記録(増築で増えた階は空室から始まり、入れ替わりで企業が入る)
+    if (w && w.slots) {
+      w.bizOv || (w.bizOv = {});
+      w.bizFz || (w.bizFz = {});
+      const o0 = w.bizOv[b.idx] || (w.bizOv[b.idx] = {});
+      if (o0._f0 == null) o0._f0 = officeFloors(b);
+    }
+    const ov = w && w.bizOv && w.bizOv[b.idx] || null, key = (w ? w.startYear : 0) + ":" + officeFloors(b) + ":" + (ov ? JSON.stringify(ov) : "");
     const c = offCache.get(b.idx);
     if (c && c.key === key && c.w === w) return c.L;
-    const F = officeFloors(b), cap = floorCap(b), y = Math.max(b.openYear || 0, w ? w.startYear : 1990);
+    // 最初の入居企業は街の始まりの年で決める(建て替えで openYear が変わっても企業は入れ替わらない。年代の変化は入れ替わりの記録 bizOv で表す)
+    const F = officeFloors(b), cap = floorCap(b), y = w ? w.startYear : 1990;
     const L3 = [];
     for (let lv = 0; lv < F; lv++) {
       const two = lv > 0 && b.w * b.h * 4 >= 240;
@@ -68,6 +76,9 @@
         const slotKey = lv + ":" + part;
         let kind = pickOfficeKind(b, lv * 2 + part, y, lv === 0), name = officeName(b, lv * 2 + part, kind), from = y, vacant = false;
         const o = ov && ov[slotKey];
+        // 街の始まりから空いている区画(2階より上の約8%。決定的)
+        if (!o && lv > 0 && uh(b.idx * 7 + lv * 2 + part, 4410) % 100 < 8) vacant = true;
+        if (!o && ov && ov._f0 != null && lv >= ov._f0) vacant = true;
         if (o) {
           if (o.vacant) vacant = true;
           else {
@@ -77,7 +88,8 @@
           }
         }
         const staff = vacant ? 0 : Math.max(2, Math.round((lv === 0 ? cap * 0.45 : cap / parts.length) * (0.8 + uh(b.idx + lv, 4404 + part) % 21 / 100)));
-        L3.push({ id: `E${b.idx}-${lv}${part ? "b" : "a"}`, key: slotKey, b: b.idx, lv, part, parts: parts.length, kind: kind.k, kindName: kind.n, name, staff, from, vacant, hero: !!(o && o.hero) });
+        // 入れ替わった企業は別の事業ID(元の企業の記録と混ざらないように開業年を付ける)
+        L3.push({ id: `E${b.idx}-${lv}${part ? "b" : "a"}${o && o.kind ? "-" + o.from : ""}`, key: slotKey, sl: !!(o && o.sl), hk: o && o.hero ? o.firm : null, b: b.idx, lv, part, parts: parts.length, kind: kind.k, kindName: kind.n, name, staff, from, vacant, hero: !!(o && o.hero) });
       }
     }
     offCache.set(b.idx, { key, w, L: L3 });
@@ -132,10 +144,27 @@
         });
         return q;
       });
-      const map = /* @__PURE__ */ new Map(), live = L3.map((t, i) => i).filter((i) => !L3[i].vacant && !L3[i].hero);
+      // 入れ替わりで開いた企業の枠(明示)と、退去した企業の凍結した枠(誰も雇わない)
+      const ov = w.bizOv && w.bizOv[bi] || {}, ex = /* @__PURE__ */ new Map(), fz = new Set(w.bizFz && w.bizFz[bi] || []);
+      L3.forEach((t, i) => {
+        const o = ov[t.key];
+        if (o && o.sl) for (const k of o.sl) ex.set(k, i);
+      });
+      quota.forEach((q, i) => {
+        if (L3[i].sl) for (const j of Object.keys(q)) q[j] = 0;
+      });
+      const map = /* @__PURE__ */ new Map(), live = L3.map((t, i) => i).filter((i) => !L3[i].vacant && !L3[i].hero && !L3[i].sl);
       let rr = 0;
       for (let k = 0; k < w.slots.b.length; k++) {
         if (w.slots.b[k] !== bi) continue;
+        if (fz.has(k)) {
+          map.set(k, -2);
+          continue;
+        }
+        if (ex.has(k)) {
+          map.set(k, ex.get(k));
+          continue;
+        }
         const j = JOB_IDS2[w.slots.job[k]];
         if (j === "receptionist" || j === "security") {
           map.set(k, -1);
@@ -154,7 +183,7 @@
       slotBizC.set(bi, c = { n: w.slots.b.length, L: L3, w, map });
     }
     const ti = c.map.get(s);
-    return ti == null ? null : ti < 0 ? { id: `E${bi}-mgmt`, b: bi, lv: 0, name: `${b.name} 管理室`, kindName: "ビル管理", mgmt: true } : L3[ti];
+    return ti == null || ti === -2 ? null : ti < 0 ? { id: `E${bi}-mgmt`, b: bi, lv: 0, name: `${b.name} 管理室`, kindName: "ビル管理", mgmt: true } : L3[ti];
   }
   function bizOfPerson(w, i) {
     const s = w.pop.slot ? w.pop.slot[i] : -1;
@@ -305,4 +334,114 @@
       n2++;
     }
     return res;
+  }
+  // ---- 入れ替わり(毎年1月・towndev.js から): 退去 → 空室 → 新しい企業の入居。根拠は景気(econIndex)と、その年代の業種の需要(重み)。
+  // 退去した企業の社員は「解雇(laid)」として職歴に残り、職探しに戻る。その区画の職の枠は凍結し(bizFz)、新しい企業は自分の枠を足す。
+  // 主人公が働いている企業・主人公の会社の区画は動かさない
+  // 開業の中心メンバー: 枠の半分まで、近くに住む職のない人(その職に就ける人)→ 同じ職で別の職場に勤める人(転職)の順に。
+  // 人手不足の時代でも新しい会社が空のまま、にならないように(転職は職歴に「quit」として残る)
+  function foundTeam(w, b, sl, name) {
+    const p = w.pop, B2 = w.map.buildings, M = w.M, need = Math.ceil(sl.length * 0.5);
+    let n2 = 0, moved = 0;
+    for (const s of sl.slice(0, need)) {
+      const j = JOB_IDS2[w.slots.job[s]], ji = w.slots.job[s];
+      let best = -1, bd = 1e9, bestEmp = -1, bde = 1e9;
+      for (let i = 0; i < p.n; i++) {
+        if (p.gone[i] || p.home[i] < 0 || i === w.heroId || p.flags[i] & (F_STUDENT | F_HERO)) continue;
+        const hb = B2[p.home[i]];
+        if (!hb) continue;
+        const d = Math.abs(hb.doorX - b.doorX) + Math.abs(hb.doorY - b.doorY);
+        if (p.work[i] < 0) {
+          if (d < bd && ageYears(p, i, M) < 65 && w.eligibleFor(i, j, M)) bd = d, best = i;
+        } else if (p.job[i] === ji && p.work[i] !== b.idx && d < bde && !w.known.has(i)) bde = d, bestEmp = i;
+      }
+      let who = best >= 0 && bd < 200 ? best : bestEmp;
+      if (who < 0) continue;
+      if (p.work[who] >= 0) {
+        w.freeSlot(who, "quit");
+        moved++;
+        try {
+          w.noteLife(who, M, "work", `新しく開業した${name}(${b.name})に転職した`);
+        } catch (_) {
+        }
+      }
+      const vi = w.vacant.indexOf(s);
+      if (vi >= 0) w.vacant.splice(vi, 1);
+      w.takeSlot(who, s);
+      n2++;
+    }
+    return { n: n2, moved };
+  }
+  function tenantTurnover(w, y, log) {
+    const B2 = w.map.buildings, p = w.pop, eco = typeof econIndex === "function" ? econIndex(y) : 1;
+    w.bizOv || (w.bizOv = {});
+    w.bizFz || (w.bizFz = {});
+    const heroBiz = w.heroId != null && w.heroId >= 0 ? bizOfPerson(w, w.heroId) : null;
+    let n2 = 0;
+    for (const b of B2) {
+      if (!isTenantOffice(b) || b.status === "closed") continue;
+      const L3 = officeTenants(w, b);
+      for (const t of L3) {
+        if (t.hero) continue;
+        const ov = w.bizOv[b.idx] || (w.bizOv[b.idx] = {}), r = uh(b.idx * 131 + t.lv * 7 + t.part, 4420 + y) % 1e4 / 1e4;
+        if (!t.vacant) {
+          if (heroBiz && heroBiz.id === t.id) continue;
+          // その年代の需要(業種の重み)が低いほど・景気が悪いほど退去しやすい。開業から3年は動かない
+          const K = OK_BY[t.kind], dem = K ? K.w(y) / Math.max(0.3, K.w(t.from || y)) : 1;
+          const pr = 0.014 * (eco < 0.86 ? 1.5 : eco > 1.05 ? 0.7 : 1) * (dem < 0.7 ? 2 : 1);
+          if (y - (t.from || 0) < 3 || r >= pr) continue;
+          const sl = [];
+          for (let k = 0; k < w.slots.b.length; k++) if (w.slots.b[k] === b.idx) {
+            const bz = bizOfSlot(w, k);
+            if (bz && bz.id === t.id) sl.push(k);
+          }
+          let laid = 0;
+          for (const k of sl) {
+            const who = w.slots.who[k];
+            if (who >= 0) {
+              w.freeSlot(who, "laid");
+              try {
+                w.noteLife(who, w.M, "work", `勤め先の${t.name}(${b.name} ${floorName(t.lv)})が退去・閉業し、職を失った`);
+              } catch (_) {
+              }
+              laid++;
+            }
+          }
+          const fzs = new Set(sl);
+          w.vacant = w.vacant.filter((k) => !fzs.has(k));
+          w.bizFz[b.idx] = [...w.bizFz[b.idx] || [], ...sl];
+          ov[t.key] = { vacant: 1, M: w.M, prev: t.name, prevKind: t.kind };
+          log && log(b, "tenant_close", `${floorName(t.lv)}の${t.name}(${t.kindName})が退去した。社員${laid}人は職探しへ`, `景気 ${eco.toFixed(2)}・${y}年の${t.kindName}の需要`);
+          n2++;
+        } else {
+          // 空室: 景気が良いほど・駅前や中心部ほど早く埋まる(空いてから1年はそのまま)
+          const o = ov[t.key];
+          if (o && o.M != null && w.M - o.M < 12) continue;
+          const pr = 0.3 * eco * (b.zone === "downtown" || b.zone === "tower" ? 1.3 : 1);
+          if (r >= pr) continue;
+          const kind = pickOfficeKind(b, t.lv * 2 + t.part + y, y, t.lv === 0), name = officeName(b, t.lv * 2 + t.part + y, kind);
+          const staff = Math.max(2, Math.round((t.lv === 0 ? floorCap(b) * 0.45 : floorCap(b) / t.parts) * 0.7));
+          const sl = [];
+          let left = staff;
+          const ents = Object.entries(kind.jobs);
+          ents.forEach(([j, f2], i) => {
+            const n3 = i === ents.length - 1 ? left : Math.max(1, Math.min(left, Math.round(staff * f2)));
+            for (let q = 0; q < n3; q++) {
+              const s = w.slots.b.length;
+              w.slots.b.push(b.idx);
+              w.slots.job.push(JOB_INDEX[j]);
+              w.slots.who.push(-1);
+              w.vacant.push(s);
+              sl.push(s);
+            }
+            left -= n3;
+          });
+          ov[t.key] = { kind: kind.k, name, from: y, sl };
+          const core = foundTeam(w, b, sl, name);
+          log && log(b, "tenant_open", `${floorName(t.lv)}の空室に${name}(${kind.n})が入居した。${staff}人の枠のうち${core.n}人で開業(転職${core.moved}人)`, `景気 ${eco.toFixed(2)}・${y}年の${kind.n}の需要・空室${o && o.M != null ? Math.floor((w.M - o.M) / 12) + "年" : ""}`);
+          n2++;
+        }
+      }
+    }
+    return n2;
   }

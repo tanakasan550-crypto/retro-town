@@ -92,6 +92,8 @@
       b.era = y < 1975 ? 0 : y < 2e3 ? 1 : 2;
       log(b, "shop_open", `空き店舗に開店した(前の店: ${old2})`, `半径30マスに住む人 ${r}人`);
     }
+    // オフィスビルの入居企業の入れ替わり(tenants.js)
+    if (typeof tenantTurnover === "function") tenantTurnover(w, y, log);
     if (w.dev.length > 600) w.dev.splice(0, w.dev.length - 600);
     return n2;
   }
