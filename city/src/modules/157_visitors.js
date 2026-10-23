@@ -137,6 +137,8 @@
     if (!VISIT[b.type] || floor !== (I2.lo != null ? Math.max(0, I2.lo) : 0) && floor !== 0) return [];
     // 敷地のある動物園の来園者は屋外の園路にいる(zooOutdoorVisitors)
     if (b.type === "zoo" && b.siteI != null) return [];
+    // ドリームパーク(敷地あり): 半分は屋外の待ち列・園路(parkOutdoorVisitors)、残りが園内の場面
+    const half = b.type === "themepark" && b.siteI != null;
     const cap = Math.max(24, Math.min(80, I2.W * I2.H / 40 | 0));
     const m = C2.g.S.min, out = [];
     const sol = interiorSolid(I2), cells = [];
@@ -144,7 +146,7 @@
     if (!cells.length) return out;
     const seats = (I2.seatSpots || []).slice();
     for (const vz of visitsOf(C2, b, m, null)) {
-      if (m < vz.arrive || m >= vz.leave) continue;
+      if (m < vz.arrive || m >= vz.leave || half && uh(vz.id, 74) % 2 === 0) continue;
       visitNow.set(vz.id, vz);
       const s = seats.length && ["食事", "お茶", "飲みに"].includes(vz.verb) ? seats.splice(uh(vz.id, 3) % seats.length, 1)[0] : null;
       const c = s ? [s.x, s.y] : cells[uh(vz.id, 5) % cells.length];

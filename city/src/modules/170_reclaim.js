@@ -3,10 +3,33 @@
   // 島の道路(大通り・南の通り・南北の通り)と、本土の南北の道から渡る橋(3本)。道の作りは生成と同じ規則(rmeta の ax/th/ln)。
   // 生成のあと・地下鉄とバスの追加や敷地の整備の前に、決まった手順で行う(セーブには座標がないので、旧セーブも同じ島になる)。
   // 建物ID・人物IDは変えない(島には建物を新しく作らない。施設は sites.js の敷地の整備で移る)。
-  var RECLAIM_V = 1;
+  // 第2期(v2): 地図を南へ広げ(海の行を足す)、島を南へのばして2列の街区にする。
+  //   北の列(第1期と同じ): 動物園・大学・水族館 / 南の列: ドリームパーク・総合スタジアム・臨海工場
+  //   行を下に足すだけなので、マスの番号(x + y*W)は今までと同じ(旧セーブの位置・道路・建物はそのまま)
+  var RECLAIM_V = 2, RECLAIM_EXT = 220;
+  function extendSouth(map2, ext) {
+    const W2 = map2.W, N0 = W2 * map2.H, N = W2 * (map2.H + ext);
+    const grow = (a, fill) => {
+      const b = new a.constructor(N);
+      if (fill) b.fill(fill);
+      b.set(a);
+      return b;
+    };
+    map2.ground = grow(map2.ground, 0);
+    map2.ground.fill(T.WATER, N0);
+    map2.deco = grow(map2.deco, 0);
+    map2.solid = grow(map2.solid, 0);
+    map2.solid.fill(1, N0);
+    map2.bid = grow(map2.bid, -1);
+    map2.net = grow(map2.net, 0);
+    for (const k of ["ax", "th", "ln", "ow"]) if (map2.rmeta[k]) map2.rmeta[k] = grow(map2.rmeta[k], 0);
+    map2.H0 = map2.H;
+    map2.H += ext;
+  }
   function reclaimLand(map2) {
     if (!map2 || (map2.ver || 1) < 4 || map2.reclaimV === RECLAIM_V || !map2.rmeta) return;
     map2.reclaimV = RECLAIM_V;
+    if (!map2.H0) extendSouth(map2, RECLAIM_EXT);
     const W2 = map2.W, H4 = map2.H, G4 = map2.ground, rm = map2.rmeta;
     const X0 = 290, X1 = 862, CANAL = 14;
     // 海岸線(下から続く海の上端)
@@ -54,8 +77,10 @@
     const vLine = (x, y0, y1, w) => {
       for (let y = y0; y <= y1 + w - 1; y++) for (let k = 0; k < w; k++) carve(x + k, y, 2, w, k);
     };
-    const yN = yT + 3, yS = yB - 5;
+    // 北の列の南の通り(yM)は第1期の島の南の通りと同じ位置。南の列の南の通りが yS
+    const yN = yT + 3, yM = map2.H0 - 14 - 5, yS = yB - 5;
     hLine(X0 + 3, X1 - 5, yN, 2);
+    hLine(X0 + 3, X1 - 5, yM, 2);
     hLine(X0 + 3, X1 - 5, yS, 2);
     // 南北の通り(街区の区切り): 西端・東端と、大きな街区2つ+小さな街区1つ
     const xs = [X0 + 3, X0 + 262, X0 + 492, X1 - 5];
@@ -85,7 +110,7 @@
       vLine(bx, y0, yN, Math.min(th, 2));
       bridges.push(bx);
     }
-    map2.island = { x: X0, y: yT, w: X1 - X0 + 1, h: yB - yT + 1, bridges, roads: { yN, yS, xs } };
+    map2.island = { x: X0, y: yT, w: X1 - X0 + 1, h: yB - yT + 1, bridges, roads: { yN, yM, yS, xs } };
     // 地区の名前(areaName)
     // (REGIONS2 は生成側の共有の定数なので書き換えず、この地図の写しに足す)
     if (map2.regions) map2.regions = [...map2.regions, { id: "shintoshin", name: "青海新都心(埋立地)", x: (X0 + X1) / 2, y: (yT + yB) / 2, rx: (X1 - X0) / 2, ry: (yB - yT) / 2 }];
@@ -157,7 +182,7 @@
     const I3 = map2.island;
     if (!I3) return;
     // 敷地は道路と歩道の内側(北は大通り+歩道、南は歩道+南の通り、東西は歩道)
-    const { yN, yS, xs } = I3.roads, y = yN + 3, H4 = yS - y - 1;
+    const { yN, yM, yS, xs } = I3.roads, y = yN + 3, H4 = (yM || yS) - y - 1;
     const blocks = [[xs[0] + 3, xs[1] - 2], [xs[1] + 3, xs[2] - 2], [xs[2] + 3, xs[3] - 2]];
     const zoo = todo.find((b) => b.type === "zoo"), univ = todo.filter((b) => b.type === "univ").sort((a, c) => a.idx - c.idx)[0];
     // 東の街区: いちばん大きい水族館(館内の広さに見合う本館をつくる)
@@ -170,5 +195,23 @@
       applySite(map2, b, L3, { x: x0, y, gx: L3.gate[0] }, displaced);
       placed.push({ x: x0, y, w: L3.W, h: L3.H });
       report.push({ id: b.id, name: b.name, type: b.type, moved: true, island: true, from: [b.x0, b.y0], to: [x0, y], dist: Math.round(Math.hypot(x0 - (b.x0 ?? x0), y - (b.y0 ?? y))), site: [L3.W, L3.H], scale: +(L3.W * L3.H / (std.W * std.H)).toFixed(2), displaced: 0 });
+    });
+    // 南の列(第2期): 西=ドリームパーク、真ん中=総合スタジアム、東=臨海工場(bigsites.js の配置)
+    if (!yM || typeof bigLayout !== "function") return;
+    const y2 = yM + 3, H5 = yS - y2 - 1, B2 = map2.buildings;
+    const pick = (t) => B2.filter((b) => b.type === t && b.siteI == null && !b.tenant).sort((a, c) => a.idx - c.idx)[0];
+    [[pick("themepark"), blocks[0]], [pick("stadium"), blocks[1]], [pick("factory"), blocks[2]]].forEach(([b, [x0, x1]]) => {
+      if (!b) return;
+      const L3 = bigLayout(b.type, x1 - x0, H5, uh(b.idx, 19));
+      if (!L3) return;
+      const std = { W: b.w, H: b.h }, os = oldSiteOf(map2, b);
+      const from = os ? os.w * os.h : b.w * b.h;
+      applySite(map2, b, L3, { x: x0, y: y2, gx: L3.gate[0] }, displaced);
+      if (L3.kit) b.kit = L3.kit;
+      // 島へ移った工場は埋立地の名前に(建物IDはそのまま)
+      if (b.type === "factory") b.name = "青海ベイサイド工場";
+      placed.push({ x: x0, y: y2, w: L3.W, h: L3.H });
+      report.push({ id: b.id, name: b.name, type: b.type, moved: true, island: true, from: [b.x0, b.y0], to: [x0, y2], dist: Math.round(Math.hypot(x0 - (b.x0 ?? x0), y2 - (b.y0 ?? y2))), site: [L3.W, L3.H], scale: +(L3.W * L3.H / from).toFixed(2), fromM2: from * 4, displaced: 0 });
+      void std;
     });
   }

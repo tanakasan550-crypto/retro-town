@@ -2,7 +2,7 @@
   // 学校・大学・動物園などを、用途に合った広さの敷地(校舎・付属棟・校庭・体育館・プール・テニスコート・獣舎・外周フェンス・門)として
   // 近くの空き地に置き直す。移した施設は同じ番号のまま座標だけが変わり、元の場所は空き地になる。付属棟は建物一覧の末尾に足す。
   // セーブは建物ごとの属性(名前・歴史など)を番号で持つので、読み込み時に同じ後処理をすれば同じ配置になる。
-  var SITES_VER = 3;
+  var SITES_VER = 4;
   BTYPES.annex = { label: "付属棟", w: 4, h: 4, cat: "school", enter: true, interior: "school", floors: 1, slots: {} };
   KIT.s_gym = { k: "school", f: [2, 2], roof: "saw", wall: "school" };
   KIT.s_wing = { k: "school", f: [3, 3], roof: "flat", wall: "school" };
@@ -146,11 +146,12 @@
     const W2 = map2.W, placed = [];
     const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
+    const report = [], displaced = [];
+    // 埋立地の島に移す施設(動物園・大学の本キャンパス・水族館・遊園地・スタジアム・工場)を先に置く(reclaim.js)。
+    // 土地の区分はそのあとで調べる(移ったあとの元の敷地は空き地になり、学校の敷地に使える)
+    if (map2.island && typeof islandPlan === "function") islandPlan(map2, todo, placed, report, displaced);
     const F = sitesLandMap(map2, todo);
     const tm = { land: Math.round(performance.now() - t0), find: 0, apply: 0 };
-    const report = [], displaced = [];
-    // 埋立地の島に移す施設(動物園・大学の本キャンパス)を先に置く(reclaim.js)
-    if (map2.island && typeof islandPlan === "function") islandPlan(map2, todo, placed, report, displaced);
     for (const b of todo) {
       if (b.siteI != null) continue;
       const L0 = siteLayout(b);
@@ -382,7 +383,7 @@
     for (const [kind, x, y, w, h, ex] of L3.solid) {
       const r = { kind, x: X(x, w), y: Y(y), w, h, ...ex || {} };
       site.solid.push(r);
-      for (let yy = r.y; yy < r.y + h; yy++) for (let xx = r.x; xx < r.x + w; xx++) set(xx, yy, kind === "pool" ? T.PLAZA : T.SAND, 1, -1);
+      for (let yy = r.y; yy < r.y + h; yy++) for (let xx = r.x; xx < r.x + w; xx++) set(xx, yy, kind === "lake" ? T.WATER : kind === "pool" || r.big ? T.PLAZA : T.SAND, 1, -1);
     }
     for (const [kind, x, y, w, h] of L3.props) site.props.push({ kind, x: X(x, w || 1), y: Y(y), w: w || 1, h: h || 1 });
     // 外周フェンス(門は開ける)
@@ -448,6 +449,8 @@
           c.fill();
           c.strokeStyle = "#fff";
           c.stroke();
+        } else if ((p.kind === "pitch" || p.kind === "lot") && typeof bigGround === "function") {
+          bigGround(c, P2, Z, p, quad, pt);
         } else if (p.kind === "tennis") {
           quad(p.x + 0.3, p.y + 0.3, p.x + p.w - 0.3, p.y + p.h - 0.3, "#3f7f5a", "#fff");
           quad(p.x + 0.3, p.y + p.h / 2 - 0.05, p.x + p.w - 0.3, p.y + p.h / 2 + 0.05, "#eee");
@@ -513,11 +516,17 @@
         });
       }
       for (const p of s.props) {
-        if (["track", "diamond", "tennis"].includes(p.kind)) continue;
+        if (["track", "diamond", "tennis", "pitch", "lot"].includes(p.kind)) continue;
+        // 大きな設備(照明塔・煙突・屋台・待ち列など: bigsites.js)
+        if (typeof BIG_DRAW !== "undefined" && BIG_DRAW[p.kind]) {
+          bigPush(R5, push, P2, Z, p, hero, t);
+          continue;
+        }
         if (Math.abs(p.x - hero.x) > 40 || Math.abs(p.y - hero.y) > 34) continue;
         const u = p.x + 0.5, v = p.y + 0.5;
         push(p.x, p.y, p.x + 1, p.y + 1, P2.X(u, v) - 30 * Z, P2.X(u, v) + 30 * Z, P2.Y(u, v, 5) - 10 * Z, P2.Y(u, v, 0) + 6 * Z, (c) => drawSiteProp(c, P2, Z, p, t));
       }
+      for (const r of s.solid) if (r.big && typeof BIG_DRAW !== "undefined") bigPush(R5, push, P2, Z, r, hero, t);
       for (const r of s.solid) if (r.kind === "ex") {
         if (Math.abs(r.x + r.w / 2 - hero.x) > 50 || Math.abs(r.y + r.h / 2 - hero.y) > 40) continue;
         const pt = (u, v, z) => [P2.X(u, v), P2.Y(u, v, z)];
