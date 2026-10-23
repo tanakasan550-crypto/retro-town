@@ -33,10 +33,9 @@
   // 主人公の日記: その学校に通っていた年の行事
   function schoolDiary(g, y0, y1) {
     const L3 = (g.S.log || []).filter((e) => e.kind === "event" && ["sports_day", "school_trip", "festival_autumn", "club_choice", "graduation"].includes(e.ev));
-    return L3.filter((e) => {
-      const y = 1900 + Math.floor(e.M / 12);
-      return y >= y0 && y <= y1;
-    });
+    // 入学の4月から卒業の3月まで
+    const M0 = (y0 - 1900) * 12 + 3, M1 = (y1 - 1900) * 12 + 2;
+    return L3.filter((e) => e.M >= M0 && e.M <= M1);
   }
   // 再会の話題(talk.js から)。gapM: 前に話してからの月数(はじめてなら null)
   function reunionFacts(g, id, gapM) {
@@ -103,3 +102,70 @@
     if (r) (r.reunions || (r.reunions = [])).push(g.S.M);
     g.log("event", `${t.name}の${t.k === "classmate" ? "同級生(同じクラス)" : t.k === "gradeMate" ? "同級生" : t.k === "senpai" ? "先輩" : "後輩"}・${g.nameOf(id)}さんと${yrs}年ぶりに再会した`, { ev: "reunion", who: id });
   }
+  // 主人公の同窓会: 卒業から10・20・30・40・50年の年に、本当の同級生(在籍記録で同じ学校・同じ学年)が集まる。
+  // 同じ組だった人を先に呼ぶ。会場は学校に近い飲食店。案内状が月のはじめに届く(gathering.js の予定に入る)
+  var HR_MONTH = { 2: 11, 3: 0, 4: 7 };
+  function heroReunionPlan(g, M) {
+    const w = g.world, p = w.pop, h = g.hero, y = 1900 + Math.floor(M / 12), m0 = M % 12;
+    if (!p.sch2 || h.id == null) return null;
+    for (const lv of [4, 3, 2]) {
+      if (HR_MONTH[lv] !== m0) continue;
+      const sb = p["sch" + lv][h.id];
+      if (sb < 0) continue;
+      const yrs = y - gradYearOf(p, h.id, lv);
+      if (yrs < 10 || yrs % 10 || yrs > 60) continue;
+      const coh = Math.floor((p.born[h.id] - 3) / 12), kumi = p["cls" + lv] ? p["cls" + lv][h.id] : 255;
+      const same = [], other = [];
+      for (let i = 0; i < p.n; i++) {
+        if (i === h.id || p.gone[i] || p["sch" + lv][i] !== sb || p.home[i] < 0 || Math.floor((p.born[i] - 3) / 12) !== coh) continue;
+        (kumi !== 255 && p["cls" + lv][i] === kumi ? same : other).push(i);
+      }
+      const pick = (L3, n2) => L3.sort((a, c) => uh(a, M) - uh(c, M) || a - c).slice(0, n2);
+      const mem = [...pick(same, 8), ...pick(other, 3)].slice(0, 10);
+      if (mem.length < 3) return null;
+      const bs = w.map.buildings[sb], vs = venues(g, ["restaurant", "izakaya"]);
+      if (!vs.length) return null;
+      let best = vs[0], bd = 1e9;
+      for (const b of vs) {
+        const d = w.dist(b.idx, sb);
+        if (d < bd) bd = d, best = b;
+      }
+      return { key: `${M}:h${lv}`, M, k: 90 + lv, kind: "reunion", b: best.idx, day: 14 + (uh(h.id + lv, 941) % 8), st: 18 * 60, en: 21 * 60, host: mem[0], members: mem, fee: Math.round((5000 + uh(h.id, 942) % 2000) / 100) * 100, res: 1, size: mem.length, heroLv: lv, school: sb, yrs, kumi, sameN: Math.min(8, same.length), schoolName: bs ? bs.name : "" };
+    }
+    return null;
+  }
+  // 参加したとき: 一人ひとりと「何十年ぶり」の話をして、日記とつながりに残す
+  function heroReunionJoin(g, ev) {
+    const w = g.world, p = w.pop, h = g.hero, lines = [], used = /* @__PURE__ */ new Set();
+    for (const i of ev.members) {
+      if (p.gone[i]) continue;
+      const r = h.rel[i];
+      if (r) (r.reunions || (r.reunions = [])).push(g.S.M);
+      if (lines.length < 3) {
+        // 同じ話(担任・同じ行事)を2人が続けて言わない
+        const f = reunionFacts(g, i, null).filter((x) => x.pri === 2 && !used.has(x.why.split("(")[0] + (x.why.match(/\d{4}年/) || [""])[0]));
+        if (f.length) {
+          const x = f[uh(i, g.S.M) % f.length];
+          used.add(x.why.split("(")[0] + (x.why.match(/\d{4}年/) || [""])[0]);
+          lines.push(`${g.nameOf(i)}「${x.say}」`);
+        }
+      }
+    }
+    const lvn = LV_NAME[ev.heroLv];
+    g.log("event", `${ev.schoolName}(${lvn})の同窓会に出た。卒業から${ev.yrs}年、${ev.members.length}人が集まった`, { ev: "reunion_party", ids: ev.members, lv: ev.heroLv, b: ev.b });
+    return lines.join(" ");
+  }
+  E({ id: "reunion_invite", w: 0, make: (g, ctx4) => {
+    const M = +ctx4.key.split(":")[0], ev = planOf(g, M).find((e) => e.key === ctx4.key);
+    if (!ev) return null;
+    const K3 = KINDS[ev.kind], lvn = LV_NAME[ev.heroLv];
+    const nm = ev.members.slice(0, 3).map((i) => g.nameOf(i)).join("、");
+    return { title: "同窓会の案内状", text: `${ev.schoolName}(${lvn})を卒業して${ev.yrs}年。幹事の${g.nameOf(ev.host)}さんから、${ev.day}日 18時に${g.bld(ev.b).name}で同窓会を開くと案内が届きました(${nm}ほか${ev.members.length}人。会費 ${fmt(g.yen(ev.fee))})。`, choices: [{ label: "出席する", apply: (g2) => {
+      if (g2.age() < 20) return "";
+      const r = heroJoin(g2, ctx4.key);
+      return r.msg || "";
+    } }, { label: "欠席する(はがきで近況を送る)", apply: (g2) => {
+      for (const i of ev.members.slice(0, 2)) g2.meet(i, 1);
+      return g2.chg({ mood: 0 });
+    } }], auto: 1 };
+  } });

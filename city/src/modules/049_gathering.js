@@ -147,6 +147,11 @@
       const fee = Math.round((K3.fee[0] + hash2(seed, 8839) % 100 / 100 * (K3.fee[1] - K3.fee[0])) / 100) * 100;
       list.push({ key: `${M}:${k}`, M, k, kind, b: best.idx, day, st: stM, en: stM + K3.dur, host: mem[0], members: mem, fee, res: 1, size: mem.length });
     }
+    // 主人公の同窓会(本当の同級生。reunion.js)
+    if (typeof heroReunionPlan === "function") {
+      const hr = heroReunionPlan(g, M);
+      if (hr) list.push(hr);
+    }
     S2.plans[M] = list;
     for (const kk of Object.keys(S2.plans)) if (+kk < M - 8) delete S2.plans[kk];
     return list;
@@ -227,7 +232,10 @@
   function monthlyGather(g) {
     const S2 = st(g), M = g.S.M;
     for (const ev of planMonth(g, M - 1)) resolve(g, ev);
-    planMonth(g, M);
+    for (const ev of planMonth(g, M)) if (ev.heroLv && !S2.seen[ev.key]) {
+      S2.seen[ev.key] = 1;
+      g.queueEvent("reunion_invite", { key: ev.key });
+    }
     for (const k of Object.keys(S2.done)) {
       const mm = +k.split(":")[0];
       if (mm < M - 12) delete S2.done[k];
@@ -339,6 +347,7 @@
         best = i;
       }
     }
+    const talk2 = ev.heroLv && typeof heroReunionJoin === "function" ? heroReunionJoin(g, ev) : "";
     const ids = ev.members.slice(0, 4).map((i) => g.nameOf(i)).join("\u3001");
     g.log("social", `${g.bld(ev.b).name}\u306E${K3.n}\u306B\u53C2\u52A0\u3057\u305F(${ids}\u307B\u304B)`, { b: ev.b, ids: ev.members });
     let note = "";
@@ -348,7 +357,7 @@
       note = `${g.nameOf(best)}\u3055\u3093\u3068\u306F\u6C17\u304C\u5408\u3044\u3001\u9023\u7D61\u5148\u3092\u4EA4\u63DB\u3057\u307E\u3057\u305F\u3002`;
       g.log("social", `${K3.n}\u3067${g.nameOf(best)}\u3055\u3093\u3068\u610F\u6C17\u6295\u5408\u3057\u305F`);
     }
-    return { ok: true, msg: `${K3.n}\u306B\u53C2\u52A0\u3057\u307E\u3057\u305F\u3002${note}`, partner: best };
+    return { ok: true, msg: `${K3.n}\u306B\u53C2\u52A0\u3057\u307E\u3057\u305F\u3002${note}${talk2}`, partner: best };
   }
   function soundLevel(g) {
     const L2 = g.S.loc;

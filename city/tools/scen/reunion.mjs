@@ -18,11 +18,28 @@ export default async (p) => {
     const said = [];
     for (let k = 0; k < 3; k++) { const res = NLS.runAction(G, 'chat', { id }); said.push(String(res.msg).slice(0, 160)); }
     const diary = G.S.log.filter(e => e.ev === 'reunion').map(e => e.text);
+    // 同窓会(卒業10年・20年の年): 集まるのは本当の同級生(同じ高校・同じ学年。同じ組の人が先)
+    const R = NLS.reun, gy = 1900 + Math.floor((P.born[h.id] - 3) / 12) + 19, party = [];
+    for (const yrs of [10, 20]) {
+      const M = (gy + yrs - 1900) * 12 + 7;
+      if (M > G.S.M) continue;
+      const ev = R.planOf(G, M).find(e => e.heroLv === 4);
+      if (!ev) { party.push({ yrs, none: 1 }); continue; }
+      const real = ev.members.every(i => P.sch4[i] === hs && Math.floor((P.born[i] - 3) / 12) === coh);
+      const sameK = ev.members.filter(i => P.cls4[i] === ck).length;
+      const inv = R.EVENTS.reunion_invite.make(G, { key: ev.key });
+      G.hero.money = Math.max(G.hero.money, 1e6);
+      const j = R.heroJoin(G, ev.key);
+      party.push({ yrs, n: ev.members.length, real, sameK, venue: w.map.buildings[ev.b].name, invite: inv && inv.text.slice(0, 120), ok: j.ok, msg: String(j.msg).slice(0, 260) });
+    }
+    const partyLog = G.S.log.filter(e => e.ev === 'reunion_party').map(e => e.text);
     const N = NLS.nav, G2 = N.Game.load(N.fromJSON(N.toJSON(G.serialize())));
-    return { years: G.year() - t0, heroAge: G.age(), hs: w.map.buildings[hs] && w.map.buildings[hs].name, ck: ck + 1, mates: mates.length, id, name: G.nameOf(id), facts, said, diary, saved: G2.world.pop.cls4[id] === P.cls4[id] && G2.world.pop.cls4[h.id] === ck };
+    return { party, partyLog, years: G.year() - t0, heroAge: G.age(), hs: w.map.buildings[hs] && w.map.buildings[hs].name, ck: ck + 1, mates: mates.length, id, name: G.nameOf(id), facts, said, diary, saved: G2.world.pop.cls4[id] === P.cls4[id] && G2.world.pop.cls4[h.id] === ck };
   });
   console.log('REUNION', JSON.stringify(r, null, 1));
   if (!r.mates || !r.facts.some(f => f.startsWith('3|') && /年ぶり|ひさしぶり/.test(f)) || !r.diary.length || !r.saved) throw new Error('reunion not working');
+  if (!r.party.length || r.party.some(x => x.none || !x.real || !x.sameK || !x.ok || !/「/.test(x.msg)) || !r.partyLog.length) throw new Error('class reunion not real classmates');
+  for (const x of r.party) { const q = (x.msg.match(/「[^」]*」/g) || []); if (new Set(q).size < q.length) throw new Error('class reunion repeats same line'); }
   // 2回目以降は別の話題(同じ根拠を続けない)
   if (new Set(r.said.map(s => (s.match(/根拠: ([^)]*)/) || [])[1])).size < 2) throw new Error('reunion talk repeats');
 };
