@@ -17,6 +17,9 @@ export default async (p) => {
     for (const s of w.vacant) { const j = IDS[w.slots.job[s]]; vac[j] = (vac[j] || 0) + 1; }
     const emp = {}, sample = {};
     for (let i = 0; i < P.n; i++) if (!P.gone[i] && P.work[i] >= 0 && P.job[i] < 255) { const j = IDS[P.job[i]]; emp[j] = (emp[j] || 0) + 1; const L = sample[j] = sample[j] || []; if (L.length < 12) L.push(i); }
+    // 重点分野(指示の分野名)
+    const SECT = { 農林水産: 'farmer fisher forester', 建設: 'carpenter builder heavy foreman civil roadworker trafficguide', 運送: 'logistics truckdriver courier forklift logmgr sailor railstaff', 製造: 'factory inspector prodmgr plantmgr craftsman', 清掃: 'cleaner garbage janitor sewer', 造園: 'gardener', 電力: 'powerstaff electrician elecmaint', 水道: 'waterstaff waterworker plumber', 金融: 'banker', 保険: 'insurance', 不動産: 'realtor', 家庭教師: 'tutor', 医療: 'doctor nurse pharmacist', 福祉: 'caregiver childcare', 理美容: 'hairdresser', メディア: 'reporter announcer designer', 自動車整備: 'mechanic', 専門職: 'lawyer judge accountant architect itengineer' };
+    const SEC = (j) => Object.keys(SECT).find(k => SECT[k].split(' ').includes(j)) || '';
     const rows = IDS.map(j => {
       const d = J[j], ts = [...(typesOf[j] || [])];
       const bs = [...(bOf[j] || [])].map(i => B[i]).filter(b => b.status !== 'closed'), nb = bs.length, nt = bs.filter(b => b.tenant != null && b.tenant !== false).length;
@@ -24,7 +27,7 @@ export default async (p) => {
       for (const i of sample[j] || []) { try { const st = NLS.nav.npcStatus(i).now; n++; if (/仕事中|授業中|勤務|運転|診察|乗務|作業/.test(st)) working++; if (now.length < 2) now.push(st.slice(0, 18)); } catch (e) { } }
       const sz = bs.map(b => b.w * b.h * 4);
       sz.sort((a, c) => a - c);
-      return { job: j, name: d.name, wage: d.wage || 0, minAge: d.minAge || '', edu: d.edu || '', lic: d.lic || d.qual || '', exp: d.exp ? (d.exp.jobs || []).join('/') + ':' + d.exp.months : '', skill: d.skill || '', types: ts.join('/'), buildings: nb, tenants: nt, slots: slots[j] || 0, filled: filled[j] || 0, employed: emp[j] || 0, workingAt10: n ? Math.round(working / n * 100) : null, nowEx: now.join(' | '), vacant: vac[j] || 0, m2Median: sz.length ? sz[sz.length >> 1] : 0 };
+      return { job: j, name: d.name, wage: d.wage || 0, minAge: d.minAge || '', edu: d.edu || '', lic: d.lic || d.qual || '', exp: d.exp ? (d.exp.jobs || []).join('/') + ':' + d.exp.months : '', skill: d.skill || '', types: ts.join('/'), buildings: nb, tenants: nt, slots: slots[j] || 0, filled: filled[j] || 0, employed: emp[j] || 0, workingAt10: n ? Math.round(working / n * 100) : null, nowEx: now.join(' | '), vacant: vac[j] || 0, m2Median: sz.length ? sz[sz.length >> 1] : 0, fromY: d.fromY || '', sector: SEC(j), task: (NLS.wt.WORK_TASKS[j] || []).join('/'), heroEvent: (NLS.wt.FLAVOR[j] || []).length };
     });
     const ind = (window.INDUSTRIES_LIST || []).length;
     return { rows, keys: [...new Set(IDS.flatMap(j => Object.keys(J[j])))], ind };
@@ -33,6 +36,10 @@ export default async (p) => {
   console.log('JOBS', r.rows.length, 'noWorkplace', noPlace.length, 'noEmployee', noEmp.length, 'keys', r.keys.join(','));
   console.log('NOPLACE', noPlace.map(x => x.job + ':' + x.name).join(' '));
   console.log('NOEMP', noEmp.map(x => x.job + ':' + x.name + '(' + x.types + ' ' + x.buildings + ')').join(' '));
+  const noTask = r.rows.filter(x => !x.task), noEv = r.rows.filter(x => !x.heroEvent);
+  console.log('NOTASK', noTask.map(x => x.job).join(' '), 'NOHEROEVENT', noEv.map(x => x.job).join(' '));
   const keys = Object.keys(r.rows[0]);
   if (process.env.OUT) fs.writeFileSync(process.env.OUT + '/job_audit.csv', '﻿' + [keys.join(','), ...r.rows.map(x => keys.map(k => '"' + String(x[k] ?? '').replace(/"/g, '""') + '"').join(','))].join('\n'));
+  // 職場の無い職・働く人のいない職・作業の無い職があれば失敗
+  if (noPlace.length || noEmp.length || noTask.length) throw new Error('job coverage gap');
 };

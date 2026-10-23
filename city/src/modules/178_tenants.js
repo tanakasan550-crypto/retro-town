@@ -15,10 +15,19 @@
     { k: "clinic", n: "クリニック", sfx: ["クリニック", "内科", "歯科医院"], jobs: { doctor: 0.3, nurse: 0.5, receptionist: 0.2 }, y0: 1975, y1: 2200, w: (y) => y >= 1995 ? 1.3 : 0.7, ground: 1, low: 1 },
     { k: "cram", n: "学習塾", sfx: ["ゼミナール", "学習塾", "個別指導"], jobs: { tutor: 0.85, officeworker: 0.15 }, y0: 1965, y1: 2200, w: (y) => y >= 1975 ? 1.2 : 0.5, low: 1, zone: { school: 2, campus: 1.5, newtown: 1.5 } },
     { k: "law", n: "法律事務所", sfx: ["法律事務所"], jobs: { lawyer: 0.6, officeworker: 0.4 }, y0: 1945, y1: 2200, w: (y) => 0.8, ground: 0.6, zone: { civic: 2, downtown: 1.3 } },
+    // 現場へ出る業種(field): 事務所には事務と当番だけが机を持ち、ほかの社員は現場・巡回先へ出る
+    { k: "koumu", n: "工務店", sfx: ["工務店", "建設", "住建"], jobs: { foreman: 0.15, carpenter: 0.35, builder: 0.3, officeworker: 0.2 }, y0: 1945, y1: 2200, w: (y) => y < 1995 ? 1.3 : 0.9, ground: 1, field: 1, zone: { suburb_n: 1.6, suburb_e: 1.6, suburb_w: 1.6, newtown: 1.4, farm: 1.3 } },
+    { k: "doboku", n: "土木工事", sfx: ["土木", "興業", "組"], jobs: { civil: 0.2, heavy: 0.25, roadworker: 0.25, trafficguide: 0.15, officeworker: 0.15 }, y0: 1950, y1: 2200, w: (y) => y >= 1960 && y < 2000 ? 0.9 : 0.5, ground: 0.8, field: 1, zone: { harbor: 1.5, suburb_n: 1.3, farm: 1.3 } },
+    { k: "denki", n: "電気工事", sfx: ["電気工事", "電設"], jobs: { electrician: 0.7, elecmaint: 0.1, officeworker: 0.2 }, y0: 1950, y1: 2200, w: (y) => 0.8, ground: 0.8, field: 1 },
+    { k: "setsubi", n: "設備・水道工事", sfx: ["設備", "水道工業所"], jobs: { plumber: 0.6, waterworker: 0.2, officeworker: 0.2 }, y0: 1950, y1: 2200, w: (y) => 0.8, ground: 1, field: 1 },
+    { k: "zouen", n: "造園", sfx: ["造園", "グリーン"], jobs: { gardener: 0.8, officeworker: 0.2 }, y0: 1945, y1: 2200, w: (y) => 0.6, ground: 1, field: 1, zone: { suburb_n: 1.5, suburb_e: 1.5, suburb_w: 1.5, farm: 1.5 } },
+    { k: "bmgmt", n: "ビル管理・清掃", sfx: ["ビルサービス", "メンテナンス", "管財"], jobs: { cleaner: 0.5, security: 0.3, janitor: 0.1, officeworker: 0.1 }, y0: 1960, y1: 2200, w: (y) => y >= 1975 ? 1 : 0.5, field: 1, zone: { downtown: 1.4, tower: 1.4 } },
     { k: "press", n: "出版・編集", sfx: ["出版", "編集プロダクション"], jobs: { reporter: 0.4, designer: 0.3, officeworker: 0.3 }, y0: 1945, y1: 2200, w: (y) => y < 2005 ? 0.8 : 0.4 }
   ];
   var OK_BY = Object.fromEntries(OFFICE_KINDS.map((k) => [k.k, k]));
   var OFF_NAME = ["あおば", "ひかり", "つばさ", "みなと", "すばる", "かがやき", "はやて", "みらい", "ことぶき", "やまと", "あさひ", "わかば", "ひので", "なぎさ", "ふたば", "こだま", "いずみ", "せいらん"];
+  // 現場へ出る業種の、事務所に机を持たない職(工務店の大工・電気工事士など)
+  var isFieldWorker = (t, j) => !!(t && OK_BY[t.kind] && OK_BY[t.kind].field && j !== "officeworker" && j !== "foreman");
   var M2_PER_STAFF = 10;
   var isTenantOffice = (b) => b && b.type === "office" && !b.util && !b.salon && b.tenant == null;
   var officeFloors = (b) => Math.max(1, b.nf || b.floors || 1);
@@ -212,9 +221,12 @@
         P.add("board", x1 - 2, y0 + 1, "info", K === "realty" ? "物件情報(間取り・家賃)" : K === "travel" ? "旅行パンフレット" : "保険のご案内", true);
       } else if (K === "soft") P.wide("rack", x1 - 3, y0 + 1, 2, 1, null, "サーバーラック");
       else if (K === "arch" || K === "design") P.wide("table", x1 - 5, y0 + 2, 3, 2, "work", K === "arch" ? "図面の大机・模型" : "作業台(デザインの確認)");
-      else if (K === "tax" || K === "law" || K === "press") P.add("bookcase", x1 - 2, y0 + 1, null, K === "tax" ? "税法書・帳簿" : K === "law" ? "法律書" : "資料・見本誌");
+      else if (OK_BY[K] && OK_BY[K].field) {
+        P.add("board", x1 - 2, y0 + 1, "info", K === "bmgmt" ? "巡回・清掃の担当表" : "現場の工程表(今週の現場)", true);
+        P.wide("shelf", x1 - 4, y1 - 3, 3, 1, null, K === "koumu" ? "大工道具・資材の見本" : K === "doboku" ? "測量機器・安全帯・ヘルメット" : K === "denki" ? "電線・計測器・脚立" : K === "setsubi" ? "配管部材・工具" : K === "zouen" ? "剪定ばさみ・脚立・苗" : "清掃用具・制服");
+      }       else if (K === "tax" || K === "law" || K === "press") P.add("bookcase", x1 - 2, y0 + 1, null, K === "tax" ? "税法書・帳簿" : K === "law" ? "法律書" : "資料・見本誌");
       // 社員の机(業種の窓口・教室・診察の場所を除いた広さに)
-      let need = Math.max(2, Math.round(t.staff * (K === "cram" || K === "clinic" ? 0.4 : 1))), c = 0;
+      let need = Math.max(2, Math.round(t.staff * (K === "cram" || K === "clinic" ? 0.4 : OK_BY[K] && OK_BY[K].field ? 0.35 : 1))), c = 0;
       const yA = y0 + 2, yB = K === "realty" || K === "travel" || K === "ins" ? y1 - 5 : y1 - 2;
       // 島型: 2列の机を向かい合わせ(座る場所は島の外側)・島と島のあいだに通路。部屋いっぱいに並べる
       for (let yb = yA; yb + 3 < yB && c < need; yb += 4) for (const [dy, sy] of [[1, 0], [2, 3]]) for (let x = x0 + 2; x < x1 - (K === "soft" ? 4 : 2) && c < need; x++) {

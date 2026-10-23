@@ -486,7 +486,12 @@
       // 並べる値 = 何人目か ÷ その職場のその職の枠の数(どの職場も同じ割合ずつ埋まる。1人だけの職は最初に)
       const frac = new Float64Array(S2.b.length);
       for (let s = 0; s < S2.b.length; s++) frac[s] = ordOf[s] / seenBJ.get(S2.b[s] * 256 + S2.job[s]);
-      const order = [...Array(S2.b.length).keys()].sort((a, b) => frac[a] - frac[b] || (JOBS[JOB_IDS2[S2.job[b]]].qual ? 1 : 0) - (JOBS[JOB_IDS2[S2.job[a]]].qual ? 1 : 0) || a - b);
+      // 同じ割合なら、資格職 → 免許・経験の要る職(工場長・電気設備保守など。年齢と適性の高い人が少ない)→ ふつうの職の順
+      const need = (s) => {
+        const J = JOBS[JOB_IDS2[S2.job[s]]];
+        return J.qual ? 2 : J.lic || J.exp ? 1 : 0;
+      };
+      const order = [...Array(S2.b.length).keys()].sort((a, b) => frac[a] - frac[b] || need(b) - need(a) || a - b);
       const vac = [];
       let left = pool.length;
       for (const s of order) {

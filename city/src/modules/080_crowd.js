@@ -548,6 +548,8 @@
           // オフィスビル: その企業の机へ(企業ごとの立ち位置。空いていなければ通常の順)
           if (ofl != null) {
             const t = bizOfSlot(w, s), bid = t ? t.mgmt ? "mgmt" : t.id : null;
+            // 現場へ出る業種の作業員は事務所にいない(工務店・電気工事など。事務と現場監督だけ机)
+            if (t && !t.mgmt && isFieldWorker(t, JOB_IDS2[w.slots.job[s]])) continue;
             const k = spotsS.findIndex((q, k2) => q.biz === bid && !offUsed.has(k2));
             if (k >= 0) {
               offUsed.add(k);

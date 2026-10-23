@@ -62,6 +62,8 @@
   SLOTS_EXT.cityhall.garbage = 6;
   SLOTS_EXT.cityhall.gardener = 3;
   SLOTS_EXT.construction.gardener = 2;
+  // 施設の警備員(大きな施設・お金や人が集まる場所。オフィスビルの警備は tenants.js の建物の管理)
+  for (const [t, n2] of Object.entries({ hospital: 3, mall: 4, dept: 3, airport: 6, stadium: 4, themepark: 3, bank: 1, cityhall: 2, museum: 1, univ: 2, court: 2, station: 1, lab: 2, factory: 1, logistics: 1 })) (SLOTS_EXT[t] || (SLOTS_EXT[t] = {})).security = n2;
   var UTIL_SLOTS = { power: { powerstaff: 6, elecmaint: 4, electrician: 3 }, water: { waterstaff: 4, waterworker: 5, plumber: 3, sewer: 3 } };
   function expOK(g, J) {
     const jx = g.prof && g.prof().jxp || {};

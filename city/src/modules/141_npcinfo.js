@@ -30,6 +30,13 @@
       goal = isHome(a.to) ? "自宅" : bn(a.to);
     } else if (a.s === 2) {
       now = dp && dp.kind === "school" ? `授業中(${bn(a.at)})` : `仕事中(${(typeof workplaceLabel === "function" ? workplaceLabel(w, id) : null) || bn(a.at)})`;
+      // その職の実際の作業(worktask.js)
+      if (!(dp && dp.kind === "school") && typeof npcWorkTask === "function" && p.job[id] < 255) {
+        const tk = npcWorkTask(JOB_IDS2[p.job[id]], id, G3.S.min);
+        if (tk) now += `・${tk}`;
+        const tb = typeof bizOfPerson === "function" ? bizOfPerson(w, id) : null;
+        if (tb && isFieldWorker(tb, JOB_IDS2[p.job[id]])) now = now.replace("仕事中(", "現場で仕事中(");
+      }
       const end = dp ? dp.b : null;
       if (end != null) goal = `${Math.floor(end)}:${String(Math.round(end % 1 * 60)).padStart(2, "0")}ごろ${dp.kind === "school" ? "下校" : "退勤"}して自宅へ`;
     } else if (a.s === 3) {
