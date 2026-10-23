@@ -2,7 +2,7 @@
   // 学校・大学・動物園などを、用途に合った広さの敷地(校舎・付属棟・校庭・体育館・プール・テニスコート・獣舎・外周フェンス・門)として
   // 近くの空き地に置き直す。移した施設は同じ番号のまま座標だけが変わり、元の場所は空き地になる。付属棟は建物一覧の末尾に足す。
   // セーブは建物ごとの属性(名前・歴史など)を番号で持つので、読み込み時に同じ後処理をすれば同じ配置になる。
-  var SITES_VER = 1;
+  var SITES_VER = 2;
   BTYPES.annex = { label: "付属棟", w: 4, h: 4, cat: "school", enter: true, interior: "school", floors: 1, slots: {} };
   KIT.s_gym = { k: "school", f: [2, 2], roof: "saw", wall: "school" };
   KIT.s_wing = { k: "school", f: [3, 3], roof: "flat", wall: "school" };
@@ -85,6 +85,8 @@
       for (const l of S2.lots || []) for (let y = l[1]; y < l[1] + l[3]; y++) for (let x = l[0]; x < l[0] + l[2]; x++) cls[x + y * W2] = 3;
     }
     for (const l of map2.lots || []) if (![...own].some((S2) => (S2.lots || []).some((q) => q[0] === l.x && q[1] === l.y))) block(l.x, l.y, l.w, l.h);
+    // ほかの施設の敷地(公園・遊園地・屋敷・寺社・空港・ほかの学校の今の敷地など)は使わない。自分の今の敷地だけは使える(下で区分3)
+    for (const S2 of map2.sites || []) if (!own.has(S2)) block(S2.x, S2.y, S2.w, S2.h);
     for (const S2 of own) for (let y = S2.y; y < S2.y + S2.h; y++) for (let x = S2.x; x < S2.x + S2.w; x++) if (x >= 0 && y >= 0 && x < W2 && y < H4) {
       const k = x + y * W2, bi = map2.bid[k];
       const mine = bi < 0 || (S2.parts || []).includes(bi);
@@ -235,6 +237,8 @@
     // 敷地(と1タイルの余白)の印。毎回 placed を走査しない
     const siteM = new Uint8Array(W2 * H4);
     for (const p of placed) for (let y = Math.max(0, p.y - 1); y < Math.min(H4, p.y + p.h + 1); y++) siteM.fill(1, y * W2 + Math.max(0, p.x - 1), y * W2 + Math.min(W2, p.x + p.w + 1));
+    // ほかの施設の敷地(公園・屋敷・寺社・空港など)にも移さない
+    for (const S2 of map2.sites || []) for (let y = Math.max(0, S2.y); y < Math.min(H4, S2.y + S2.h); y++) siteM.fill(1, y * W2 + Math.max(0, S2.x), y * W2 + Math.min(W2, S2.x + S2.w));
     const inSite = (x, y) => siteM[x + y * W2] === 1;
     for (const b of list) {
       let done2 = false;

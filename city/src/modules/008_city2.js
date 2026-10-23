@@ -580,7 +580,11 @@
           occ.push([ex - 1, ey - 1, ebt.w + 2, ebt.h + 3]);
           S2.parts.push(eb.idx);
           done = true;
-          if (et === "tourtower" && kind === "airport") eb.name = "\u7BA1\u5236\u5854";
+          if (et === "tourtower" && kind === "airport") {
+            eb.name = "\u7BA1\u5236\u5854";
+            // 空港の管制塔は観光の展望塔(東都タワー)とは別の種類(towers.js)
+            if (BTYPES.ctower) eb.type = "ctower";
+          }
           if (et === "warehouse" && kind === "airport") eb.name = "\u822A\u7A7A\u6A5F\u683C\u7D0D\u5EAB" + (S2.parts.length - 1);
         }
         if (!done) dbg["siteEx:" + et] = (dbg["siteEx:" + et] || 0) + 1;

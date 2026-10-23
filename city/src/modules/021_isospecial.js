@@ -343,6 +343,11 @@
     }
   }
   function paintSpecial(ctx4, e, P2, poly7, mode2, px2) {
+    // 東都タワー・航空管制塔(towers.js)
+    if ((e.sp.kind === "tourtower" || e.sp.kind === "ctower") && typeof paintTowerX === "function") {
+      paintTowerX(ctx4, e, P2, poly7, mode2);
+      return;
+    }
     if (e.sp.kind === "stadium") {
       paintStadium(ctx4, e, P2, poly7, mode2);
       return;

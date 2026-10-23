@@ -275,7 +275,7 @@
     const mwh = sp.es ? Math.min(tb0.u1 - tb0.u0, tb0.v1 - tb0.v0) : Math.min(w, h);
     const rh = sp.roof === "gable" || sp.roof === "hip" || sp.roof === "pagoda" ? mwh * 0.5 * 1.25 * (sp.wa === "kaya" ? 1.3 : sp.wa ? 0.8 : 1) : sp.roof === "shed" ? 0.9 : sp.roof === "saw" ? 1.6 : 0.5;
     const hasRoofSign = sp.kind === "super" || sp.kind === "mall" || sp.kind === "dept" || sp.kind === "hotel" || sp.kind === "game" || sp.kind === "cinema";
-    const extra = (hasRoofSign ? 3.6 : 1.2) + (sp.kind === "yard" ? 2.2 : 0) + (sp.kind === "tourtower" ? 40 : 0) + (SPECIAL.has(sp.kind) ? 5 : 0) + (sp.chim ? 6 : 0) + (sp.clock ? 3 : 0);
+    const extra = (hasRoofSign ? 3.6 : 1.2) + (sp.kind === "yard" ? 2.2 : 0) + (sp.kind === "tourtower" ? 60 : sp.kind === "ctower" ? 18 : 0) + (SPECIAL.has(sp.kind) ? 5 : 0) + (sp.chim ? 6 : 0) + (sp.clock ? 3 : 0);
     const padT = (Hm + rh + extra) * 12 * R5, padL = 8 * R5, padR = 8 * R5, padB = 8 * R5;
     const cw = Math.ceil((w + h) * 16 * R5 + padL + padR), ch = Math.ceil((w + h) * 8 * R5 + padT + padB);
     const ax = Math.ceil(h * 16 * R5 + padL), ay = Math.ceil(padT);

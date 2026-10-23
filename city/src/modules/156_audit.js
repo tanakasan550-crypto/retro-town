@@ -21,7 +21,7 @@
     put("med", "hospital clinic pharmacy nursing welfare");
     put("res", "house farmhouse apt tower villa hotel bizhotel resorthotel minshuku");
     put("shop", "shop konbini super mall dept bookstore clothes fishshop liquor greengrocer homecenter directsale cardealer usedcar ramen restaurant seafood izakaya cafe market gasstation");
-    put("transit", "station metro airport ferry pier marina harboroffice");
+    put("transit", "station metro airport ctower ferry pier marina harboroffice");
     put("leisure", "park zoo aquarium themepark stadium cinema gamecenter bowling gym beachhouse");
     put("onsen", "onsenbath ryokan sento tourtower");
     put("public", "cityhall police fire court library funeral crematorium");
