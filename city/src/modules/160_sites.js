@@ -20,6 +20,11 @@
     if (t === "elem") return { W: 40, H: 34, main: [3, 3, 30, 6, 3], annex: [["gym", 29, 13, 9, 8, 1, "体育館", "s_gym"]], ground: [["paved", 1, 10, 38, 2], ["yard", 2, 13, 25, 18], ["paved", 28, 22, 11, 2]], solid: [["pool", 29, 25, 9, 6]], props: [["track", 2, 13, 25, 18], ["iron_bar", 3, 29], ["slide", 6, 29], ["swing", 9, 29], ["jungle", 12, 29], ["bike", 33, 10]], gate: [17, 23] };
     if (t === "jh") return { W: 46, H: 38, main: [3, 3, 36, 7, 3], annex: [["gym", 36, 13, 9, 10, 1, "体育館", "s_gym"], ["club", 3, 33, 10, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 44, 2], ["yard", 2, 14, 32, 18], ["court", 36, 25, 9, 9]], solid: [], props: [["track", 2, 14, 32, 18], ["backstop", 3, 15], ["goal", 26, 22], ["goalL", 8, 22], ["tennis", 36, 25, 9, 9], ["bike", 40, 11]], gate: [18, 24] };
     if (t === "hs") return { W: 56, H: 44, main: [3, 3, 42, 7, 4], annex: [["wing", 47, 3, 8, 12, 3, "特別教室棟", "s_wing"], ["gym", 46, 17, 9, 10, 1, "体育館", "s_gym"], ["club", 14, 39, 12, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 54, 2], ["yard", 2, 14, 42, 24], ["court", 2, 38, 11, 5]], solid: [["pool", 46, 30, 9, 7]], props: [["track", 14, 14, 30, 24], ["backstop", 3, 15], ["diamond", 2, 14, 11, 11], ["goal", 41, 24], ["goalL", 16, 24], ["tennis", 2, 38, 11, 5], ["bike", 49, 39]], gate: [28, 36] };
+    // 公共施設(実際の庁舎・図書館・美術館・裁判所の規模に近く。1タイル=2m)
+    if (t === "cityhall") return { W: 50, H: 40, main: [5, 4, 32, 14, 7], annex: [], ground: [["paved", 2, 19, 46, 8], ["paved", 22, 27, 6, 13], ["paved", 38, 4, 10, 15], ["paved", 3, 29, 17, 9], ["paved", 30, 29, 17, 9]], solid: [], props: [["fountain", 25, 23], ["lot", 3, 29, 17, 9], ["lot", 30, 29, 17, 9], ["tree", 4, 21], ["tree", 46, 21], ["lamp", 12, 26], ["lamp", 38, 26], ["bench", 18, 25], ["bench", 32, 25], ["bike", 42, 8]], gate: [25, 34] };
+    if (t === "court") return { W: 36, H: 30, main: [4, 3, 26, 12, 5], annex: [], ground: [["paved", 2, 16, 32, 6], ["paved", 15, 22, 6, 8]], solid: [], props: [["tree", 4, 18], ["tree", 31, 18], ["tree", 8, 25], ["tree", 28, 25], ["lamp", 12, 21], ["lamp", 24, 21]], gate: [18, 24] };
+    if (t === "library") return { W: 34, H: 28, main: [3, 3, 24, 11, 3], annex: [], ground: [["paved", 2, 15, 30, 5], ["paved", 14, 20, 6, 8]], solid: [], props: [["tree", 4, 21], ["tree", 9, 24], ["tree", 25, 21], ["tree", 30, 24], ["bench", 6, 17], ["bench", 26, 17], ["bike", 29, 6], ["lamp", 12, 18]], gate: [17, 22] };
+    if (t === "museum") return { W: 44, H: 34, main: [4, 3, 32, 13, 2], annex: [], ground: [["paved", 2, 17, 40, 6], ["paved", 19, 23, 6, 11]], solid: [], props: [["fountain", 22, 20], ["tree", 4, 25], ["tree", 10, 28], ["tree", 33, 25], ["tree", 39, 28], ["bench", 12, 21], ["bench", 30, 21], ["lamp", 16, 19], ["lamp", 28, 19]], gate: [22, 28] };
     if (t === "special") return { W: 30, H: 24, main: [2, 2, 18, 6, 2], annex: [["wing", 22, 2, 6, 8, 2, "実習棟", "s_wing"]], ground: [["paved", 1, 9, 28, 2], ["yard", 2, 12, 26, 9]], solid: [], props: [["slide", 4, 14], ["swing", 8, 14], ["bike", 24, 12]], gate: [12, 18] };
     if (t === "univ") {
       const FAC = ["工学部", "文学部", "経済学部", "理学部", "法学部", "教育学部", "医学部", "農学部", "情報学部", "国際学部"];
@@ -144,7 +149,7 @@
     map2.fsites = [];
     const t0 = performance.now();
     const W2 = map2.W, placed = [];
-    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder"];
+    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
     const report = [], displaced = [];
     // 埋立地の島に移す施設(動物園・大学の本キャンパス・水族館・遊園地・スタジアム・工場)を先に置く(reclaim.js)。
@@ -204,7 +209,7 @@
     map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
   // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
-  var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [1.6, 1.4, 1.2], jh: [1.5, 1.3, 1.15], elem: [1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
+  var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [2, 1.8, 1.6, 1.4, 1.2], jh: [1.8, 1.65, 1.5, 1.3, 1.15], elem: [1.8, 1.65, 1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
     // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)
     const far = b.type === "zoo" || b.type === "univ";

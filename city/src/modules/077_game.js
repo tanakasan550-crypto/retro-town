@@ -818,6 +818,8 @@
             return `${n2}\u304C\u30D1\u30FC\u30C8\u30CA\u30FC\u3092\u4EA1\u304F\u3057\u305F`;
           case "laidoff":
             return `${n2}\u306E\u8077\u5834\u304C\u306A\u304F\u306A\u3063\u305F`;
+          case "visit_out":
+            return `市外に住む${n2}が、${e.obon ? "お盆" : "正月"}に${this.nameOf(e.host)}の家を訪ねた`;
           default:
             return null;
         }

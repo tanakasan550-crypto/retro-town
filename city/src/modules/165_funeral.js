@@ -6,7 +6,8 @@
   var funAge = (p, id, M) => Math.floor((M - p.born[id]) / 12);
   // 喪主: 配偶者 → (配偶者が高齢で成人の子がいれば)長子 → 長子 → 親 → きょうだい → 葬儀社(身寄りなし)。18歳未満は務めない
   function funeralChief(w, id, M) {
-    const p = w.pop, alive = (x) => x >= 0 && !p.gone[x] && x !== id, adult = (x) => alive(x) && funAge(p, x, M) >= 18;
+    // 市外に住む親族(kinout.js)も喪主になれる
+    const p = w.pop, alive = (x) => x >= 0 && (!p.gone[x] || typeof isOutKin === "function" && isOutKin(p, x)) && x !== id, adult = (x) => alive(x) && funAge(p, x, M) >= 18;
     const kids = w.childrenOf(id).filter(adult).sort((a, b) => p.born[a] - p.born[b]);
     const sp = p.spouse[id];
     if (adult(sp)) {
@@ -29,7 +30,7 @@
   function funeralSiblings(w, id) {
     const p = w.pop, m = p.mother[id], f = p.father[id], out = [];
     if (m < 0 && f < 0) return out;
-    for (let i = 0; i < p.n; i++) if (i !== id && !p.gone[i] && (m >= 0 && p.mother[i] === m || f >= 0 && p.father[i] === f)) out.push(i);
+    for (let i = 0; i < p.n; i++) if (i !== id && (!p.gone[i] || typeof isOutKin === "function" && isOutKin(p, i)) && (m >= 0 && p.mother[i] === m || f >= 0 && p.father[i] === f)) out.push(i);
     return out;
   }
   // 法定相続分(民法の割合。金額は扱わない)

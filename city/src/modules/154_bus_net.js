@@ -35,8 +35,10 @@
         return s ? { x: s.door.x, y: s.door.y + 2, name: s.name + (s.name.endsWith("前") ? "駅" : "駅前"), stationId: s.id } : null;
       }
       let best = null, bd = 1e9;
+      // 埋立地(島)の施設は新都心線が受け持つ(本土の系統は本土の同じ種類の施設へ。なければ停留所を作らない)
+      const I3 = map2.island, onIsl = (b) => I3 && b.doorY >= I3.y && b.doorX >= I3.x && b.doorX < I3.x + I3.w;
       for (const b of map2.buildings) {
-        if (b.type !== key || b.tenant) continue;
+        if (b.type !== key || b.tenant || onIsl(b)) continue;
         const d = Math.hypot(b.doorX - 640, b.doorY - 480);
         if (d < bd) {
           bd = d;
