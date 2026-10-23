@@ -2,6 +2,16 @@
   function npcStatus(id) {
     const w = G3.world, p = w.pop;
     const age = G3.ageOf(id);
+    // 市外に住む親族(kinout.js): 帰省の日だけ街にいる
+    if (typeof isOutKin === "function" && isOutKin(p, id)) {
+      let ties = null;
+      try {
+        ties = tiesOf(w, G3.hero.id, id).filter((t) => t.k === "kin").map((t) => t.rel);
+      } catch (e) {
+      }
+      const kids = w.childrenOf(id).filter((k) => !p.gone[k] && p.home[k] >= 0).map((k) => G3.nameOf(k));
+      return { who: `市外在住${kids.length ? `(${kids.join("・")}さんの親)` : ""}`, age, now: (typeof kinVisitStatus === "function" ? kinVisitStatus(id) : null) || "市外の家で暮らしている", goal: "", mission: null, ties };
+    }
     const d = G3.date();
     const a = personActivity(w, id, G3.S.min, d.dow);
     const dp = dayPlan(w, id, d.dow);

@@ -342,6 +342,7 @@
       }
       try {
         if (typeof visitorWalkers === "function") visitorWalkers(this, out, hx2, hy, radius);
+        if (typeof kinVisitWalkers === "function") kinVisitWalkers(this, out, hx2, hy, radius);
       } catch (e) {
       }
       try {
@@ -486,6 +487,11 @@
       }
       try {
         if (typeof visitorsInside === "function" && !isUnitFloor(floor)) for (const q of visitorsInside(this, b, I2, floor)) if (!res.some((r) => r.id === q.id)) res.push(q);
+      } catch (e) {
+      }
+      // 帰省している市外の親族(kinvisit.js)。一戸建て(集合住宅の住戸は unitPeople)
+      if (bt.cat === "res" && typeof kinVisitInside === "function") try {
+        for (const q of kinVisitInside(this, bIdx, I2)) if (!res.some((r) => r.id === q.id)) res.push(q);
       } catch (e) {
       }
       if (bt.cat === "res") {

@@ -282,6 +282,11 @@
       const s = sp[si++ % sp.length];
       res.push({ id: i, x: s.x + 0.5, y: s.y + 0.5, dir: "d", role: u.hero ? "family" : "resident" });
     }
+    // 帰省している市外の親族(この住戸の世帯の親・kinvisit.js)
+    if (typeof kinVisitInside === "function") try {
+      for (const q of kinVisitInside(crowd, bIdx, I2, u.hh)) res.push(q);
+    } catch (e) {
+    }
     return res;
   }
 

@@ -4,8 +4,18 @@
   // 身内を亡くして1年以内(葬儀の記録。喪主を務めたか)・近所の店の開店(街の記録)・今日の天気。選んだ文の根拠を一緒に表示する。
   function talkFacts(g, id) {
     const w = g.world, p = w.pop, B2 = w.map.buildings, h = g.hero, out = [];
-    if (id == null || id < 0 || p.gone[id]) return out;
+    const outKin = typeof isOutKin === "function" && isOutKin(p, id);
+    if (id == null || id < 0 || p.gone[id] && !outKin) return out;
     const say = (s, why, pri = 1) => out.push({ say: s, why, pri });
+    // 市外に住む親族の帰省(kinvisit.js): その日の予定と、迎える子の名前を根拠にする
+    if (outKin) {
+      const v = typeof kinVisitOf === "function" ? kinVisitOf(g, id) : null;
+      if (v) {
+        const hn = g.nameOf(v.host);
+        say(v.host === h.id ? `${v.label}だから会いに来たよ。元気そうでよかった。` : `${v.label}に${hn}の顔を見に来たんだよ。`, `帰省の予定(${v.label}・${hn}さんの家・${hhmm(v.arrive)}〜${hhmm(v.leave)})`, 3);
+        say(`ふだんは市外で暮らしているから、この街に来ると懐かしいねえ。`, "市外在住の親族(人物の記録)", 2);
+      } else say("今日は市外の家にいるよ。", "市外在住の親族(人物の記録)", 1);
+    }
     const age = ageYears(p, id, w.M), M = g.S.M;
     // 主人公との関係
     const myS = p.school[h.id] ?? -1, sb = p.school[id] >= 0 ? B2[p.school[id]] : null;
