@@ -14,10 +14,10 @@ export default async (p, shot) => {
     G.skipTo(G.S.M + 2, false);
     const L = G.S.loc; L.k = 'in'; L.b = zoo.idx; L.floor = 0; L.x = 5.5; L.y = 5.5;
     const txt = NLS.nav.toJSON(G.serialize());
-    return { txt, nb: m.buildings.length, n: G.world.pop.n, ids: m.buildings.map(b => b.id).join('|'), home: G.hero.homeB, homeName: m.buildings[G.hero.homeB].name, homes: Array.from(G.world.pop.home.slice(0, G.world.pop.n)).join(','), M: G.S.M, zoo: [zoo.idx, zoo.x, zoo.y], money: G.hero.money };
+    return { txt, nb: m.buildings.length, n: G.world.pop.n, ids: m.buildings.map(b => b.id).join('|'), home: G.hero.homeB, homeName: m.buildings[G.hero.homeB].name, homes: Array.from(G.world.pop.home.slice(0, G.world.pop.n)).join(','), borns: Array.from(G.world.pop.born.slice(0, G.world.pop.n)).join(','), gones: Array.from(G.world.pop.gone.slice(0, G.world.pop.n)).join(','), M: G.S.M, zoo: [zoo.idx, zoo.x, zoo.y], money: G.hero.money };
   });
   await q.close();
-  console.log('OLD', JSON.stringify({ ...A, txt: A.txt.length, ids: A.ids.length, homes: A.homes.length }));
+  console.log('OLD', JSON.stringify({ ...A, txt: A.txt.length, ids: A.ids.length, homes: A.homes.length, borns: A.borns.length, gones: A.gones.length }));
   // 2) 新しい版で読み込む
   await startTrial(p);
   const B = await p.evaluate((A) => {
@@ -31,8 +31,12 @@ export default async (p, shot) => {
     let badHome = 0; for (let i = 0; i < P.n; i++) if (!P.gone[i] && P.home[i] >= 0 && !m.buildings[P.home[i]]) badHome++;
     // 2回目の往復
     const G3 = N.Game.load(N.fromJSON(N.toJSON(G2.serialize())));
-    return { nb: m.buildings.length, n: P.n, sameIds, sameHomes, badHome, home: G2.hero.homeB, homeName: m.buildings[G2.hero.homeB].name, M: G2.S.M, money: G2.hero.money, loc: [L.k, L.b, L.floor], interiorOk, zooNow: [zoo.idx, zoo.type, zoo.x, zoo.y, zoo.siteI != null && m.fsites[zoo.siteI].y >= m.island.y], again: G3.world.map.buildings.length === m.buildings.length && G3.S.M === G2.S.M, schBackfill: (() => { let n = 0; for (let i = 0; i < P.n; i++) if (P.school[i] >= 0 && !P.gone[i]) { const lv = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[m.buildings[P.school[i]].type]; if (lv && P['sch' + lv][i] === P.school[i]) n++; } return n; })() };
+    // 移した建物に住む旧セーブの住民: 入口が歩ける場所・住人はそのまま
+    const byId = new Map(m.buildings.map(b => [b.id, b])), mvSet = new Set((m.siteMoved || []).filter(x => x.to).map(x => byId.get(x.id).idx));
+    let movedRes = 0, movedDoorBad = 0; for (let i = 0; i < A.n; i++) if (!P.gone[i] && mvSet.has(P.home[i])) { movedRes++; const b = m.buildings[P.home[i]]; if (m.solid[b.doorX + b.doorY * m.W]) movedDoorBad++; }
+    const sameBorn = Array.from(P.born.slice(0, A.n)).join(',') === A.borns, sameGone = Array.from(P.gone.slice(0, A.n)).join(',') === A.gones;
+    return { movedRes, movedDoorBad, sameBorn, sameGone, added: P.n - A.n, nb: m.buildings.length, n: P.n, sameIds, sameHomes, badHome, home: G2.hero.homeB, homeName: m.buildings[G2.hero.homeB].name, M: G2.S.M, money: G2.hero.money, loc: [L.k, L.b, L.floor], interiorOk, zooNow: [zoo.idx, zoo.type, zoo.x, zoo.y, zoo.siteI != null && m.fsites[zoo.siteI].y >= m.island.y], again: G3.world.map.buildings.length === m.buildings.length && G3.S.M === G2.S.M, schBackfill: (() => { let n = 0; for (let i = 0; i < P.n; i++) if (P.school[i] >= 0 && !P.gone[i]) { const lv = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[m.buildings[P.school[i]].type]; if (lv && P['sch' + lv][i] === P.school[i]) n++; } return n; })() };
   }, A);
   console.log('NEW', JSON.stringify(B));
-  if (!B.sameIds || !B.sameHomes || B.badHome || B.home !== A.home || B.n !== A.n || B.M !== A.M || B.money !== A.money || B.interiorOk !== true || !B.zooNow[4] || !B.again || !B.schBackfill) throw new Error('old save migration failed');
+  if (!B.sameIds || !B.sameHomes || B.badHome || B.home !== A.home || B.n < A.n || !B.sameBorn || !B.sameGone || B.movedDoorBad || !B.movedRes || B.M !== A.M || B.money !== A.money || B.interiorOk !== true || !B.zooNow[4] || !B.again || !B.schBackfill) throw new Error('old save migration failed');
 };
