@@ -49,7 +49,10 @@
       const d = cohOf(p, a) - cohOf(p, b), bn = w.map.buildings[sa];
       if (!bn) continue;
       const nC = typeof schoolClasses === "function" ? schoolClasses(w, bn) : 3;
-      if (d === 0) out.push({ lv, b: sa, k: kumiOf(a, lv, nC) === kumiOf(b, lv, nC) && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
+      // 今その学校にいる2人は学級編成(kumiAt)で、卒業した学校は人ごとの値で同じ組か決める
+      const ka = typeof kumiAt === "function" && p.school[a] === sa ? kumiAt(w, bn, a) : -1, kb = typeof kumiAt === "function" && p.school[b] === sa ? kumiAt(w, bn, b) : -1;
+      const same = ka >= 0 && kb >= 0 ? ka === kb : kumiOf(a, lv, nC) === kumiOf(b, lv, nC);
+      if (d === 0) out.push({ lv, b: sa, k: same && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
       else if (Math.abs(d) <= 2) out.push({ lv, b: sa, k: d > 0 ? "senpai" : "kohai", years: Math.abs(d), name: bn.name, club: lv >= 3 && lv <= 4 && typeof campusClubOf === "function" && campusClubOf(a) === campusClubOf(b) && campusClubOf(a) !== "none" ? CLUB_NAME[campusClubOf(a)] : null });
     }
     return out;

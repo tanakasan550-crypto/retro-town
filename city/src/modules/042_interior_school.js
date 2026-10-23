@@ -17,6 +17,26 @@
     schClsC.set(b.idx, { y, w, n: n2 });
     return n2;
   }
+  // 学級編成(年ごと): 学年の在籍者を決まった順(人ごとの値)に並べ、1組から順に配る(人数の差は1人まで・35人を超えない)
+  var schKumiC = /* @__PURE__ */ new Map();
+  function kumiAt(w, b, id) {
+    const y = Math.floor(w.M / 12);
+    let c = schKumiC.get(b.idx);
+    if (!c || c.y !== y || c.w !== w) {
+      const cfg = cfgOf(b), nC = schoolClasses(w, b), p = w.pop, byG = /* @__PURE__ */ new Map(), map = /* @__PURE__ */ new Map();
+      for (let i = 0; i < p.n; i++) if (!p.gone[i] && p.school[i] === b.idx) {
+        const gr = gradeOfPerson(w, i, cfg);
+        (byG.get(gr) || byG.set(gr, []).get(gr)).push(i);
+      }
+      for (const [gr, L3] of byG) {
+        L3.sort((a, c2) => uh(a, 770 + gr) - uh(c2, 770 + gr) || a - c2);
+        L3.forEach((i, k) => map.set(i, k % nC));
+      }
+      schKumiC.set(b.idx, c = { y, w, map });
+    }
+    const v = c.map.get(id);
+    return v != null ? v : -1;
+  }
   // 学級(組): 人ごとに決まる(学年ごと)。学級数が変わるとその数で割りなおす
   var slotOf = (cfg, grade, k, nC = cfg.cpg) => (grade - 1) % cfg.gpf * nC + k % nC;
   function roomInfo(b, floor, slot, nC = cfgOf(b).cpg) {

@@ -612,7 +612,7 @@
       const gk = big ? "g" + gr : fl;
       const n2 = (gradeCount[gk] = (gradeCount[gk] || 0) + 1) - 1;
       // 学級は人ごとに決まる(ties.js の kumiOf と同じ)。席は学級の中で来た順
-      const kumi = big ? kumiOf(i, { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[b.type] || 3, nC) : 0;
+      const kumi = big ? Math.max(0, kumiAt(w, b, i)) : 0;
       const ck = big ? "c" + gr + ":" + kumi : null;
       const cl = big ? slotOf(cfg, gr, kumi, nC) : 0, k = big ? (byCls.set(ck, (byCls.get(ck) || 0) + 1), byCls.get(ck) - 1) : n2;
       if (fl !== floor) continue;
