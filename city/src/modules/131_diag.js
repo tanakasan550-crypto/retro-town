@@ -72,3 +72,52 @@ FPS ${d.fps} / \u30D5\u30EC\u30FC\u30E0\u5E73\u5747 ${d.frameMs.avg}ms\u30FB95%\
 ` : "") + (d.scene ? `\u5834\u9762 ${d.scene.loc} / \u63CF\u753B\u7269 ${d.scene.items ?? "?"} / \u5EFA\u7269 ${d.scene.bld ?? "?"} / \u30BA\u30FC\u30E0 ${d.scene.zoom}
 ` : "") + `UA: ${d.ua}`;
 
+  // Android 実機の検証(設定 → 端末の検証): 描画(5秒)・端末内の保存と読み込みの往復(専用の枠 devicecheck に保存し、読み直して一致を確かめ、消す)・
+  // メモリ・保存の空き容量。結果は端末に残し(localStorage nls_devcheck)、コピーして報告できる。手で確かめる項目の一覧も付ける。
+  // ここでの結果は「その端末で動いた記録」で、PC のエミュレーションの結果を実機の合格としない
+  var DEVCHECK_MANUAL = ["縦持ち・横持ちを切り替えても画面が崩れない", "ジョイスティック/十字キーで歩ける・タップで移動できる", "建物に入る・出る・階段とエレベーターで階を移る", "メニュー・モーダルが指で押せる(文字を大きくするも)", "音が鳴る・音量を変えられる・字幕が出る", "戻るボタン・ホーム画面に戻って再開しても続きから遊べる", "セーブ → アプリを閉じる → 開いて続きから遊べる", "10分遊んで端末が熱くなりすぎない・電池の減り"];
+  async function runDeviceCheck(R5, G4, step = () => {
+  }) {
+    const out = { kind: "devicecheck" };
+    step("描画を5秒計測しています…");
+    out.diag = await runDiag(R5, G4, 5);
+    step("端末内に保存して読み直しています…");
+    const sv = { ok: false };
+    try {
+      const t0 = performance.now();
+      await saveSlot("devicecheck", G4, { label: "端末の検証(自動で消します)" });
+      const t1 = performance.now();
+      const rec = await loadSlot("devicecheck");
+      const t2 = performance.now();
+      const G5 = Game.load(rec.data);
+      const t3 = performance.now();
+      const a = G4.world, b = G5.world;
+      sv.same = { hero: G5.hero.id === G4.hero.id, month: G5.S.M === G4.S.M, people: b.pop.n === a.pop.n, slots: b.slots.b.length === a.slots.b.length, money: G5.hero.money === G4.hero.money, tenants: JSON.stringify(b.bizOv || null) === JSON.stringify(a.bizOv || null) };
+      sv.ok = Object.values(sv.same).every(Boolean);
+      sv.ms = { save: Math.round(t1 - t0), load: Math.round(t2 - t1), restore: Math.round(t3 - t2) };
+      await deleteSlot("devicecheck");
+      sv.deleted = !await loadSlot("devicecheck");
+    } catch (e) {
+      sv.err = String(e && e.message || e);
+    }
+    out.save = sv;
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        const e = await navigator.storage.estimate();
+        out.storageMB = { used: +(e.usage / 1048576).toFixed(1), quota: +(e.quota / 1048576).toFixed(0) };
+      }
+    } catch (e) {
+    }
+    out.manual = DEVCHECK_MANUAL;
+    out.verdict = `${out.diag.verdict}・保存の往復 ${sv.ok ? "一致" : "不一致または失敗"}`;
+    try {
+      localStorage.setItem("nls_devcheck", JSON.stringify(out));
+    } catch (e) {
+    }
+    return out;
+  }
+  var deviceCheckText = (c) => diagText(c.diag) + `
+【保存と読み込み】${c.save.ok ? "一致" : "不一致・失敗"}${c.save.ms ? `(保存 ${c.save.ms.save}ms・読み込み ${c.save.ms.load}ms・復元 ${c.save.ms.restore}ms)` : ""}${c.save.same ? " 項目: " + Object.entries(c.save.same).map(([k, v]) => `${k}${v ? "○" : "×"}`).join(" ") : ""}${c.save.err ? " エラー: " + c.save.err : ""}${c.save.deleted === false ? "(検証用の枠が消えていません)" : ""}
+` + (c.storageMB ? `端末の保存領域 ${c.storageMB.used}MB 使用 / 上限 ${c.storageMB.quota}MB
+` : "") + `【手で確かめる項目(○×を書いて報告)】
+` + c.manual.map((x, i) => `${i + 1}. ${x}: `).join("\n");

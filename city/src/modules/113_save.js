@@ -92,7 +92,7 @@
     return await new Response(ds).text();
   }
   async function saveSlot(slot, game, meta = {}) {
-    if (isTestState(game) && slot !== "devtest") throw new Error("\u8A66\u9A13\u30BB\u30C3\u30B7\u30E7\u30F3\u4E2D\u306F\u901A\u5E38\u306E\u30BB\u30FC\u30D6\u67A0\u3078\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093(\u958B\u767A\u5C02\u7528\u306E\u5225\u67A0\u306E\u307F)");
+    if (isTestState(game) && slot !== "devtest" && slot !== "devicecheck") throw new Error("\u8A66\u9A13\u30BB\u30C3\u30B7\u30E7\u30F3\u4E2D\u306F\u901A\u5E38\u306E\u30BB\u30FC\u30D6\u67A0\u3078\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093(\u958B\u767A\u5C02\u7528\u306E\u5225\u67A0\u306E\u307F)");
     const m = await mode();
     const data = game.serialize();
     const mm = { ...meta, ts: meta.ts || Date.now(), version: 1 };
@@ -139,6 +139,24 @@
       }
     }
     return MEM.get(slot) || null;
+  }
+  // 保存枠を消す(端末の検証で使った枠だけを消す。プレイヤーのセーブ枠には使わない)
+  async function deleteSlot(slot) {
+    const m = await mode();
+    MEM.delete(slot);
+    if (m === "idb") {
+      const db = await open();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).delete(slot);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      db.close();
+    } else try {
+      localStorage.removeItem(LSK(slot));
+    } catch (e) {
+    }
   }
   async function verifySlot(slot, ts) {
     try {

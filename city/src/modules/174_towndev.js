@@ -94,6 +94,8 @@
     }
     // オフィスビルの入居企業の入れ替わり(tenants.js)
     if (typeof tenantTurnover === "function") tenantTurnover(w, y, log);
+    // 増築した建物の管理(受付・警備)などの職の枠を、その年のうちに足す(セーブを読み直したときと同じ枠になるように)
+    if (typeof w.extendSlots === "function") w.extendSlots();
     if (w.dev.length > 600) w.dev.splice(0, w.dev.length - 600);
     return n2;
   }
