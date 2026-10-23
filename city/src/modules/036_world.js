@@ -1245,7 +1245,11 @@
     if (p.flags[id] & F_STUDENT && p.school[id] >= 0) {
       if (!wk) return null;
       const age = ageYears(p, id, world.M);
-      const a = 8.2 + (age < 6 ? 0.8 : 0), b = age < 6 ? 15 : age < 15 ? 15.5 : 16.5;
+      const a = 8.2 + (age < 6 ? 0.8 : 0);
+      let b = age < 6 ? 15 : age < 15 ? 15.5 : 16.5;
+      // 中学・高校の部活の部員は18時まで学校にいる(campus_life.js の所属。帰宅部は除く)
+      const sb = world.map.buildings[p.school[id]];
+      if (sb && (sb.type === "jh" || sb.type === "hs") && typeof campusClubOf === "function" && campusClubOf(id) !== "none") b = 18;
       return { a, b, dest: p.school[id], kind: "school" };
     }
     if (p.work[id] >= 0 && p.job[id] < 255) {

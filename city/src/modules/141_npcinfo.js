@@ -33,7 +33,7 @@
       if (dp && G3.S.min / 60 < dp.a) goal = `${Math.floor(dp.a)}:${String(Math.round(dp.a % 1 * 60)).padStart(2, "0")}ごろ${dp.kind === "school" ? "登校" : "出勤"}(${bn(dp.dest)})`;
     }
     {
-      const bs = (typeof busNpcStatus === "function" ? busNpcStatus(id) : null) || (typeof visitNpcStatus === "function" ? visitNpcStatus(id) : null);
+      const bs = (typeof busNpcStatus === "function" ? busNpcStatus(id) : null) || (typeof visitNpcStatus === "function" ? visitNpcStatus(id) : null) || (typeof campusNpcStatus === "function" ? campusNpcStatus(id) : null);
       if (bs) {
         now = bs;
         if (BUSSIM.drivers && BUSSIM.drivers.has(id)) who = "市営バスの運転士";

@@ -344,6 +344,11 @@
         if (typeof visitorWalkers === "function") visitorWalkers(this, out, hx2, hy, radius);
       } catch (e) {
       }
+      try {
+        if (typeof campusOutdoor === "function") campusOutdoor(this, out, hx2, hy, radius);
+      } catch (e) {
+        console.warn("[campus]", e);
+      }
       out.parked = parked;
       return out;
     }
@@ -383,8 +388,13 @@
     // 屋内の在室者
     // 屋内の人物・巡回の経由点が机や壁の上に乗っていたら、いちばん近い空きマスへ寄せる(座る/寝る人は除く)
     indoor(bIdx, I2, floor) {
-      const res = this.indoor0(bIdx, I2, floor);
+      let res = this.indoor0(bIdx, I2, floor);
       if (!res || !I2 || !I2.objs) return res;
+      try {
+        if (typeof campusIndoor === "function") res = campusIndoor(this, bIdx, I2, floor, res);
+      } catch (e) {
+        console.warn("[campus in]", e);
+      }
       const sol = interiorSolid(I2), W2 = I2.W, H4 = I2.H;
       const near2 = (x, y) => {
         const sx = Math.floor(x), sy = Math.floor(y);
