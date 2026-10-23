@@ -46,7 +46,12 @@ export default async (p) => {
     const aw = NLS.ledger.ledgerAwards(G).filter(a => /夢|努力|成長|地域/.test(a.title)).map(a => `${a.title} ${a.name}: ${a.evidence}`);
     const end = D.buildEnding(G).sections.find(s => s.title === '夢と進路');
     const news = (w.newsLog || []).filter(e => e.kind === 'dream').slice(-3).map(e => e.text);
-    return { start, heroDream, same, old, sec, ev, deadRec: deadRec.n, after, talk: { same: talk(iSame), ok: talk(iOk), fail: talk(iFail) }, aw, ending: end ? end.lines.map(l => l.text) : null, news };
+    // 先生にあこがれて先生になった人(担任・在籍校の先生の職歴から決めた憧れ)
+    let tchInsp = 0, tchSame = 0; const TJ = ['teacher', 'special_teacher'];
+    for (const [id, pr] of w.prof) for (const e of pr.hist || []) if (e.k === 'inspire' && P.dr1[id] === 2) { tchInsp++; if (e.same) tchSame++; }
+    // セーブの大きさ(30年後)
+    const saveMB = +(N.toJSON(G.serialize()).length / 1048576).toFixed(1);
+    return { tchInsp, tchSame, saveMB, start, heroDream, same, old, sec, ev, deadRec: deadRec.n, after, talk: { same: talk(iSame), ok: talk(iOk), fail: talk(iFail) }, aw, ending: end ? end.lines.map(l => l.text) : null, news };
   });
   console.log('DREAMS', JSON.stringify(r, null, 1));
   if (process.env.OUT) fs.writeFileSync(process.env.OUT + '/dreams.json', JSON.stringify(r, null, 1));
@@ -61,5 +66,6 @@ export default async (p) => {
   if (!r.talk.same.some(s => /同じ職場/.test(s)) || !r.talk.ok.some(s => /夢だった/.test(s)) || !r.talk.fail.some(s => /落ち/.test(s))) bad.push('talk');
   if (!r.aw.some(s => /夢をかなえた賞/.test(s))) bad.push('awards');
   if (!r.ending || !r.ending.length) bad.push('ending');
+  if (!r.tchInsp) bad.push('no teacher inspired by a teacher');
   if (bad.length) throw new Error('dreams: ' + bad.join(', '));
 };

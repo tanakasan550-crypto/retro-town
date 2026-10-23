@@ -20,6 +20,10 @@ export default async (p) => {
     // 重点分野(指示の分野名)
     const SECT = { 農林水産: 'farmer fisher forester', 建設: 'carpenter builder heavy foreman civil roadworker trafficguide', 運送: 'logistics truckdriver courier forklift logmgr sailor railstaff', 製造: 'factory inspector prodmgr plantmgr craftsman', 清掃: 'cleaner garbage janitor sewer', 造園: 'gardener', 電力: 'powerstaff electrician elecmaint', 水道: 'waterstaff waterworker plumber', 金融: 'banker', 保険: 'insurance', 不動産: 'realtor', 家庭教師: 'tutor', 医療: 'doctor nurse pharmacist', 福祉: 'caregiver childcare', 理美容: 'hairdresser', メディア: 'reporter announcer designer', 自動車整備: 'mechanic', 専門職: 'lawyer judge accountant architect itengineer' };
     const SEC = (j) => Object.keys(SECT).find(k => SECT[k].split(' ').includes(j)) || '';
+    // その職の資格を持つ人の数・その職を夢にしている人の数(今)
+    const HOLD = {}, DRM = {};
+    for (const j of IDS) { const JJ = J[j]; if (!(JJ.qual || JJ.lic)) continue; let n = 0; for (let i = 0; i < P.n; i++) if (!P.gone[i] && P.home[i] >= 0 && NLS.dr.holdsFor(w, i, JJ)) n++; HOLD[j] = n; }
+    for (let i = 0; i < P.n; i++) if (!P.gone[i] && P.dr1[i] !== 255) { const D = NLS.dr.DREAMS[P.dr1[i]]; for (const j of D.jobs || []) DRM[j] = (DRM[j] || 0) + 1; }
     const rows = IDS.map(j => {
       const d = J[j], ts = [...(typesOf[j] || [])];
       const bs = [...(bOf[j] || [])].map(i => B[i]).filter(b => b.status !== 'closed'), nb = bs.length, nt = bs.filter(b => b.tenant != null && b.tenant !== false).length;
@@ -27,7 +31,7 @@ export default async (p) => {
       for (const i of sample[j] || []) { try { const st = NLS.nav.npcStatus(i).now; n++; if (/仕事中|授業中|勤務|運転|診察|乗務|作業/.test(st)) working++; if (now.length < 2) now.push(st.slice(0, 18)); } catch (e) { } }
       const sz = bs.map(b => b.w * b.h * 4);
       sz.sort((a, c) => a - c);
-      return { job: j, name: d.name, wage: d.wage || 0, minAge: d.minAge || '', edu: d.edu || '', lic: d.lic || d.qual || '', exp: d.exp ? (d.exp.jobs || []).join('/') + ':' + d.exp.months : '', skill: d.skill || '', types: ts.join('/'), buildings: nb, tenants: nt, slots: slots[j] || 0, filled: filled[j] || 0, employed: emp[j] || 0, workingAt10: n ? Math.round(working / n * 100) : null, nowEx: now.join(' | '), vacant: vac[j] || 0, m2Median: sz.length ? sz[sz.length >> 1] : 0, fromY: d.fromY || '', sector: SEC(j), task: (NLS.wt.WORK_TASKS[j] || []).join('/'), heroEvent: (NLS.wt.FLAVOR[j] || []).length };
+      return { job: j, name: d.name, wage: d.wage || 0, minAge: d.minAge || '', edu: d.edu || '', lic: d.lic || d.qual || '', exp: d.exp ? (d.exp.jobs || []).join('/') + ':' + d.exp.months : '', skill: d.skill || '', types: ts.join('/'), buildings: nb, tenants: nt, slots: slots[j] || 0, filled: filled[j] || 0, employed: emp[j] || 0, workingAt10: n ? Math.round(working / n * 100) : null, nowEx: now.join(' | '), vacant: vac[j] || 0, m2Median: sz.length ? sz[sz.length >> 1] : 0, fromY: d.fromY || '', dreams: (NLS.dr.DREAMS.filter(x => x.jobs && x.jobs.includes(j)).map(x => x.n)).join('/'), route: (() => { const k = d.qual || d.lic; if (!k) return ''; const rk = Object.keys(NLS.dr.QROUTE).find(q => (NLS.dr.QROUTE[q].q || NLS.dr.QROUTE[q].l) === k); return rk ? NLS.dr.QROUTE[rk].school + '→' + NLS.dr.QROUTE[rk].exam : k === 'driver' ? '自動車教習所→運転免許' : k; })(), holdersNow: HOLD[j] || 0, dreamersNow: DRM[j] || 0, sector: SEC(j), task: (NLS.wt.WORK_TASKS[j] || []).join('/'), heroEvent: (NLS.wt.FLAVOR[j] || []).length };
     });
     const ind = (window.INDUSTRIES_LIST || []).length;
     return { rows, keys: [...new Set(IDS.flatMap(j => Object.keys(J[j])))], ind };
