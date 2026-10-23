@@ -33,6 +33,8 @@
     onsenbath: { p: [[10, 22, 4]], stay: 60, we: 2, verb: "温泉" },
     aquarium: { p: [[9, 17, 6]], stay: 120, we: 2.5, verb: "見物" },
     zoo: { p: [[9, 16, 6]], stay: 150, we: 2.5, verb: "見物" },
+    themepark: { p: [[9, 20, 10]], stay: 240, we: 3, verb: "遊びに" },
+    edovillage: { p: [[9, 17, 5]], stay: 150, we: 2.5, verb: "見物" },
     museum: { p: [[10, 16, 3]], stay: 90, we: 2, verb: "見物" },
     shrine: { p: [[7, 17, 1]], stay: 15, we: 2, verb: "お参り" },
     temple: { p: [[7, 17, 1]], stay: 20, we: 2, verb: "お参り" }
@@ -125,6 +127,9 @@
   // 建物の中の来客(Crowd.indoor0 から)。床の空いている場所に、来店中の人を置く
   function visitorsInside(C2, b, I2, floor) {
     if (!VISIT[b.type] || floor !== (I2.lo != null ? Math.max(0, I2.lo) : 0) && floor !== 0) return [];
+    // 敷地のある動物園の来園者は屋外の園路にいる(zooOutdoorVisitors)
+    if (b.type === "zoo" && b.siteI != null) return [];
+    const cap = Math.max(24, Math.min(80, I2.W * I2.H / 40 | 0));
     const m = C2.g.S.min, out = [];
     const sol = interiorSolid(I2), cells = [];
     for (let y = 2; y < I2.H - 2; y++) for (let x = 1; x < I2.W - 1; x++) if (!sol[x + y * I2.W]) cells.push([x, y]);
@@ -136,7 +141,7 @@
       const s = seats.length && ["食事", "お茶", "飲みに"].includes(vz.verb) ? seats.splice(uh(vz.id, 3) % seats.length, 1)[0] : null;
       const c = s ? [s.x, s.y] : cells[uh(vz.id, 5) % cells.length];
       out.push({ id: vz.id, x: c[0] + 0.5, y: c[1] + 0.5, dir: "u", role: "visitor", seat0: !!s });
-      if (out.length > 24) break;
+      if (out.length > cap) break;
     }
     return out;
   }

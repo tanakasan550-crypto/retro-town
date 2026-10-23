@@ -269,3 +269,28 @@
     }
     return out;
   }
+
+  // 来園者(visitors.js の来客)を屋外の園路に置く: 獣舎の前を順にゆっくり見て回る(Crowd.outdoor から)
+  function zooOutdoorVisitors(C2, out, hx, hy, radius) {
+    const g = C2.g, m2 = g.world.map, min = g.S.min;
+    if (!m2.fsites || typeof visitsOf !== "function") return;
+    const have = new Set(out.map((o) => o.id));
+    for (const s of m2.fsites) {
+      if (s.type !== "zoo" || s.x > hx + radius || s.x + s.w < hx - radius || s.y > hy + radius || s.y + s.h < hy - radius) continue;
+      const b = m2.buildings[s.b], ex = s.solid.filter((r) => r.kind === "ex");
+      if (!ex.length) continue;
+      let k = 0;
+      for (const vz of visitsOf(C2, b, min, have)) {
+        if (min < vz.arrive || min >= vz.leave || out.length >= 190) continue;
+        // 見ている獣舎は時間とともに次へ(1つにつき約20分)
+        const r = ex[(uh(vz.id, 71) + Math.floor((min - vz.arrive) / 20)) % ex.length];
+        const along = (uh(vz.id, 72) % 100) / 100;
+        const x = r.x + 0.5 + along * (r.w - 1), y = r.y + r.h + 0.8 + (uh(vz.id, 73) % 2);
+        if (Math.abs(x - hx) > radius || Math.abs(y - hy) > radius) continue;
+        have.add(vz.id);
+        out.push({ id: vz.id, static: true, x, y, dx: 0, dy: -1, s: 3, visit: b.idx });
+        visitNow.set(vz.id, vz);
+        if (++k > 60) break;
+      }
+    }
+  }

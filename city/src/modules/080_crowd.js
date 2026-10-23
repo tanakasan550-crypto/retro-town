@@ -346,6 +346,7 @@
       }
       try {
         if (typeof campusOutdoor === "function") campusOutdoor(this, out, hx2, hy, radius);
+        if (typeof zooOutdoorVisitors === "function") zooOutdoorVisitors(this, out, hx2, hy, radius);
       } catch (e) {
         console.warn("[campus]", e);
       }
