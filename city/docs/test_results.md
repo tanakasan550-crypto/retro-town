@@ -1,6 +1,6 @@
 # 試験結果
 
-実行: 2026-10-23 14:48 / HTML: /tmp/claude-0/-home-user-retro-town/e09a700f-dbd4-58fa-8ec5-3dff16450d0d/scratchpad/r13.html (6065812 bytes) / コミット: 8068ec5
+実行: 2026-10-23 16:13 / HTML: /tmp/claude-0/-home-user-retro-town/e09a700f-dbd4-58fa-8ec5-3dff16450d0d/scratchpad/r14.html (6122197 bytes) / コミット: a48f9c0
 
 | 試験 | 結果 | 最後の行 |
 |---|---|---|
@@ -17,6 +17,7 @@
 | commute | 合格 | no errors |
 | compare2 | 合格 | no errors |
 | devcheck | 合格 | no errors |
+| dreams | 合格 | no errors |
 | elemland | 合格 | no errors |
 | enter | 合格 | no errors |
 | fly | 合格 | no errors |
@@ -63,4 +64,4 @@
 | zoo | 合格 | no errors |
 | zooout | 合格 | no errors |
 
-合格 58 / 不合格 0(80年の通し回帰 life80 は別に実行: tools/scen/life80.mjs)
+合格 59 / 不合格 0(80年の通し回帰 life80 は別に実行: tools/scen/life80.mjs)
