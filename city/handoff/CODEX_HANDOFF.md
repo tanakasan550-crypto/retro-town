@@ -34,6 +34,15 @@ GPT Codex が最初に読む引継ぎ説明書です。2026-10-23、Claude Code 
 - 引継ぎ時点のコミットと、試験に使ったビルドの SHA-256 は `handoff/HANDOFF_TEST_REPORT.md` と `handoff/GIT_INFO.txt` にある。
 - Codex の作業ブランチ: `codex/lifestory-v2-improvement`(引継ぎ時点のコミットから作成済み)。
 
+### リポジトリの公開状態と Codex の接続(2026-10-23 に確認)
+
+- **注意: GitHub API では、このリポジトリは現在「公開(public)」です**(`private:false`)。指示書の前提(非公開)と違います。
+  - Claude Code は設定を変えていません。非公開にするかどうかは代表者が GitHub の Settings → General → Danger Zone → Change visibility で決めてください。
+  - GitHub Pages(`https://tanakasan550-crypto.github.io/retro-town/`)は main の `index.html`(日立レトロ横丁)を配信しています。`city/` のゲームは main に無いため、Pages では配信されていません(`city/...` は 404 を確認)。ただし作業ブランチのソースと `release/*.html` は、リポジトリが公開である限り誰でも読めます。
+- Codex からの接続: ChatGPT の Codex の設定で GitHub 連携を有効にし、`tanakasan550-crypto/retro-town` へのアクセスを許可して、ブランチ `codex/lifestory-v2-improvement` を選ぶ。
+  - 連携が使えないときは、引継ぎ一式の `CODEX_HANDOFF_GIT.bundle`(全履歴)から `git clone CODEX_HANDOFF_GIT.bundle retro-town` で復元できる。
+  - トークンや鍵をリポジトリ・文書に書かないこと。
+
 ## 3. ソースと素材の配置(`city/`)
 
 | 場所 | 中身 |

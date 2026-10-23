@@ -1,6 +1,6 @@
 # 試験結果
 
-実行: 2026-10-23 17:01 / HTML: /tmp/claude-0/-home-user-retro-town/e09a700f-dbd4-58fa-8ec5-3dff16450d0d/scratchpad/r15.html (6123850 bytes) / コミット: f276a66
+実行: 2026-10-23 22:02 / HTML: release/lifestory_city_v2.html と同じバイト列 (6123850 bytes) / コミット: 16004f8
 
 | 試験 | 結果 | 最後の行 |
 |---|---|---|
