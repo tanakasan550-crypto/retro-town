@@ -21,10 +21,16 @@
     if (t === "jh") return { W: 46, H: 38, main: [3, 3, 36, 7, 3], annex: [["gym", 36, 13, 9, 10, 1, "体育館", "s_gym"], ["club", 3, 33, 10, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 44, 2], ["yard", 2, 14, 32, 18], ["court", 36, 25, 9, 9]], solid: [], props: [["track", 2, 14, 32, 18], ["backstop", 3, 15], ["goal", 26, 22], ["goalL", 8, 22], ["tennis", 36, 25, 9, 9], ["bike", 40, 11]], gate: [18, 24] };
     if (t === "hs") return { W: 56, H: 44, main: [3, 3, 42, 7, 4], annex: [["wing", 47, 3, 8, 12, 3, "特別教室棟", "s_wing"], ["gym", 46, 17, 9, 10, 1, "体育館", "s_gym"], ["club", 14, 39, 12, 3, 1, "部室棟", "s_low"]], ground: [["paved", 1, 11, 54, 2], ["yard", 2, 14, 42, 24], ["court", 2, 38, 11, 5]], solid: [["pool", 46, 30, 9, 7]], props: [["track", 14, 14, 30, 24], ["backstop", 3, 15], ["diamond", 2, 14, 11, 11], ["goal", 41, 24], ["goalL", 16, 24], ["tennis", 2, 38, 11, 5], ["bike", 49, 39]], gate: [28, 36] };
     // 公共施設(実際の庁舎・図書館・美術館・裁判所の規模に近く。1タイル=2m)
-    if (t === "cityhall") return { W: 50, H: 40, main: [5, 4, 32, 14, 7], annex: [], ground: [["paved", 2, 19, 46, 8], ["paved", 22, 27, 6, 13], ["paved", 38, 4, 10, 15], ["paved", 3, 29, 17, 9], ["paved", 30, 29, 17, 9]], solid: [], props: [["fountain", 25, 23], ["lot", 3, 29, 17, 9], ["lot", 30, 29, 17, 9], ["tree", 4, 21], ["tree", 46, 21], ["lamp", 12, 26], ["lamp", 38, 26], ["bench", 18, 25], ["bench", 32, 25], ["bike", 42, 8]], gate: [25, 34] };
+    if (t === "cityhall") return { W: 50, H: 40, main: [5, 4, 32, 14, 5], annex: [], ground: [["paved", 2, 19, 46, 8], ["paved", 22, 27, 6, 13], ["paved", 38, 4, 10, 15], ["paved", 3, 29, 17, 9], ["paved", 30, 29, 17, 9]], solid: [], props: [["fountain", 25, 23], ["lot", 3, 29, 17, 9], ["lot", 30, 29, 17, 9], ["tree", 4, 21], ["tree", 46, 21], ["lamp", 12, 26], ["lamp", 38, 26], ["bench", 18, 25], ["bench", 32, 25], ["bike", 42, 8]], gate: [25, 34] };
     if (t === "court") return { W: 36, H: 30, main: [4, 3, 26, 12, 5], annex: [], ground: [["paved", 2, 16, 32, 6], ["paved", 15, 22, 6, 8]], solid: [], props: [["tree", 4, 18], ["tree", 31, 18], ["tree", 8, 25], ["tree", 28, 25], ["lamp", 12, 21], ["lamp", 24, 21]], gate: [18, 24] };
     if (t === "library") return { W: 34, H: 28, main: [3, 3, 24, 11, 3], annex: [], ground: [["paved", 2, 15, 30, 5], ["paved", 14, 20, 6, 8]], solid: [], props: [["tree", 4, 21], ["tree", 9, 24], ["tree", 25, 21], ["tree", 30, 24], ["bench", 6, 17], ["bench", 26, 17], ["bike", 29, 6], ["lamp", 12, 18]], gate: [17, 22] };
     if (t === "museum") return { W: 44, H: 34, main: [4, 3, 32, 13, 2], annex: [], ground: [["paved", 2, 17, 40, 6], ["paved", 19, 23, 6, 11]], solid: [], props: [["fountain", 22, 20], ["tree", 4, 25], ["tree", 10, 28], ["tree", 33, 25], ["tree", 39, 28], ["bench", 12, 21], ["bench", 30, 21], ["lamp", 16, 19], ["lamp", 28, 19]], gate: [22, 28] };
+    // 警察署・消防署・介護施設・福祉施設・研究所(中の作り fac_public.js の広さに合わせた本館)
+    if (t === "police") return { W: 30, H: 24, main: [3, 3, 18, 9, 3], annex: [], ground: [["paved", 1, 13, 28, 5], ["paved", 13, 18, 5, 6], ["paved", 22, 3, 7, 10]], solid: [], props: [["lot", 22, 3, 7, 10], ["tree", 3, 19], ["tree", 26, 19], ["lamp", 9, 15], ["lamp", 20, 15]], gate: [15, 20] };
+    if (t === "fire") return { W: 32, H: 26, main: [3, 3, 20, 10, 2], annex: [], ground: [["paved", 1, 13, 30, 13], ["paved", 24, 3, 7, 10]], solid: [], props: [["chimney", 27, 6], ["lot", 24, 9, 7, 4], ["lamp", 6, 15], ["lamp", 20, 15]], gate: [13, 21] };
+    if (t === "nursing") return { W: 30, H: 24, main: [3, 3, 18, 9, 2], annex: [], ground: [["paved", 1, 13, 28, 4], ["paved", 13, 17, 5, 7], ["field", 22, 3, 7, 10]], solid: [], props: [["tree", 24, 5], ["tree", 27, 9], ["bench", 24, 11], ["bench", 3, 18], ["tree", 6, 21], ["tree", 24, 21]], gate: [15, 20] };
+    if (t === "welfare") return { W: 26, H: 22, main: [3, 3, 16, 8, 2], annex: [], ground: [["paved", 1, 12, 24, 4], ["paved", 11, 16, 5, 6], ["field", 20, 3, 5, 9]], solid: [], props: [["tree", 21, 5], ["bench", 21, 10], ["tree", 4, 18]], gate: [13, 18] };
+    if (t === "lab") return { W: 34, H: 26, main: [3, 3, 20, 10, 3], annex: [], ground: [["paved", 1, 14, 32, 5], ["paved", 15, 19, 5, 7], ["paved", 25, 3, 8, 11]], solid: [], props: [["lot", 25, 3, 8, 11], ["fountain", 12, 16], ["tree", 3, 21], ["tree", 30, 21], ["lamp", 8, 17], ["lamp", 22, 17]], gate: [17, 22] };
     if (t === "special") return { W: 30, H: 24, main: [2, 2, 18, 6, 2], annex: [["wing", 22, 2, 6, 8, 2, "実習棟", "s_wing"]], ground: [["paved", 1, 9, 28, 2], ["yard", 2, 12, 26, 9]], solid: [], props: [["slide", 4, 14], ["swing", 8, 14], ["bike", 24, 12]], gate: [12, 18] };
     if (t === "univ") {
       const FAC = ["工学部", "文学部", "経済学部", "理学部", "法学部", "教育学部", "医学部", "農学部", "情報学部", "国際学部"];
@@ -47,7 +53,7 @@
   // 立ち退いて移ってもらえる小さな建物(番号はそのまま・近くの空き地へ移す)
   var SITE_MOVABLE = /* @__PURE__ */ new Set(["house", "apt", "farmhouse", "villa", "shop", "konbini", "cafe", "restaurant", "ramen", "izakaya", "clothes", "bookstore", "greengrocer", "fishshop", "pharmacy", "liquor", "warehouse", "park", "seafood", "directsale"]);
   // 小さな建物(40タイル以下・テナントなし)は移せる。駅・病院・役所・学校など街の要の施設は動かさない
-  var SITE_KEEP = /* @__PURE__ */ new Set(["station", "metro", "hospital", "cityhall", "airport", "stadium", "themepark", "tower", "dept", "mall", "police", "fire", "court", "shrine", "temple", "cemetery", "elem", "jh", "hs", "univ", "kinder", "special", "zoo", "aquarium", "annex", "tourtower", "crematorium", "harboroffice", "pier", "marina", "ferry"]);
+  var SITE_KEEP = /* @__PURE__ */ new Set(["station", "metro", "hospital", "cityhall", "airport", "stadium", "themepark", "tower", "dept", "mall", "police", "fire", "court", "shrine", "temple", "cemetery", "elem", "jh", "hs", "univ", "kinder", "special", "zoo", "aquarium", "annex", "tourtower", "crematorium", "harboroffice", "pier", "marina", "ferry", "nursing", "welfare", "lab", "library", "museum"]);
   var siteMovable = (b) => !!b && !b.tenant && !(b.tenants && b.tenants.length) && b.siteI == null && !SITE_KEEP.has(b.type) && (SITE_MOVABLE.has(b.type) || b.w * b.h <= 40);
   // 土地の区分: 0=使えない(幹線道路・踏切・橋・水・線路・大きな施設など) 1=空き地(草地・畑・林・田・広場・小道・生活道路) 2=移せる小さな建物
   function sitesLandMap(map2, todo = []) {
@@ -149,7 +155,7 @@
     map2.fsites = [];
     const t0 = performance.now();
     const W2 = map2.W, placed = [];
-    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum"];
+    const ORDER2 = ["zoo", "univ", "hs", "jh", "special", "elem", "kinder", "cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab"];
     const todo = map2.buildings.filter((b) => ORDER2.includes(b.type) && !b.tenant).sort((a, b) => ORDER2.indexOf(a.type) - ORDER2.indexOf(b.type) || a.idx - b.idx);
     const report = [], displaced = [];
     // 埋立地の島に移す施設(動物園・大学の本キャンパス・水族館・遊園地・スタジアム・工場)を先に置く(reclaim.js)。
@@ -209,7 +215,7 @@
     map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
   // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
-  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum"]);
+  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum", "police", "fire", "nursing", "welfare", "lab"]);
   var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [2, 1.8, 1.6, 1.4, 1.2], jh: [1.8, 1.65, 1.5, 1.3, 1.15], elem: [1.8, 1.65, 1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
     // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)
@@ -222,8 +228,8 @@
       if (!siteRectOk(map2, F, b, x, y, L3.W, L3.H)) continue;
       if (placed.some((p) => x < p.x + p.w + 2 && p.x < x + L3.W + 2 && y < p.y + p.h + 2 && p.y < y + L3.H + 2)) continue;
       const mov = rectSum(F.mov, W2, x, y, L3.W, L3.H), score = mov * 0.35 + Math.hypot(dx, dy);
-      // 公共施設は空き地だけに置く(家や店を立ち退かせない)
-      if (mov && SITE_CIVIC.has(b.type)) continue;
+      // 公共施設は、立ち退く小さな建物が少ない場所だけ(学校より控えめ: 8棟まで)
+      if (mov > (b.type === "cityhall" ? 40 : b.type === "fire" || b.type === "police" ? 20 : 8) * 12 && SITE_CIVIC.has(b.type)) continue;
       if (best && score >= best.score) continue;
       const gx = siteRoadSouth(map2, x, y, L3.W, L3.H);
       if (gx < 0) continue;
@@ -239,7 +245,10 @@
   // 立ち退いた建物を、近くの空き地(南に道路か歩道があり、2タイル以内に道路)へ移す。番号・名前・住人はそのまま
   function siteRelocate(map2, list, placed) {
     const W2 = map2.W, H4 = map2.H, moved = [];
-    const isRoad = (k) => [T.ROAD, T.CROSSING].includes(map2.ground[k]);
+    const TR = T.ROAD, TC = T.CROSSING, isRoad = (k) => {
+      const gd = map2.ground[k];
+      return gd === TR || gd === TC;
+    };
     const land = (x, y) => {
       if (x < 1 || y < 1 || x >= W2 - 1 || y >= H4 - 1) return false;
       const k = x + y * W2, gd = map2.ground[k];
@@ -251,6 +260,28 @@
     // ほかの施設の敷地(公園・屋敷・寺社・空港など)にも移さない
     for (const S2 of map2.sites || []) for (let y = Math.max(0, S2.y); y < Math.min(H4, S2.y + S2.h); y++) siteM.fill(1, y * W2 + Math.max(0, S2.x), y * W2 + Math.min(W2, S2.x + S2.w));
     const inSite = (x, y) => siteM[x + y * W2] === 1;
+    // 置けない場所の積分画像(はじめの状態)と、ここで置いた建物の矩形(32マスの升目で引く)。矩形の判定を1回の引き算にする
+    const S0 = new Int32Array((W2 + 1) * (H4 + 1));
+    for (let y = 0; y < H4; y++) {
+      let row = 0;
+      for (let x = 0; x < W2; x++) {
+        row += !land(x, y) || inSite(x, y) ? 1 : 0;
+        S0[(y + 1) * (W2 + 1) + x + 1] = S0[y * (W2 + 1) + x + 1] + row;
+      }
+    }
+    const placedG = /* @__PURE__ */ new Map(), GK = (gx, gy) => gx * 4096 + gy;
+    const freeRect = (x, y, w, h) => {
+      if (x < 1 || y < 1 || x + w > W2 - 1 || y + h > H4 - 1) return false;
+      if (rectSum(S0, W2, x, y, w, h)) return false;
+      for (let gx = x >> 5; gx <= x + w >> 5; gx++) for (let gy = y >> 5; gy <= y + h >> 5; gy++) for (const r of placedG.get(GK(gx, gy)) || []) if (x < r[0] + r[2] && r[0] < x + w && y < r[1] + r[3] && r[1] < y + h) return false;
+      return true;
+    };
+    const markPlaced = (x, y, w, h) => {
+      for (let gx = x >> 5; gx <= x + w >> 5; gx++) for (let gy = y >> 5; gy <= y + h >> 5; gy++) {
+        const k = GK(gx, gy);
+        (placedG.get(k) || placedG.set(k, []).get(k)).push([x, y, w, h]);
+      }
+    };
     for (const b of list) {
       let done2 = false;
       // 近い順(正方形の輪)に探す。輪の上の点だけを回る(順序は従来と同じ)
@@ -260,9 +291,7 @@
         if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
         const dxk0 = x + (b.w >> 1);
         if (!(isRoad(dxk0 + (y + b.h + 1) * W2) || y + b.h + 2 < H4 && isRoad(dxk0 + (y + b.h + 2) * W2))) continue;
-        let ok = true;
-        for (let yy = y - 1; yy <= y + b.h && ok; yy++) for (let xx = x - 1; xx <= x + b.w && ok; xx++) if (!land(xx, yy) || inSite(xx, yy)) ok = false;
-        if (!ok) continue;
+        if (!freeRect(x - 1, y - 1, b.w + 2, b.h + 2)) continue;
         const dxk = x + (b.w >> 1), k1 = dxk + (y + b.h + 1) * W2, k2 = dxk + (y + b.h + 2) * W2;
         if (!(isRoad(k1) || y + b.h + 2 < H4 && isRoad(k2))) continue;
         for (let yy = y; yy < y + b.h; yy++) for (let xx = x; xx < x + b.w; xx++) {
@@ -271,6 +300,7 @@
           map2.solid[k] = 1;
           map2.deco[k] = 0;
         }
+        markPlaced(x, y, b.w, b.h);
         moved.push({ id: b.id, from: [b.x, b.y], to: [x, y] });
         b.x = x;
         b.y = y;
