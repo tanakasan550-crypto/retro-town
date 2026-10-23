@@ -209,6 +209,7 @@
     map2.siteMs = { all: Math.round(performance.now() - t0), ...tm };
   }
   // 種類ごとに試す拡大率(大きい順)。地図の空き地の量で決まる(sites 試験で達成率を記録)
+  var SITE_CIVIC = /* @__PURE__ */ new Set(["cityhall", "court", "library", "museum"]);
   var SITE_GROW = { zoo: [2.2, 1.8, 1.5, 1.25], univ: [2, 1.6, 1.3], hs: [2, 1.8, 1.6, 1.4, 1.2], jh: [1.8, 1.65, 1.5, 1.3, 1.15], elem: [1.8, 1.65, 1.5, 1.3, 1.15], kinder: [1.4, 1.2], special: [1.3, 1.15] };
   function siteFind(map2, b, L3, F, placed, W2) {
     // 動物園・大学は郊外へ移ってもよい(広い土地を優先して地図の広い範囲を探す)
@@ -221,6 +222,8 @@
       if (!siteRectOk(map2, F, b, x, y, L3.W, L3.H)) continue;
       if (placed.some((p) => x < p.x + p.w + 2 && p.x < x + L3.W + 2 && y < p.y + p.h + 2 && p.y < y + L3.H + 2)) continue;
       const mov = rectSum(F.mov, W2, x, y, L3.W, L3.H), score = mov * 0.35 + Math.hypot(dx, dy);
+      // 公共施設は空き地だけに置く(家や店を立ち退かせない)
+      if (mov && SITE_CIVIC.has(b.type)) continue;
       if (best && score >= best.score) continue;
       const gx = siteRoadSouth(map2, x, y, L3.W, L3.H);
       if (gx < 0) continue;
@@ -251,7 +254,8 @@
     for (const b of list) {
       let done2 = false;
       // 近い順(正方形の輪)に探す。輪の上の点だけを回る(順序は従来と同じ)
-      for (let r = 0; r <= 200 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx += Math.abs(dy) === r || dx === r ? 1 : 2 * r) {
+      // ふつうは近く(200マス以内)で見つかる。見つからなければ地図の広い範囲まで探す(建物を地図から消さない)
+      for (let r = 0; r <= 700 && !done2; r++) for (let dy = -r; dy <= r && !done2; dy++) for (let dx = -r; dx <= r && !done2; dx += Math.abs(dy) === r || dx === r ? 1 : 2 * r) {
         const x = b.x + dx, y = b.y + dy;
         if (x < 1 || y < 1 || x + b.w >= W2 - 1 || y + b.h + 1 >= H4) continue;
         const dxk0 = x + (b.w >> 1);

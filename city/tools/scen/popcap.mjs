@@ -5,10 +5,10 @@ export default async (p) => {
   const r = await p.evaluate(() => {
     const G = NLS.G, w = G.world, P = w.pop;
     const cap0 = P.cap, n0 = P.n;
-    // 故人の記録として埋める(生まれて亡くなった人を足す)。IDは連番のまま
+    // 故人の記録として埋める(生まれて亡くなった人を足す)。いまの配列の大きさ(cap0)を必ず超える。IDは連番のまま
     const rng = G.actRng('popcap');
     let lastId = -1;
-    while (P.n < 61500) { const id = w.newPerson(rng, 600, G.S.M); P.gone[id] = 1; P.goneAt[id] = G.S.M; lastId = id; }
+    while (P.n < Math.max(61500, cap0 + 100)) { const id = w.newPerson(rng, 600, G.S.M); P.gone[id] = 1; P.goneAt[id] = G.S.M; lastId = id; }
     // 6万を超えたところで、生きている夫婦に子が生まれる(birth の経路)
     let mom = -1, dad = -1;
     for (let i = 0; i < n0 && mom < 0; i++) if (!P.gone[i] && P.spouse[i] >= 0 && !P.gone[P.spouse[i]] && w.isFem(i) && Math.floor((G.S.M - P.born[i]) / 12) < 40 && P.home[i] >= 0) { mom = i; dad = P.spouse[i]; }
