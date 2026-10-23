@@ -9,7 +9,7 @@
 
 ## 試験(ヘッドレス Chromium・Pixel 7 横画面)
 - 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
-- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral talk compare enter joy nav2 nav3 tap11 tour
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral talk life80 compare enter joy nav2 nav3 tap11 tour
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
@@ -32,6 +32,9 @@
 - 施設監査モード(156_audit.js)と一括撮影(tools/audit_shots.mjs)
 - 住民の通勤・通学のバス利用・住宅地系統・途中停留所・鉄道とバスの選択・駅の中の利用者(154/034/148)
 - 路線バス v12(154_bus_net.js)・乗換案内と路線図(155_transit_trip.js)
+
+## 80年の通し回帰(life80.mjs)
+- `OUT=/tmp/x node tools/shot.mjs tools/scen/life80.mjs`(約80秒)。`BIRTH=1990` などで出生年。人口配列は80年で約56,750(上限60,000)。上限に近づくと出生が止まる v11 の作りなので、さらに長い期間や人口増を入れるときは上限の見直しが必要
 
 ## 次の優先(指示書 第9章の順)
 1. NPCの人生ミッションと施設利用の連動(C5・C7): 学生(登校→授業→テスト→部活→卒業)・職業別の実務(医師/看護師/教師/商店主/運転士)。行動した分だけ実績が残る記録(人物IDごと・セーブに保存・二重加算なし)
