@@ -9,10 +9,11 @@
 
 ## 試験(ヘッドレス Chromium・Pixel 7 横画面)
 - 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
-- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral talk life80 compare enter joy nav2 nav3 tap11 tour
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus campuslife names bath funeral talk leisure life80 compare enter joy nav2 nav3 tap11 tour
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 映画館(168_fac_cinema.js): シネコン(2〜4スクリーン・動く映像・時刻表とチケット・その回の座席で観る)。ボウリング場とジム(169_fac_sports.js)
 - 塔の外観(167_towers.js): 東都タワーを赤白の鉄骨の展望塔に。空港の管制塔は別の種類 ctower(立入不可・ガラスの管制室)
 - 会話の根拠(166_talk.js): 話題をその人の事実(同じ学校・体育・部活・職場・同じ建物・子の入学・身内の死・近所の開店・天気)から選び、根拠を表示。身内を亡くして3か月以内はまずその話
 - 亡くなったあとの流れ(165_funeral.js): 喪主の決まり・通夜/告別式/火葬の日程・参列者・法定相続分の記録(world.funerals をセーブ)。葬儀場の式場・焼香・香典・掲示。住民どうしの葬儀も参列者が集まる。主人公への知らせに喪主と日程

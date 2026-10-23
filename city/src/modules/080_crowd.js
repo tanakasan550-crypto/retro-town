@@ -393,6 +393,7 @@
       try {
         if (typeof campusIndoor === "function") res = campusIndoor(this, bIdx, I2, floor, res);
         if (typeof funeralIndoor === "function") res = funeralIndoor(this, bIdx, I2, floor, res);
+        if (typeof cinemaIndoor === "function") res = cinemaIndoor(this, bIdx, I2, floor, res);
       } catch (e) {
         console.warn("[campus in]", e);
       }
