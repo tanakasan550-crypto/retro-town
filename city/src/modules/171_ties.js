@@ -11,7 +11,8 @@
     p[SCH_LV[lv - 1]][id] = b;
   }
   var cohOf = (p, id) => Math.floor((p.born[id] - 3) / 12);
-  var kumiOf = (id, lv) => uh(id, 770 + lv) % 3;
+  // 組: 人ごとに決まる。nC はその学校のその年の学級数(在籍者から。interior_school.js)
+  var kumiOf = (id, lv, nC = 3) => uh(id, 770 + lv) % Math.max(1, nC);
   var sexW = (w, id, f, m) => w.isFem(id) ? f : m;
   // 親族の続柄(a から見た b)。なければ null
   function kinOf(w, a, b) {
@@ -47,7 +48,8 @@
       if (sa < 0 || p[k][b] !== sa) continue;
       const d = cohOf(p, a) - cohOf(p, b), bn = w.map.buildings[sa];
       if (!bn) continue;
-      if (d === 0) out.push({ lv, b: sa, k: kumiOf(a, lv) === kumiOf(b, lv) && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
+      const nC = typeof schoolClasses === "function" ? schoolClasses(w, bn) : 3;
+      if (d === 0) out.push({ lv, b: sa, k: kumiOf(a, lv, nC) === kumiOf(b, lv, nC) && lv >= 2 && lv <= 4 ? "classmate" : "gradeMate", name: bn.name });
       else if (Math.abs(d) <= 2) out.push({ lv, b: sa, k: d > 0 ? "senpai" : "kohai", years: Math.abs(d), name: bn.name, club: lv >= 3 && lv <= 4 && typeof campusClubOf === "function" && campusClubOf(a) === campusClubOf(b) && campusClubOf(a) !== "none" ? CLUB_NAME[campusClubOf(a)] : null });
     }
     return out;

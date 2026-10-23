@@ -604,13 +604,16 @@
     const free = (x, y) => x >= 1 && y >= 3 && x < I2.W - 1 && y < I2.H - 2 && !sol[x + y * I2.W];
     const byCls = /* @__PURE__ */ new Map();
     const gradeCount = {};
-    const cfg = big ? cfgOf(b) : null;
+    const cfg = big ? cfgOf(b) : null, nC = big ? schoolClasses(w, b) : 1;
     for (const i of roster) {
-      const gr = big ? gradeOfAge(ageYears(p, i, w.M), cfg) : 0;
+      const gr = big ? gradeOfPerson(w, i, cfg) : 0;
       const fl = big ? floorOfGrade(cfg, gr) : hash2(i, 5) % nF;
       const gk = big ? "g" + gr : fl;
       const n2 = (gradeCount[gk] = (gradeCount[gk] || 0) + 1) - 1;
-      const cl = big ? slotOf(cfg, gr, n2) : 0, k = big ? Math.floor(n2 / cfg.cpg) : n2;
+      // 学級は人ごとに決まる(ties.js の kumiOf と同じ)。席は学級の中で来た順
+      const kumi = big ? kumiOf(i, { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[b.type] || 3, nC) : 0;
+      const ck = big ? "c" + gr + ":" + kumi : null;
+      const cl = big ? slotOf(cfg, gr, kumi, nC) : 0, k = big ? (byCls.set(ck, (byCls.get(ck) || 0) + 1), byCls.get(ck) - 1) : n2;
       if (fl !== floor) continue;
       if (personActivity(w, i, m, dt.dow).s !== 2) continue;
       const seats = big ? (I2.classSeats || [])[cl] || [] : I2.seatSpots || [];
@@ -630,7 +633,7 @@
       }
       const q = { id: i, x: pos.x + 0.5, y: pos.y + 0.5, dir: "u", role: "student", cls: big ? cl + 1 : void 0, seat0: seated };
       if (recess) {
-        const dx0 = big ? 1 + 5 * cl + 3 : pos.x, ox = big ? Math.max(2, Math.min(I2.W - 5, dx0 + hash2(i, 8) % 9 - 4)) : Math.max(1, Math.min(I2.W - 2, pos.x + hash2(i, 8) % 5 - 2)), oy = big ? 2.5 : Math.max(3, Math.min(I2.H - 3, pos.y + hash2(i, 9) % 3 - 1)) + 0.5;
+        const dx0 = big ? 1 + 10 * cl + 8 : pos.x, ox = big ? Math.max(2, Math.min(I2.W - 5, dx0 + hash2(i, 8) % 9 - 4)) : Math.max(1, Math.min(I2.W - 2, pos.x + hash2(i, 8) % 5 - 2)), oy = big ? 2.5 : Math.max(3, Math.min(I2.H - 3, pos.y + hash2(i, 9) % 3 - 1)) + 0.5;
         q.x = dx0 + 0.5;
         q.y = big ? 3.5 : pos.y + 0.5;
         q.act = "recess";

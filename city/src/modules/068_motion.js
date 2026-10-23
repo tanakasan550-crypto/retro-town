@@ -28,7 +28,7 @@
   var interiorCache = /* @__PURE__ */ new Map();
   function interiorOf(g, bIdx, floor) {
     const b0 = g.world.map.buildings[bIdx];
-    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "") + facKey(g, b0);
+    const k = bIdx + ":" + floor + ":e" + eraBucket(g.year()) + (isSchoolBig(b0) ? ":c" + schoolClasses(g.world, b0) : "") + (bigKind(b0) === "condo" ? ":" + g.S.M + ":" + (g.hero.homeB === bIdx ? 1 : 0) : "") + facKey(g, b0);
     let r = interiorCache.get(k);
     if (!r) {
       const b = b0;

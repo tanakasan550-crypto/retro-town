@@ -52,7 +52,7 @@
     // 担任の先生(主人公のいまの学校・学年・組・年度)
     if (h.edu && h.edu.cur > 0 && h.edu.b >= 0 && typeof homeroomOf === "function") {
       const lvH = { kinder: 1, elem: 2, jh: 3, hs: 4, univ: 5 }[(B2[h.edu.b] || {}).type] || 0;
-      const t = lvH >= 2 && lvH <= 4 ? homeroomOf(w, h.edu.b, cohOf(p, h.id), kumiOf(h.id, lvH), g.date().y) : -1;
+      const t = lvH >= 2 && lvH <= 4 ? homeroomOf(w, h.edu.b, cohOf(p, h.id), kumiOf(h.id, lvH, typeof schoolClasses === "function" ? schoolClasses(w, B2[h.edu.b]) : 3), g.date().y) : -1;
       if (t === id) say(vary(["宿題は終わったかな。分からないところは聞きに来なさい。", "最近、授業中に眠そうだぞ。夜ふかしはほどほどに。"]), `担任(${B2[h.edu.b].name}・${g.date().y}年度)`, 2);
     }
     // その人の職歴(いちばん新しい入社・退職)

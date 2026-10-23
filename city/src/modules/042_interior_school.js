@@ -1,15 +1,29 @@
   // src/interior_school.js
-  var SCHOOL_CFG = { jh: { floors: 4, gpf: 1, cpg: 5, g0: 11, G: 3, nm: "\u4E2D\u5B66\u6821" }, hs: { floors: 4, gpf: 1, cpg: 5, g0: 14, G: 3, nm: "\u9AD8\u6821" }, elem: { floors: 4, gpf: 2, cpg: 2, g0: 5, G: 6, nm: "\u5C0F\u5B66\u6821" }, univ: { floors: 5, gpf: 1, cpg: 5, g0: 17, G: 4, nm: "\u5927\u5B66" } };
+  var SCHOOL_CFG = { jh: { floors: 4, gpf: 1, cpg: 6, g0: 11, G: 3, nm: "\u4E2D\u5B66\u6821" }, hs: { floors: 4, gpf: 1, cpg: 7, g0: 14, G: 3, nm: "\u9AD8\u6821" }, elem: { floors: 4, gpf: 2, cpg: 4, g0: 5, G: 6, nm: "\u5C0F\u5B66\u6821" }, univ: { floors: 5, gpf: 1, cpg: 6, g0: 17, G: 4, nm: "\u5927\u5B66" } };
   var SCHOOL_FLOORS = Object.fromEntries(Object.entries(SCHOOL_CFG).map(([k, v]) => [k, v.floors]));
   var schoolFloors = (b) => SCHOOL_FLOORS[b.type] || 0;
   var cfgOf = (b) => SCHOOL_CFG[b.type] || SCHOOL_CFG.jh;
   var floorOfGrade = (cfg, grade) => 1 + Math.floor((grade - 1) / cfg.gpf);
-  var slotOf = (cfg, grade, k) => (grade - 1) % cfg.gpf * cfg.cpg + k % cfg.cpg;
-  function roomInfo(b, floor, slot) {
+  // 1学年の学級数: 在籍する人数から(1学級35人まで)。年ごとに数え直す(学級編成)。cpg は学級数の上限
+  var SCH_PER_CLASS = 35;
+  var schClsC = /* @__PURE__ */ new Map();
+  function schoolClasses(w, b) {
+    if (!w || !b) return 1;
+    const y = Math.floor(w.M / 12), c = schClsC.get(b.idx);
+    if (c && c.y === y && c.w === w) return c.n;
+    const cfg = cfgOf(b), p = w.pop, cnt = new Array(cfg.G + 2).fill(0);
+    for (let i = 0; i < p.n; i++) if (!p.gone[i] && p.school[i] === b.idx) cnt[gradeOfPerson(w, i, cfg)]++;
+    const n2 = Math.max(1, Math.min(cfg.cpg, Math.ceil(Math.max(...cnt) / SCH_PER_CLASS)));
+    schClsC.set(b.idx, { y, w, n: n2 });
+    return n2;
+  }
+  // 学級(組): 人ごとに決まる(学年ごと)。学級数が変わるとその数で割りなおす
+  var slotOf = (cfg, grade, k, nC = cfg.cpg) => (grade - 1) % cfg.gpf * nC + k % nC;
+  function roomInfo(b, floor, slot, nC = cfgOf(b).cpg) {
     const cfg = cfgOf(b);
-    const grade = (floor - 1) * cfg.gpf + 1 + Math.floor(slot / cfg.cpg);
-    const cls = slot % cfg.cpg + 1;
-    if (grade > cfg.G) return { grade, cls, label: slot === 4 && cfg.gpf > 1 ? "\u7279\u5225\u6559\u5BA4(\u97F3\u697D\u30FB\u56F3\u5DE5)" : `${cfg.nm}\u306E\u4E88\u5099\u6559\u5BA4`, special: true };
+    const grade = (floor - 1) * cfg.gpf + 1 + Math.floor(slot / nC);
+    const cls = slot % nC + 1;
+    if (grade > cfg.G) return { grade, cls, label: slot === nC * cfg.gpf - 1 && cfg.gpf > 1 ? "\u7279\u5225\u6559\u5BA4(\u97F3\u697D\u30FB\u56F3\u5DE5)" : `${cfg.nm}\u306E\u4E88\u5099\u6559\u5BA4`, special: true };
     return { grade, cls, label: b.type === "univ" ? `${grade}\u5E74\u6B21 \u8B1B\u7FA9\u5BA4${slot + 1}` : `${grade}\u5E74${cls}\u7D44` };
   }
   var floorLabel = (b, floor) => {
@@ -22,18 +36,25 @@
     return b.type === "univ" ? `${floor}\u5E74\u6B21\u306E\u8B1B\u7FA9\u68DF` : `${floor}\u5E74\u751F\u306E\u968E`;
   };
   var isSchoolBig = (b) => !!SCHOOL_FLOORS[b.type];
+  // 学年は4月始まりの学年度で数える(早生まれも同じ学年)
+  function gradeOfPerson(w, i, cfg = SCHOOL_CFG.jh) {
+    const M = w.M, Ms = M - ((M % 12 - 3) % 12 + 12) % 12;
+    return Math.max(1, Math.min(cfg.G, Math.floor((Ms - w.pop.born[i]) / 12) - cfg.g0));
+  }
   function gradeOfAge(age, cfg = SCHOOL_CFG.jh) {
     return Math.max(1, Math.min(cfg.G, age - cfg.g0));
   }
   function buildSchool(b, floor, g) {
     const cfg = cfgOf(b);
-    const W2 = 27, H4 = 14, floors = cfg.floors;
+    // 教室は1学級35席(机7列×5段)。1階あたりの教室数 = 学年(gpf)×学級数。幅は教室の数で決まる
+    const nC = schoolClasses(g && g.world, b), rooms = cfg.gpf * nC;
+    const W2 = Math.max(27, 2 + rooms * 10 + 4), H4 = 18, floors = cfg.floors;
     const tiles = new Array(W2 * H4).fill("floor_wood");
     const objs = [];
     const occ = /* @__PURE__ */ new Set();
     const staffSpots = [], seatSpots = [];
-    const classSeats = [[], [], [], [], []];
-    const classStand = [[], [], [], [], []];
+    const classSeats = Array.from({ length: Math.max(5, rooms) }, () => []);
+    const classStand = Array.from({ length: Math.max(5, rooms) }, () => []);
     const add = (t, x, y, act, label2, solid = true, extra = {}) => {
       if (x < 0 || y < 1 || x >= W2 || y >= H4 - 1) return false;
       const k = x + y * W2;
@@ -67,18 +88,19 @@
     const grade = floor;
     let label = floorLabel(b, floor);
     if (floor >= 1) {
-      for (let r = 0; r < 5; r++) {
-        const x0 = 1 + 5 * r;
-        for (let y = 5; y <= 12; y++) wall(x0 + 4, y);
-        for (let x = x0; x < x0 + 3; x++) wall(x, 4);
-        const ri = roomInfo(b, floor, r);
-        add("doormat", x0 + 3, 4, null, `${ri.label}\u306E\u5165\u53E3`, false);
-        add("kokuban", x0, 5, null, `${ri.label} \u9ED2\u677F`, true, { w: 3 });
-        add("podium", x0 + 1, 6, "class", "\u6559\u5353", true);
-        staffSpots.push({ x: x0 + 3, y: 6 });
-        for (let yy = 7; yy <= 11; yy++) classStand[r].push({ x: x0 + 3, y: yy });
-        for (const yy of [7, 9, 11]) for (const xx of [x0, x0 + 1, x0 + 2]) {
-          if (add("desk", xx, yy, "class", "\u673A\u3068\u6905\u5B50")) {
+      for (let r = 0; r < rooms; r++) {
+        const x0 = 1 + 10 * r;
+        // 教室の壁(右)と廊下側の壁(入口は右上)
+        for (let y = 5; y <= H4 - 2; y++) wall(x0 + 9, y);
+        for (let x = x0; x < x0 + 8; x++) wall(x, 4);
+        const ri = roomInfo(b, floor, r, nC);
+        add("doormat", x0 + 8, 4, null, `${ri.label}の入口`, false);
+        add("kokuban", x0 + 1, 5, null, `${ri.label} 黒板`, true, { w: 6 });
+        add("podium", x0 + 4, 6, "class", "教卓", true);
+        staffSpots.push({ x: x0 + 5, y: 6 });
+        for (let yy = 7; yy <= H4 - 2; yy++) classStand[r].push({ x: x0 + 8, y: yy });
+        for (const yy of [7, 9, 11, 13, 15]) for (let xx = x0 + 1; xx <= x0 + 7; xx++) {
+          if (add("desk", xx, yy, "class", "机と椅子")) {
             classSeats[r].push({ x: xx, y: yy + 1 });
             seatSpots.push({ x: xx, y: yy + 1 });
           }
