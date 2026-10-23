@@ -10,7 +10,7 @@ export async function startTrial(p, opts = {}) {
   await clickText(p, '開発試験').catch(() => {}); await p.waitForTimeout(200);
   await clickText(p, '試験用MAX資金').catch(() => {}); await clickText(p, '自由試遊(開発用)').catch(() => {});
   await clickText(p, 'はじめる');
-  await p.waitForFunction(() => window.NLS && window.NLS.G, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.NLS && window.NLS.G, null, { timeout: 150000 });
   await p.waitForTimeout(1500);
   // dismiss any modal prompts
   for (let i = 0; i < 6; i++) {

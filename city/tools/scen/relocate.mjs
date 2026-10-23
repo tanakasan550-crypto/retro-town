@@ -40,12 +40,13 @@ export default async (p) => {
     const day = (min) => { G.S.min = min; return res.slice(0, 40).map(i => { try { return NLS.nav.npcStatus(i).now || ''; } catch (e) { return 'ERR ' + e.message; } }); };
     const night = day(23 * 60), morning = day(8 * 60);
     const err = [...night, ...morning].filter(s => s.startsWith('ERR')).length;
-    const atHome = night.filter(s => /家|自宅|寝/.test(s)).length;
+    // 夜は家にいる(帰り道の人も家へ向かっているので数える)
+    const atHome = night.filter(s => /家|自宅|寝|帰宅中/.test(s)).length;
     // セーブの往復: 同じ場所・同じ住人
     const N = NLS.nav, G2 = N.Game.load(N.fromJSON(N.toJSON(G.serialize()))), m2 = G2.world.map, P2 = G2.world.pop;
     const samePos = mv.every(b => { const c = m2.buildings[b.idx]; return c.x === b.x && c.y === b.y && c.doorX === b.doorX; });
     const sameRes = res.every(i => P2.home[i] === P.home[i]);
-    return { openBad, badW: [...badW], moved: mv.length, failed, badFoot, badDoor, unreach: unreach.length, unreachEx: unreach.slice(0, 8), inSite, residents: res.length, occBad, wk, wkBad, sc, scBad, pathOk, pathN, err, atHome, nightEx: night.slice(0, 4), morningEx: morning.slice(0, 6), samePos, sameRes };
+    return { openBad, badW: [...badW], moved: mv.length, failed, badFoot, badDoor, unreach: unreach.length, unreachEx: unreach.slice(0, 8), inSite, residents: res.length, occBad, wk, wkBad, sc, scBad, pathOk, pathN, err, atHome, nightEx: night.slice(0, 4), nightOther: night.filter(s => !/家|自宅|寝/.test(s)), morningEx: morning.slice(0, 6), samePos, sameRes };
   });
   console.log('RELOCATE', JSON.stringify(r));
   if (r.openBad.length || r.failed || r.badFoot || r.badDoor || r.unreach || r.inSite || r.occBad || r.wkBad || r.scBad || r.pathOk < r.pathN || r.err || r.atHome < 34 || !r.samePos || !r.sameRes) throw new Error('relocated buildings problem');

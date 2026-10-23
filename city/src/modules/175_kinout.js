@@ -18,8 +18,15 @@
     const hero = w.heroId != null ? w.heroId : -1;
     const fam = new Set([hero, hero >= 0 ? p.mother[hero] : -1, hero >= 0 ? p.father[hero] : -1].filter((x) => x >= 0));
     const add = (ageM, opts, linkKid) => {
-      const id = w.newPerson(rng, ageM, M, opts);
-      if (w.prof) w.prof.delete(id);
+      // 市外の人には職歴の記録(prof)を作らない(作って消すと記録の表が重くなる)
+      const pr0 = w.prof;
+      w.prof = null;
+      let id;
+      try {
+        id = w.newPerson(rng, ageM, M, opts);
+      } finally {
+        w.prof = pr0;
+      }
       p.home[id] = -1;
       p.gone[id] = 2;
       p.goneAt[id] = -1;

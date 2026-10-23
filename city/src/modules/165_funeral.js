@@ -62,7 +62,16 @@
     if (sib.length) return sp >= 0 ? [[sp, "3/4"], ...share(sib, 1, 4)] : share(sib, 1, 1);
     return sp >= 0 ? [[sp, "1/1"]] : [];
   }
+  // いちばん近い葬儀場・火葬場(家ごとに年ごとの控え。閉まった施設は年が変わると反映)
+  var funNearC = /* @__PURE__ */ new Map();
   function funeralNearest(w, b0, type) {
+    const key = type + ":" + (b0 ? b0.idx : -1), y = Math.floor(w.M / 12), c = funNearC.get(key);
+    if (c && c.y === y && c.w === w) return c.v;
+    const v = funeralNearest0(w, b0, type);
+    funNearC.set(key, { y, w, v });
+    return v;
+  }
+  function funeralNearest0(w, b0, type) {
     const B2 = w.map.buildings;
     let best = -1, bd = 1e9;
     for (const b of B2) if (b.type === type && b.status !== "closed") {
