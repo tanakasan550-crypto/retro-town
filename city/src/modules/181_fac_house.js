@@ -26,7 +26,7 @@
       if (x.sp != null && ids.has(x.sp) && !used.has(x.sp)) {
         const y = hh.find((q) => q.id === x.sp);
         used.add(x.id).add(x.sp);
-        R.push({ k: x.age >= 70 && y.age >= 70 ? "elder2" : "couple", n: 2, ...R.some((q) => q.k === "couple") ? { lab: "子世帯の夫婦の寝室" } : {} });
+        R.push({ ids: [x.id, x.sp], k: x.age >= 70 && y.age >= 70 ? "elder2" : "couple", n: 2, ...R.some((q) => q.k === "couple") ? { lab: "子世帯の夫婦の寝室" } : {} });
       } else if (x.sp === -2 && hh.some((q) => q.id === -2)) {
         used.add(x.id).add(-2);
         R.push({ k: "couple", n: 2 });
@@ -35,7 +35,7 @@
     for (const x of hh) {
       if (used.has(x.id) || x.age < 18) continue;
       used.add(x.id);
-      R.push({ k: x.age >= 70 ? "elder" : "single", n: 1 });
+      R.push({ ids: [x.id], k: x.age >= 70 ? "elder" : "single", n: 1 });
     }
     const kids = hh.filter((x) => x.age < 18).sort((a, c) => c.age - a.age);
     for (let i = 0; i < kids.length; i += 2) R.push({ k: kids[i].age < 4 ? "baby" : "kid", n: Math.min(2, kids.length - i), age: kids[i].age });
@@ -48,7 +48,7 @@
   // 家族の人数と年代(5年ごと)で作り直す
   FAC_KEY.house = FAC_KEY.farmhouse = FAC_KEY.villa = (g, b) => `${g.world && g.world.occ ? g.world.occ[b.idx] : 0}:${Math.floor(g.year() / 5)}:${b.openYear || 0}:${b.wa || ""}`;
   FAC_BUILD.house = FAC_BUILD.farmhouse = FAC_BUILD.villa = (b, floor, g) => houseOn(b) ? buildHouse(b, floor, g) : null;
-  function buildHouse(b, floor, g) {
+  function buildHouse(b, floor, g, hhOv = null) {
     const F = houseFloors(b), lv = Math.max(0, Math.min(F - 1, floor || 0)), y = g && g.year ? g.year() : 2e3;
     const A = b.w * b.h * 4, tot = A * F, tier = tot < 70 ? 0 : tot < 125 ? 1 : 2, era = houseEra(b);
     const farm = b.type === "farmhouse", villa = b.type === "villa", machiya = b.wa === "machiya", kaya = b.wa === "kaya";
@@ -60,7 +60,7 @@
     P.lv = lv;
     P.windows(3);
     if (era === 0) for (const o of P.objs) if (o.t === "window") o.shoji = true;
-    const hh = household(g, b), need = roomNeeds(hh, b);
+    const vacantU = hhOv === "vacant", hh = vacantU ? [] : hhOv || household(g, b), need = vacantU ? { R: [], n: 0 } : roomNeeds(hh, b);
     const mid = Math.floor(H4 / 2), stX = X(W2 - 3);
     const tatami = (x0, y0, x1, y1) => P.fill(x0, y0, x1, y1, "floor_tatami");
     const wood = (x0, y0, x1, y1) => P.fill(x0, y0, x1, y1, "floor_wood");
@@ -115,6 +115,15 @@
       return rm ? place(rm, t, act, label, solid, extra, true) : null;
     };
     // 部屋の家具(寝る場所は住む人数ぶん必ず置く。入りきらなければ布団に)
+    // その人の趣味の物(人物IDから決まる。同じ人はいつも同じ趣味)
+    const HOBBY = [["shelf", null, "ギターとアンプ"], ["bookcase", "read", "大きな本棚(読書)"], ["plant", null, "観葉植物(毎朝水やり)"], ["tv", "tv", "ゲーム機とテレビ"], ["fishtank", null, "熱帯魚の水槽"], ["desk", "study", "ミシン(手芸)"], ["treadmill", null, "ルームランナー"], ["shelf", null, "プラモデルの棚"], ["desk", "study", "書道の道具"], ["shelf", null, "釣り竿と道具箱"]];
+    const hobby = (rm, ids) => {
+      for (const id of ids || []) if (id != null && id >= 0) {
+        const hb = HOBBY[uh(id, 3341) % HOBBY.length];
+        if (hb[0] === "tv" && y < 1980 || hb[0] === "treadmill" && y < 1990) continue;
+        place(rm, hb[0], hb[1], hb[2], true, {}, true);
+      }
+    };
     const furnish = (r, rm) => {
       const futon = era === 0 || r.k === "elder" || r.k === "elder2";
       const bed = (lab) => place(rm, futon ? "futon" : "bed", "sleep", lab) || place(rm, "futon", "sleep", "布団");
@@ -145,8 +154,8 @@
       } else {
         bed(futon ? "布団" : "ベッド");
         place(rm, "desk", "study", y >= 1995 ? "机(パソコン)" : "机", true, {}, true);
-        place(rm, "bookcase", "read", "本棚", true, {}, true);
       }
+      hobby(rm, r.ids);
     };
     // 扉の内側と外側のマスは空けておく(出入りできるように)
     const keepDoor = (x, yIn, yOut) => {
@@ -227,7 +236,8 @@
       }
       // 食事と居間
       const lx0 = X(farm || kaya ? 6 : 3), ly = mid + 2, LDK = { ix: 1, jx: W2 - 2, iy: mid + 1, jy: H4 - 2 };
-      if (era === 0 || kaya || machiya) {
+      if (vacantU) P.sign(X(W2 >> 1), ly, "空室(内見できます)");
+      else if (era === 0 || kaya || machiya) {
         if (farm || kaya) {
           P.add("fx_irori", X(W2 >> 1), ly, "meal", "囲炉裏(家族で食事)", true);
           for (const [ox, oy] of [[-1, 0], [1, 0], [0, 1]]) P.add("zabuton", X(W2 >> 1) + (flip ? -ox : ox), ly + oy, "rest", "座布団", false);
@@ -360,3 +370,19 @@
     box(c, d0.P, x + 0.8, y + 0.4, x + 0.9, y + 0.5, 0, 1.2, "#9aa0a8");
     for (let k = 0; k < 3; k++) box(c, d0.P, x + 0.2 + k * 0.2, y + 0.42, x + 0.35 + k * 0.2, y + 0.48, 0.6, 1.1, ["#f2f2f2", "#7fb0e0", "#e8a0a0"][k]);
   };
+  // 集合住宅(アパート・団地・タワー)の住戸の中: 住戸に住む世帯(units.js の部屋割り)と、建物の種類に合う広さ
+  // (団地・古いアパート 約45㎡の2DK、ふつうのアパート 約55〜70㎡、タワー 約80〜100㎡)で、一戸建てと同じ作り方の平屋にする
+  function buildUnitHome(b, floor, g) {
+    if (!g || !g.world || typeof registry !== "function" || !isCondo(b)) return null;
+    const { lv, pos } = decodeUnit(floor), R5 = registry(g, b.idx), u = R5.units.find((x) => x.lv === lv && x.pos === pos);
+    const p = g.world.pop, M = g.world.M, sub = typeof subOf === "function" ? subOf(b) : null;
+    const hh = u && u.hh.length ? u.hh.map((i) => ({ id: i, age: Math.floor((M - p.born[i]) / 12), sp: p.spouse[i] })) : null;
+    const k = uh(b.idx * 131 + floor, 3330) % 100;
+    const m2 = b.type === "tower" ? 80 + k % 25 : sub === "danchi" || sub === "old" || (b.era | 0) === 0 ? 42 + k % 8 : sub === "share" ? 25 : 52 + k % 20;
+    const tiles = Math.round(m2 / 4), w = Math.min(6, Math.max(4, Math.ceil(Math.sqrt(tiles * 1.4)))), h = Math.max(3, Math.ceil(tiles / w));
+    const vb = { ...b, type: "house", w, h, nf: 1, floors: 1, idx: b.idx * 131 + floor, wa: null, estate: 0, campusOf: null, openYear: b.type === "tower" ? Math.max(2e3, b.openYear || 2e3) : sub === "danchi" ? Math.min(b.openYear || 1965, 1969) : b.openYear };
+    const I2 = buildHouse(vb, 0, g, hh || "vacant");
+    I2.house.unit = { m2, room: u ? u.room : "" };
+    return I2;
+  }
+  FAC_KEY.apt = FAC_KEY.tower = (g, b) => `${Math.floor(g.year() / 5)}:${g.world && g.world.occ ? g.world.occ[b.idx] : 0}`;

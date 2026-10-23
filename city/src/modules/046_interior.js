@@ -56,7 +56,15 @@
       if (fi) return fi;
     }
     if (isUnitFloor(floor)) {
-      const I2 = buildInterior({ ...b, floors: 1 }, 0, g);
+      // 住戸の中(fac_house.js: 世帯と建物に合う間取り)。作れないときは v11 の作り
+      let I2 = null;
+      try {
+        I2 = typeof buildUnitHome === "function" ? buildUnitHome(b, floor, g) : null;
+      } catch (e) {
+        console.warn("[unit home]", e);
+      }
+      if (I2) I2 = settleSpots(I2);
+      else I2 = buildInterior({ ...b, floors: 1 }, 0, g);
       I2.unit = decodeUnit(floor);
       I2.unitCode = floor;
       I2.floor = floor;
