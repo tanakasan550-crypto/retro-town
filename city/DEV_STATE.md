@@ -9,10 +9,11 @@
 
 ## 試験(ヘッドレス Chromium・Pixel 7 横画面)
 - 1本: `OUT=/tmp/x node tools/shot.mjs tools/scen/<名前>.mjs`(最後の行が `no errors` なら合格)
-- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey
+- 主な試験: save(セーブ往復と旧セーブ互換) hotel aq tp st stpeople metro sd ho fly nav1 tap hud bus2 trip busin commute zoo street sites zooout survey campus compare
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 敷地の中の棟の中の作り(161_fac_campus.js): 学校の体育館(ステージ・緞帳・コートの線・ゴール・バレーのネット・器具庫の跳び箱とマット・下足箱)・部室棟・特別教室棟(理科室〜パソコン室)・動物園の飼育員管理棟。入れるのはその学校の生徒と職員(登校日7〜19時)・大学は月〜土8〜21時・動物園は開園時間(管理棟は関係者のみ)
 - 敷地と縮尺の作り直し(160_sites.js・設計修正指示 第1〜3章の一部): 地図の生成後に決定的に実行(セーブは座標を持たないため旧セーブもそのまま読める)。
   幼稚園20×16・小学校40×34・中学46×38・高校56×44・専門30×24・大学96×70・動物園88×58(タイル=2m)。校庭(トラック・遊具・バックネット・ゴール)・体育館・プール・テニス・部室棟・駐輪場・正門・外周フェンス。
   大学は同名の別棟を学部棟としてまとめ(建物IDは変えない)、足りない棟は付属棟(annex)を末尾に追加。場所が足りないときは小さな空き建物(入居者なし)を近くへ移す(368棟・失敗0)。施設のIDは移設後も同じ。

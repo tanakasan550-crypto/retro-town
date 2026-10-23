@@ -23,6 +23,18 @@
       if (friendHere && h >= 9 && h < 21) return { ok: true };
       return { ok: false, msg: "\u3060\u308C\u304B\u306E\u5BB6\u3067\u3059\u3002\u9375\u304C\u304B\u304B\u3063\u3066\u3044\u307E\u3059(\u53CB\u3060\u3061\u306E\u5BB6\u306F\u3001\u4EF2\u826F\u304F\u306A\u308B\u3068\u8A2A\u306D\u3089\u308C\u307E\u3059)" };
     }
+    // 学校・大学・動物園の敷地の中の棟(体育館・部室棟・学部棟・園内の店など)は本体の施設の決まりに従う
+    const par = b.campusOf ?? b.parentB;
+    if (par != null && !["restaurant", "cafe", "shop"].includes(b.type)) {
+      const pb = g.world.map.buildings[par];
+      if (pb) {
+        if (hero.job && hero.job.b === par && h >= 6 && h < 22) return { ok: true };
+        if (pb.type === "zoo") return b.kind === "keeper" ? { ok: false, msg: `${b.name}は関係者以外立入禁止です` } : isOpenFor(g, pb);
+        if (pb.type === "univ") return dt.dow !== 0 && h >= 8 && h < 21 ? { ok: true } : { ok: false, msg: `${b.name}は開館時間外です(月〜土 8:00〜21:00)` };
+        if (hero.edu.b === par && g.isSchoolDay(dt) && h >= 7 && h < 19) return { ok: true };
+        return { ok: false, msg: `${b.name}は${pb.name}の施設です(関係者以外立入禁止・登校日の7:00〜19:00)` };
+      }
+    }
     if (hero.job && hero.job.b === b.idx) {
       const [a, e] = g.shiftOf(hero.job);
       if (g.workDayFor(hero.job, dt) && h >= a - 1 && h < e + 1) return { ok: true };

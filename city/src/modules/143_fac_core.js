@@ -9,13 +9,15 @@
   var FAC_ACTS = {};
   var FAC_RUN = {};
   var FAC_STEP = {};
+  // 敷地の中の棟(sites.js の付属棟・体育館として使う元のジム)は役割ごとの作り(FAC_BUILD.annex)を使う
+  var facT = (b) => b.type === "annex" || b.campusOf != null && b.kind === "gym" ? "annex" : b.type;
   function facStep(g, L2, I2, iy) {
     const b = g.world.map.buildings[L2.b];
-    const f = b && FAC_STEP[b.type];
+    const f = b && FAC_STEP[facT(b)];
     return f ? f(g, L2, I2, iy) : null;
   }
   function facBuild(b, floor, g) {
-    const f = FAC_BUILD[b.type];
+    const f = FAC_BUILD[facT(b)];
     if (!f) return null;
     try {
       return f(b, floor, g);
@@ -25,15 +27,15 @@
     }
   }
   function facRange(b) {
-    const f = FAC_RANGE[b.type];
+    const f = FAC_RANGE[facT(b)];
     return f ? f(b) : null;
   }
   function facLabel(b, lv) {
-    const f = FAC_LABEL[b.type];
+    const f = FAC_LABEL[facT(b)];
     return f ? f(b, lv) : null;
   }
   function facKey(g, b) {
-    const f = FAC_KEY[b.type];
+    const f = FAC_KEY[facT(b)];
     return f ? ":" + f(g, b) : "";
   }
   // 行動: o.act が "fx_" で始まる設備は FAC_ACTS[act](g, o, b, push) が選択肢を出し、FAC_RUN[id](g, arg, tg, r) が実行する
