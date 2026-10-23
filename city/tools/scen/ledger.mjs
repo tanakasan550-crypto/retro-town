@@ -12,7 +12,7 @@ export default async (p) => {
     const stud = [...Array(P.n).keys()].find(i => !P.gone[i] && P.school[i] >= 0 && i !== G.hero.id);
     const worker = [...Array(P.n).keys()].find(i => !P.gone[i] && P.work[i] >= 0 && P.workM[i] > 24);
     const N = NLS.nav, G2 = N.Game.load(N.fromJSON(N.toJSON(G.serialize()))), P2 = G2.world.pop;
-    const same = ['workM', 'careM', 'promo', 'grads', 'clubY'].every(k => P2[k].slice(0, P.n).join() === P[k].slice(0, P.n).join());
+    const same = ['workM', 'careM', 'promo', 'grads', 'clubY', 'sch1', 'sch2', 'sch3', 'sch4', 'sch5'].every(k => P2[k].slice(0, P.n).join() === P[k].slice(0, P.n).join());
     const html = NLS.ui && (document.body.innerHTML.length > 0);
     return { counts: { work, care, promo, grads, club }, awards: a1.map(a => a.title + ':' + a.name + ':' + a.evidence), deterministic: JSON.stringify(a1) === JSON.stringify(a2), uniquePeople: new Set(a1.map(a => a.id)).size === a1.length, studMission: NLS.ledger.lifeMission(w, stud), workerMission: NLS.ledger.lifeMission(w, worker), same };
   });

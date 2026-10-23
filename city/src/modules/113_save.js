@@ -2,7 +2,7 @@
   var DB_NAME = "nagayama_japan_lifestory_db";
   var DB_VER = 1;
   var STORE = "saves";
-  var ARR = ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur"];
+  var ARR = ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5", "workM", "careM", "promo", "grads", "clubY"];
   var b64 = (u8) => {
     if (typeof Buffer !== "undefined") return Buffer.from(u8.buffer, u8.byteOffset, u8.byteLength).toString("base64");
     let s = "";
@@ -19,7 +19,7 @@
     for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
     return u;
   };
-  var CTOR = { born: Int32Array, gone: Uint8Array, goneAt: Int32Array, spouse: Int32Array, mother: Int32Array, father: Int32Array, home: Int16Array, work: Int16Array, job: Uint8Array, school: Int16Array, edu: Uint8Array, apt: Uint8Array, needs: Uint8Array, look: Uint32Array, flags: Uint8Array, quals: Uint16Array, kids: Uint8Array, slot: Int32Array, sur: Uint8Array };
+  var CTOR = { born: Int32Array, gone: Uint8Array, goneAt: Int32Array, spouse: Int32Array, mother: Int32Array, father: Int32Array, home: Int16Array, work: Int16Array, job: Uint8Array, school: Int16Array, edu: Uint8Array, apt: Uint8Array, needs: Uint8Array, look: Uint32Array, flags: Uint8Array, quals: Uint16Array, kids: Uint8Array, slot: Int32Array, sur: Uint8Array, sch1: Int16Array, sch2: Int16Array, sch3: Int16Array, sch4: Int16Array, sch5: Int16Array, workM: Uint16Array, careM: Uint16Array, promo: Uint8Array, grads: Uint8Array, clubY: Uint8Array };
   function toJSON(data) {
     const w = { ...data.world, arrays: {} };
     for (const k of ARR) {
