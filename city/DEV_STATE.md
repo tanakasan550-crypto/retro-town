@@ -13,6 +13,11 @@
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 汎用の中の作り直し(段階): 一戸建て 181_fac_house.js(houses.mjs)・集合住宅の住戸 buildUnitHome(aptunits.mjs)・飲食店 182_fac_food.js(foods.mjs)・小さな店 183_fac_retail.js(retail.mjs)・職場/小さな施設 184_fac_work.js(works.mjs)。どれも全件で設備・寝る場所/席・歩いて行けるか・間取りの違いを試験
+- 小学校の敷地(160_sites.js): 体育館の屋上プール・都市部の小さな小学校の作り(elem_compact)で、敷地を広げず全校が設置基準以上(elemland.mjs)
+- 職種監査(jobaudit.mjs → docs/job_audit.md/csv): 全81職に職場・雇用・作業(180_worktask.js の WORK_TASKS)・仕事のできごと。工務店・土木・電気工事・設備・造園・ビル管理のテナント。施設の警備員
+- オフィスビルの複数テナント(178_tenants.js・tenants.mjs/tenantlife.mjs): 階・区画・床面積・企業・社員・代表。毎年の退去/空室/入居(bizOv・bizFz をセーブ)・中心メンバーの採用と転職・主人公の空室の賃借
+- 何十年ぶりの再会と同窓会(179_reunion.js・reunion.mjs)。遠くへ移した建物の生活圏(lifesphere.mjs)。Android の「端末の検証」(devcheck.mjs・docs/android_checklist.md、実機は未検証)
 - 火葬場(165_funeral.js): 炉前ホール・待合室・収骨室と火葬の予約。遺族が喪服で移る。学級編成を均等に(kumiAt)。施設監査の撮り直し(B 358)
 - 改築前(元の v11)と改築後の同縮尺比較 docs/compare2(compare2.mjs: IDS_OUT で改築後の建物IDを書き、HTML=original/lifestory_v11_single.html と IDS_IN で同じIDを撮る → tools/compare_join.py)
 - 公共施設の作り直し(177_fac_public.js・pubfac.mjs): 警察・消防・市役所・裁判所・介護・福祉・研究所の複数階の中の作りと敷地。職員の席は職の枠から
@@ -56,10 +61,10 @@
 - 全試験: `bash tools/run_tests.sh`(`HTML=写し` で dist を作り直しながら回せる)。結果は docs/test_results.md
 
 ## 再開地点(次の優先)
-1. 小さな飲食店・ゲームセンターの中の広さ(capacity.mjs の残り)・C 判定の多い住宅/店/事務所の中
-2. 小学校の敷地(住宅地の再編か、新しい住宅地の埋立)・空港の縮尺
-3. 四十九日の行事・喪中の暮らし
-4. 地図の生成の高速化(敷地の移設の探索)
-5. 遠くへ移った建物(382件)を近くへ戻す工夫
+1. v11 の汎用の中が残る種類(美容室・銀行・旅館/民宿・幼稚園・スーパー・ホームセンターなど約600件)と、施設監査(audit_shots.mjs・audit_facilities.csv)の撮り直し
+2. 画像監査の指摘: ファミレスの席の並び・電器店の売り場の中央・現場へ出る業種の工事現場
+3. 四十九日の行事・喪中の暮らし・屋上プールの場面
+4. Android 実機での「端末の検証」(代表者の端末で。PC の再現を実機の合格としない)
+5. 地図の生成の高速化・空港の縮尺
 ## 守ること
 追加費用0円・有料API不使用 / 公開・販売・外部アップロードは代表者の承認後 / main への無断マージ禁止 / 旧セーブ・建物ID・人物ID・旧地図v1〜v3を保護 / 未完成を完成と報告しない / テストの期待値を弱めない / Android実機は未検証と記録
