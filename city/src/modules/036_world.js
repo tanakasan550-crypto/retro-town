@@ -2,7 +2,7 @@
   // 人口の配列(人物ID=配列の番号)。故人も記録として残す(IDを変えないため詰めない)。
   // CAP は最初の大きさ。いっぱいになったら1.5倍に広げる(grow)。POP_LIMIT は暴走を止めるための安全上限(80年で約6万なので十分遠い)。
   var CAP = 6e4, POP_LIMIT = 4e5;
-  var POP_FILL = { cls2: 255, cls3: 255, cls4: 255, sch1: -1, sch2: -1, sch3: -1, sch4: -1, sch5: -1, goneAt: -1, spouse: -1, mother: -1, father: -1, home: -1, work: -1, job: 255, school: -1, sur: 255, slot: -1 };
+  var POP_FILL = { dr1: 255, dr2: 255, drBy: -1, trk: 255, cls2: 255, cls3: 255, cls4: 255, sch1: -1, sch2: -1, sch3: -1, sch4: -1, sch5: -1, goneAt: -1, spouse: -1, mother: -1, father: -1, home: -1, work: -1, job: 255, school: -1, sur: 255, slot: -1 };
   var JOB_IDS2 = Object.keys(JOBS);
   var JOB_INDEX = Object.fromEntries(JOB_IDS2.map((k, i) => [k, i]));
   var QUAL_IDS2 = Object.keys(QUALS);
@@ -51,6 +51,15 @@
       this.promo = new Uint8Array(c);
       this.grads = new Uint8Array(c);
       this.clubY = new Uint8Array(c);
+      // 将来の夢(dreams.js): いちばんの夢・二つ目の夢・段階・憧れた人・夢を持った月・いま進んでいる資格の道とその年数・職業の免許(ビット)
+      this.dr1 = new Uint8Array(c).fill(255);
+      this.dr2 = new Uint8Array(c).fill(255);
+      this.drS = new Uint8Array(c);
+      this.drBy = new Int32Array(c).fill(-1);
+      this.drM = new Int16Array(c);
+      this.trk = new Uint8Array(c).fill(255);
+      this.trkY = new Uint8Array(c);
+      this.lic2 = new Uint8Array(c);
       this.n = 0;
       this.cap = c;
       this.surX = [];
@@ -285,7 +294,7 @@
     serialize() {
       const p = this.pop, arrays = {};
       for (const k of _World.ARRS) arrays[k] = p[k].slice(0, p.n);
-      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {}, ...b.devFl || b.devOver || b.devUnder || b.devLess ? { devFl: b.devFl || 0, devOver: b.devOver || 0, devUnder: b.devUnder || 0, devLess: b.devLess || 0 } : {} })), dev: this.dev || [], kinOutV: this.kinOutV || 0, outKin: this.outKin || [], surX: p.surX, givenOv: p.givenOv, sn: this.sn, ...this.bizOv ? { bizOv: this.bizOv, bizFz: this.bizFz || {} } : {} };
+      return { prof: Object.fromEntries([...this.prof].filter(([k]) => !this.pop.gone[k] || this.lives.has(k)).map(([k, v]) => [k, packProf(v)])), lives: Object.fromEntries([...this.lives].map(([k, v]) => [k, v])), detail: [...this.detailIds], seed: this.seed, mapVer: this.ver, startYear: this.startYear, M: this.M, n: p.n, arrays, occ: Array.from(this.occ), slots: { b: this.slots.b.slice(), job: this.slots.job.slice(), who: this.slots.who.slice() }, vacant: this.vacant.slice(), known: [...this.known], events: this.events, newsLog: this.newsLog, tickCount: this.tickCount, stats: this.stats, heroId: this.heroId, alive: this.alive, funerals: this.funerals || [], bdyn: this.map.buildings.map((b) => ({ name: b.name, ...b.nameSim ? { nameSim: 1 } : {}, openYear: b.openYear, history: b.history, status: b.status, era: b.era, wa: b.wa || null, floors: b.floors, nf: b.nf || 0, ...b.planNf ? { planNf: b.planNf } : {}, ...b.devFl || b.devOver || b.devUnder || b.devLess ? { devFl: b.devFl || 0, devOver: b.devOver || 0, devUnder: b.devUnder || 0, devLess: b.devLess || 0 } : {} })), dev: this.dev || [], kinOutV: this.kinOutV || 0, outKin: this.outKin || [], surX: p.surX, givenOv: p.givenOv, sn: this.sn, dreamV: this.dreamV || 0, ...this.shopOwn ? { shopOwn: this.shopOwn } : {}, ...this.bizOv ? { bizOv: this.bizOv, bizFz: this.bizFz || {} } : {} };
     }
     static restore(d) {
       const w = new _World(d.seed, d.startYear, { skipInit: true, ver: d.mapVer ?? 1 });
@@ -327,6 +336,10 @@
       });
       // 建物の階数などを戻してから職の枠を拡張する(オフィスビルの入居企業は階数で決まる)
       w.extendSlots();
+      // 夢と資格(dreams.js): 旧セーブは一度だけ、今の免許職の人の免許・大人の記録以前の資格・子どもと若い人の夢を足す
+      w.dreamV = d.dreamV || 0;
+      if (d.shopOwn) w.shopOwn = d.shopOwn;
+      if (!w.dreamV && typeof dreamUpgrade === "function") dreamUpgrade(w);
       // 旧セーブ: 市外に住む親族を1度だけ足す(人物IDは末尾に追加)
       if (typeof kinOutside === "function" && w.heroId >= 0) try {
         kinOutside(w);
@@ -413,6 +426,7 @@
       }
       const q = QUAL_IDS2.indexOf(JOBS[JOB_IDS2[this.slots.job[s]]].qual);
       if (q >= 0) p.quals[id] |= 1 << q;
+      if (typeof dreamOnHire === "function") dreamOnHire(this, id);
     }
     freeSlot(id, why = "quit") {
       const p = this.pop, s = p.slot[id];
@@ -432,6 +446,8 @@
       if (J.lic || J.exp) {
         if (p.apt[id] < (J.edu >= 5 ? 120 : J.edu >= 4 ? 95 : 70) || age < J.minAge + (J.exp ? 6 : 1)) return false;
       }
+      // 資格・免許の要る職は、実際に持っている人だけ(dreams.js の試験で取る。資格を取る前に就職させない)
+      if ((J.qual || J.lic) && this.pop.lic2 && typeof holdsFor === "function") return holdsFor(this, id, J);
       if (J.qual) {
         const qi = QUAL_IDS2.indexOf(J.qual);
         if (!(p.quals[id] & 1 << qi)) {
@@ -516,6 +532,7 @@
               if (p.work[id] >= 0) continue;
               const age = ageYears(p, id, M);
               if (age > 66 && !JOBS[jid].qual && hash2(id, s) % 10 < 6) continue;
+              if (this._proHold && this._proHold[id] && !JOBS[jid].qual && !JOBS[jid].lic) continue;
               if (!this.eligibleFor(id, jid, M)) continue;
               const hb = B2[p.home[id]];
               const d = Math.abs(hb.doorX - sb.doorX) + Math.abs(hb.doorY - sb.doorY);
@@ -566,6 +583,8 @@
       const cx = hx2 >> 5, cy = hy >> 5;
       let best = -1, bd = 1e9, found = 0, rFirst = -1;
       const B2 = this.map.buildings, S2 = this.slots;
+      // 夢の職は近いのと同じくらい選ばれやすい(dreams.js)
+      const dj = typeof dreamJobsOf === "function" ? dreamJobsOf(this, id) : null;
       for (let r = 0; r <= 40; r++) {
         if (found >= 4 && r > rFirst + 1) break;
         for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -580,7 +599,7 @@
             if (!this.eligibleFor(id, jid, M)) continue;
             const b = B2[S2.b[s]];
             if (b.status === "closed") continue;
-            const d = (Math.abs(b.doorX - hx2) + Math.abs(b.doorY - hy)) * (0.85 + rng.next() * 0.3);
+            const d = (Math.abs(b.doorX - hx2) + Math.abs(b.doorY - hy)) * (0.85 + rng.next() * 0.3) * (dj && dj.get(S2.job[s]) || 1);
             found++;
             if (rFirst < 0) rFirst = r;
             if (d < bd) {
@@ -769,6 +788,8 @@
         else if (age >= 12) p.edu[i] = 2;
         else if (age >= 6) p.edu[i] = 1;
       }
+      // 大人の資格(街の記録より前に取得したもの。dreams.js)。資格の要る職は資格を持つ人だけが就ける
+      if (typeof initQuals === "function") initQuals(this, M);
       rng.shuffle(pool);
       if (this.ver >= 4) {
         this._placeJobsV4(rng, pool, M);
@@ -799,6 +820,7 @@
           this.takeSlot(id, s);
         }
       }
+      this._proHold = null;
       for (const id of pool) {
         if (p.work[id] >= 0) continue;
         const age = ageYears(p, id, M);
@@ -813,6 +835,8 @@
         const age = ageYears(p, i, M);
         if (age >= 65 && p.work[i] < 0) p.flags[i] |= F_RETIRED;
       }
+      // 子どもと若い人の夢・今の仕事が夢だった大人(dreams.js)
+      if (typeof dreamInit === "function") dreamInit(this, M, true);
       let det = 0;
       const idsAll = rng.shuffle([...Array(p.n).keys()]);
       for (const i of idsAll) {
@@ -843,7 +867,8 @@
       if (ageA >= 12 && ageA <= 14) return this.nearestSchool(this.schools[3], home);
       if (ageA >= 15 && ageA <= 17) return this.pickHighSchool(rng, id);
       if (ageA >= 18 && ageA <= 21) {
-        const prob = p.apt[id] > 150 ? 0.7 : p.apt[id] > 110 ? 0.35 : 0.08;
+        let prob = p.apt[id] > 150 ? 0.7 : p.apt[id] > 110 ? 0.35 : 0.08;
+        if (typeof dreamUnivProb === "function") prob = dreamUnivProb(this, id, prob);
         return rng.chance(prob) ? this.nearestSchool(this.schools[5], home) : -1;
       }
       return -1;
@@ -1035,6 +1060,8 @@
         if (typeof ledgerMonth === "function") ledgerMonth(this, i, M);
         if (hero) continue;
         if (m0 === 3) this.updateSchool(rng, i, M);
+        // 将来の夢と進路・資格の試験(dreams.js。決定的な値を使い、乱数の流れは変えない)
+        if ((m0 === 2 || m0 === 3) && typeof dreamPerson === "function") dreamPerson(this, i, M, age);
         growNpc(this, i, M, rng, age);
         const hasJob = p.work[i] >= 0;
         const student = p.flags[i] & F_STUDENT;
@@ -1319,7 +1346,7 @@
       return { id, name: nameOf(this.seed, id, this.pop), age, job: jid ? JOBS[jid].name : p.flags[id] & F_RETIRED ? "\u9000\u8077" : p.flags[id] & F_STUDENT ? "\u5B66\u751F\u30FB\u5150\u7AE5" : p.flags[id] & F_HOMEMAKER ? "\u5BB6\u4E8B\u30FB\u80B2\u5150" : p.flags[id] & F_OUTWORK ? "\u5E02\u5916\u52E4\u52D9" : age < 3 ? "\u4E73\u5E7C\u5150" : "\u7121\u8077\u30FB\u6C42\u8077\u4E2D", home: p.home[id] >= 0 ? B2[p.home[id]].name + " " + B2[p.home[id]].addr : "-", work: p.work[id] >= 0 ? B2[p.work[id]].name : "", school: p.school[id] >= 0 ? B2[p.school[id]].name : "", alive: p.gone[id] === 0, goneHow: p.gone[id], needs: p.needs[id] };
     }
   };
-  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5", "workM", "careM", "promo", "grads", "clubY", "cls2", "cls3", "cls4"]);
+  __publicField(_World, "ARRS", ["born", "gone", "goneAt", "spouse", "mother", "father", "home", "work", "job", "school", "edu", "apt", "needs", "look", "flags", "quals", "kids", "slot", "sur", "sch1", "sch2", "sch3", "sch4", "sch5", "workM", "careM", "promo", "grads", "clubY", "cls2", "cls3", "cls4", "dr1", "dr2", "drS", "drBy", "drM", "trk", "trkY", "lic2"]);
   var World = _World;
   function shiftOf(id, job) {
     const h = hash2(id, 77);

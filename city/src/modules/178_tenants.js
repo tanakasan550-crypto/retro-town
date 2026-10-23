@@ -89,7 +89,7 @@
         }
         const staff = vacant ? 0 : Math.max(2, Math.round((lv === 0 ? cap * 0.45 : cap / parts.length) * (0.8 + uh(b.idx + lv, 4404 + part) % 21 / 100)));
         // 入れ替わった企業は別の事業ID(元の企業の記録と混ざらないように開業年を付ける)
-        L3.push({ id: `E${b.idx}-${lv}${part ? "b" : "a"}${o && o.kind ? "-" + o.from : ""}`, key: slotKey, sl: !!(o && o.sl), hk: o && o.hero ? o.firm : null, b: b.idx, lv, part, parts: parts.length, kind: kind.k, kindName: kind.n, name, staff, from, vacant, hero: !!(o && o.hero) });
+        L3.push({ id: `E${b.idx}-${lv}${part ? "b" : "a"}${o && o.kind ? "-" + o.from : ""}`, key: slotKey, sl: !!(o && o.sl), hk: o && o.hero ? o.firm : null, b: b.idx, lv, part, parts: parts.length, kind: kind.k, kindName: kind.n, name, staff, from, vacant, hero: !!(o && o.hero), rep: o && o.rep != null ? o.rep : -1 });
       }
     }
     offCache.set(b.idx, { key, w, L: L3 });

@@ -38,6 +38,11 @@
       for (const f of reunionFacts(g, id, gap)) out.push(f);
     } catch (e) {
     }
+    // 将来の夢と進路(dreams.js): 夢の段階と記録から
+    if (typeof dreamFacts === "function") try {
+      for (const f of dreamFacts(g, id)) out.push(f);
+    } catch (e) {
+    }
     // 人と人のつながり(ties.js: 親族・学校の在籍記録・職歴)。言い回しは日ごとに変える
     const vary = (L3) => L3[uh(id * 31 + M, g.date().d) % L3.length];
     if (typeof tiesOf === "function") for (const t of tiesOf(w, h.id, id)) {

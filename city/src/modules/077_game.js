@@ -871,6 +871,8 @@
       const S2 = this.S, h = this.hero, a = this.age(), m0 = this.month0();
       const rng = monthRng(S2.seed, S2.M, "hev");
       if (!first) this.schoolHooks(rng);
+      // 将来の夢と資格の試験(dreams.js)
+      if (!first && typeof heroDreamMonth === "function") heroDreamMonth(this);
       if (h.job && this.world.slots.who[h.job.slot] !== h.id) {
         this.log("job", `${this.bld(h.job.b).name}\u306E\u9589\u5E97\u7B49\u3067\u8077\u3092\u5931\u3063\u305F`);
         h.job = null;
@@ -1079,6 +1081,8 @@
       e.cur = level;
       e.b = b;
       e.year = 0;
+      // 大学の学部は夢から(医学部・薬学部は6年)
+      if (level === 5 && typeof heroFaculty === "function") heroFaculty(this, e);
       this._cmCache = null;
       this.log("school", `${this.bld(b).name}\u306B\u5165\u5B66\u3057\u305F`, { b, level });
       const cm = this.world.classmates(this.hero.id, b).slice(0, 40);
@@ -1087,6 +1091,7 @@
     graduate(level) {
       const e = this.hero.edu;
       e.level = Math.max(e.level, level);
+      if (level === 5) this.hero.flags.gradM = this.S.M;
       const nm = e.b >= 0 ? this.bld(e.b).name : "";
       this.log("school", `${nm}\u3092\u5352\u696D\u3057\u305F`, { b: e.b, level });
       e.cur = 0;
@@ -1143,7 +1148,8 @@
         else if (e.cur === 2 && sa === 11) this.graduate(2);
         else if (e.cur === 3 && sa === 14) this.graduate(3);
         else if (e.cur === 4 && sa === 17) this.graduate(4);
-        else if (e.cur === 5 && sa >= 21 && e.year >= 3) this.graduate(5);
+        // 大学(医学部・薬学部は6年。dreams.js の学部)
+        else if (e.cur === 5 && sa >= 17 + (e.yrs || 4) && e.year >= (e.yrs || 4) - 1) this.graduate(5);
         else if (e.cur === 6) {
         }
       }
@@ -1190,10 +1196,9 @@
       if (a < 18 && (a < 15 || h.edu.level < 3 && a < 16)) return false;
       const req = EDU_REQ[jobId] || 0;
       if (h.edu.level < req && !(this.isStudentNow() && MINOR_JOBS.has(jobId))) return false;
-      if (J.qual && !h.quals[J.qual]) {
-        if (!this.world.eligibleFor(h.id, jobId, this.S.M)) return false;
-      }
-      if (J.lic && !h.quals[J.lic]) return false;
+      if (J.qual && !h.quals[J.qual]) return false;
+      if (J.lic && !h.quals[J.lic] && !(J.lic === "beautician" && h.quals.barber)) return false;
+      // 資格の要る職は、資格を取ってから(養成と試験。dreams.js)
       if (J.exp && !expOK(this, J)) return false;
       return true;
     }

@@ -102,5 +102,10 @@
       }
     }
     if (kb >= 0 && kv >= 3) out.push({ title: "子育て賞", id: kb, name: g.nameOf(kb), value: kv, evidence: `子ども ${kv}人(親子の記録)`, rule: "子育て賞: 知人・家族の中で子どもの数がいちばん多い人(3人以上)" });
+    // 夢と進路の表彰(dreams.js)
+    if (typeof dreamAwards === "function") try {
+      for (const a of dreamAwards(g, cand, used)) out.push(a);
+    } catch (e) {
+    }
     return out;
   }

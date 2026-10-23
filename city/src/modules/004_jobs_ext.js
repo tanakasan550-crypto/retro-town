@@ -40,7 +40,9 @@
     mechanic: { name: "自動車整備士", wage: 26e4, minAge: 18, lic: "mechanic", interactive: true, skill: "craft" },
     gardener: { name: "造園・植木職人", wage: 24e4, minAge: 18, interactive: true, skill: "craft" },
     forester: { name: "林業作業員", wage: 23e4, minAge: 18, interactive: true, skill: "stamina" },
-    garbage: { name: "ごみ収集・清掃作業員", wage: 25e4, minAge: 18, interactive: true, skill: "driving" }
+    garbage: { name: "ごみ収集・清掃作業員", wage: 25e4, minAge: 18, interactive: true, skill: "driving" },
+    // 将来の夢の職(dreams.js): 空港で働くパイロット(事業用操縦士の免許が要る)
+    pilot: { name: "パイロット", wage: 65e4, minAge: 24, lic: "pilot", edu: 5, interactive: true, skill: "driving" },
   };
   var EDU_EXT = Object.fromEntries(Object.entries(JOBS_EXT).filter(([, j]) => j.edu).map(([k, j]) => [k, j.edu]));
   var SLOTS_EXT = {
@@ -62,6 +64,8 @@
   SLOTS_EXT.cityhall.garbage = 6;
   SLOTS_EXT.cityhall.gardener = 3;
   SLOTS_EXT.construction.gardener = 2;
+  SLOTS_EXT.airport = SLOTS_EXT.airport || {};
+  SLOTS_EXT.airport.pilot = 8;
   // 施設の警備員(大きな施設・お金や人が集まる場所。オフィスビルの警備は tenants.js の建物の管理)
   for (const [t, n2] of Object.entries({ hospital: 3, mall: 4, dept: 3, airport: 6, stadium: 4, themepark: 3, bank: 1, cityhall: 2, museum: 1, univ: 2, court: 2, station: 1, lab: 2, factory: 1, logistics: 1 })) (SLOTS_EXT[t] || (SLOTS_EXT[t] = {})).security = n2;
   var UTIL_SLOTS = { power: { powerstaff: 6, elecmaint: 4, electrician: 3 }, water: { waterstaff: 4, waterworker: 5, plumber: 3, sewer: 3 } };

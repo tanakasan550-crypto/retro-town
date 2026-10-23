@@ -63,12 +63,19 @@
       ties = typeof tiesOf === "function" ? tiesOf(G3.world, G3.hero.id, id).map((t) => t.k === "kin" ? t.rel : { classmate: `${t.name}で同じクラス`, gradeMate: `${t.name}で同じ学年`, senpai: `${t.name}の先輩`, kohai: `${t.name}の後輩`, boss: `${t.name}の上司`, coworker: `${t.name}の同僚`, excoworker: `${t.name}の元同僚`, samebldg: `同じビル(${t.name})` }[t.k]).filter(Boolean) : null;
     } catch (e) {
     }
-    return { who, age, now, goal, mission, ties };
+    // 将来の夢と段階(dreams.js)・あこがれた人
+    let dream = "";
+    try {
+      const p = G3.world.pop;
+      if (typeof dreamLabel === "function" && p.dr1 && age >= 6) dream = dreamLabel(p, id) + (p.drBy[id] >= 0 && p.dr1[id] !== 255 ? `・あこがれた人 ${G3.nameOf(p.drBy[id])}` : "");
+    } catch (e) {
+    }
+    return { who, age, now, goal, mission, ties, dream };
   }
   function npcActivityHtml(id) {
     try {
       const s = npcStatus(id);
-      return `<div class="tx small" style="background:#0d1a3399;border-radius:8px;padding:6px 8px;margin:4px 0">${s.age}歳${s.who ? "・" + esc4(s.who) : ""}${s.ties && s.ties.length ? `<br>あなたとの関係: ${esc4(s.ties.join("・"))}` : ""}<br>いま: ${esc4(s.now)}${s.goal ? `<br>このあと: ${esc4(s.goal)}` : ""}${s.mission ? `<br>目標: ${esc4(s.mission.title)}(${Math.round(s.mission.prog * 100)}%・根拠: ${esc4(s.mission.ev)})` : ""}</div>`;
+      return `<div class="tx small" style="background:#0d1a3399;border-radius:8px;padding:6px 8px;margin:4px 0">${s.age}歳${s.who ? "・" + esc4(s.who) : ""}${s.dream ? `<br>夢: ${esc4(s.dream)}` : ""}${s.ties && s.ties.length ? `<br>あなたとの関係: ${esc4(s.ties.join("・"))}` : ""}<br>いま: ${esc4(s.now)}${s.goal ? `<br>このあと: ${esc4(s.goal)}` : ""}${s.mission ? `<br>目標: ${esc4(s.mission.title)}(${Math.round(s.mission.prog * 100)}%・根拠: ${esc4(s.mission.ev)})` : ""}</div>`;
     } catch (e) {
       return "";
     }

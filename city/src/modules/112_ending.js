@@ -12,6 +12,12 @@
     add("\u306F\u3058\u307E\u308A", [line2(pick5("birth")[0])]);
     add("\u6311\u6226", pick5("scenario").map(line2));
     add("\u5B66\u3073\u820E", pick5("school").filter((e, i, a) => /入学/.test(e.text)).map(line2).concat(pick5("exam").map(line2)));
+    // 夢と進路(dreams.js): 子どものころの夢・学部・資格の試験・合格(日記の記録だけ)
+    if (typeof heroDreamEnding === "function") try {
+      const de = heroDreamEnding(g);
+      add("夢と進路", [de.note ? { text: de.note } : null, ...de.lines.map(line2)]);
+    } catch (e) {
+    }
     const jobs = pick5("job").filter((e) => /働き始めた/.test(e.text));
     add("\u4ED5\u4E8B", jobs.slice(0, 6).map(line2).concat(pick5("job").filter((e) => /昇進|退職/.test(e.text)).slice(0, 4).map(line2)));
     add("\u3068\u3082\u306B\u6B69\u3044\u305F\u4EBA", pick5("marry").map(line2).concat(pick5("couple").slice(0, 2).map(line2), pick5("family").filter((e) => /生まれた/.test(e.text)).map(line2), pick5("bestfriend").slice(0, 4).map(line2), pick5("friend").slice(0, 4).map(line2)));

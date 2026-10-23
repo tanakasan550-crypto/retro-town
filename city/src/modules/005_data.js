@@ -184,7 +184,7 @@
     fortune: { name: "\u5360\u3044\u5E2B", wage: 18e4, minAge: 18, interactive: true, skill: "speaking" },
     guide: { name: "\u5C71\u5CB3\u30FB\u63A2\u691C\u30AC\u30A4\u30C9", wage: 23e4, minAge: 20, interactive: true, skill: "stamina" },
     astronaut: { name: "\u5B87\u5B99\u98DB\u884C\u58EB(\u8A13\u7DF4\u751F)", wage: 45e4, minAge: 28, qual: "phd", interactive: true, skill: "research" },
-    hairdresser: { name: "\u7F8E\u5BB9\u5E2B\u30FB\u7406\u5BB9\u5E2B(\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u301C\u30B9\u30BF\u30A4\u30EA\u30B9\u30C8)", wage: 195e3, minAge: 16, interactive: true, skill: "styling" }
+    hairdresser: { name: "\u7F8E\u5BB9\u5E2B\u30FB\u7406\u5BB9\u5E2B(\u30A2\u30B7\u30B9\u30BF\u30F3\u30C8\u301C\u30B9\u30BF\u30A4\u30EA\u30B9\u30C8)", wage: 195e3, minAge: 16, lic: "beautician", interactive: true, skill: "styling" }
   };
   Object.assign(JOBS, JOBS_EXT);
   var QUALS = {
