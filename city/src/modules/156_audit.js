@@ -31,7 +31,7 @@
   })();
   var auditCat = (b) => b.type === "annex" && b.parentB != null && G3 ? AUDIT_TYPE_CAT[G3.bld(b.parentB).type] || "other" : AUDIT_TYPE_CAT[b.type] || "other";
   // 自動試験(tools/scen)のうち、その施設の利用を実際に通して確かめているもの
-  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp", station: "st,stpeople,metro", metro: "metro", stadium: "sd", airport: "fly", hospital: "ho", zoo: "zoo" };
+  var AUDIT_TESTS = { hotel: "hotel", bizhotel: "hotel", resorthotel: "hotel", aquarium: "aq", themepark: "tp,bigsites", station: "st,stpeople,metro", metro: "metro", stadium: "sd,bigsites", airport: "fly", hospital: "ho", zoo: "zoo,zooout", police: "pubfac", fire: "pubfac", cityhall: "pubfac", court: "pubfac", nursing: "pubfac", welfare: "pubfac", lab: "pubfac", crematorium: "funeral", funeral: "funeral", elem: "classroom,campus", jh: "campus", hs: "classroom,campus", univ: "campus", kinder: "campus", onsenbath: "bath", sento: "bath", cinema: "leisure", bowling: "leisure", gym: "leisure", factory: "bigsites" };
   var auditFactC = /* @__PURE__ */ new Map();
   // 種類ごとの事実(代表の建物の内部を実際に組み立てて数える)
   function auditFacts(g, b) {
