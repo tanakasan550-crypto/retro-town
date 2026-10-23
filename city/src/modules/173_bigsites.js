@@ -317,7 +317,7 @@
       const zp = PXM * P2.Z, zi = 3, zo = 24, side = r.side, u0 = r.x, v0 = r.y, u1 = r.x + r.w, v1 = r.y + r.h;
       const full = gameDay(R5), seat = ["#2f6db5", "#3b7fd0", "#2a5f9e"], crowd = ["#e8505b", "#f2f2f2", "#2b2b2b", "#f6d743", "#4aa3df"];
       const p = (u, v, z) => bpt(P2, u, v, z);
-      const roofC = "#e9edf1", wallC = "#c8ccd2";
+      const roofC = "#d3d8de", wallC = "#9da4ad";
       if (side === "N" || side === "W") {
         // 座席の面が見える(内側の縁=低い)
         const rows = 14;
@@ -358,12 +358,14 @@
         const ribs = Math.floor((side === "S" ? r.w : r.h) / 4);
         if (side === "S") {
           bpoly(c, [p(u0, v1, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u0, v1, zo + 2)], wallC);
-          for (let k = 0; k <= ribs; k++) bline(c, p(u0 + k * r.w / ribs, v1, 0), p(u0 + k * r.w / ribs, v1, zo + 2), "#a9afb7", 0.4 * zp);
+          for (let k = 0; k <= ribs; k++) bline(c, p(u0 + k * r.w / ribs, v1, 0), p(u0 + k * r.w / ribs, v1, zo + 2), "#7d848d", 0.4 * zp);
+          bpoly(c, [p(u0, v1, zo - 3), p(u1, v1, zo - 3), p(u1, v1, zo - 1), p(u0, v1, zo - 1)], "#2f6db5");
           bpoly(c, [p(u1, v0, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u1, v0, zi)], shadeC(wallC, 0.72));
           bpoly(c, [p(u0, v0 + r.h * 0.5, zo + 3), p(u1, v0 + r.h * 0.5, zo + 3), p(u1, v1 + 1, zo + 4), p(u0, v1 + 1, zo + 4)], roofC, "#b8bec6", 1);
         } else {
           bpoly(c, [p(u1, v0, 0), p(u1, v1, 0), p(u1, v1, zo + 2), p(u1, v0, zo + 2)], shadeC(wallC, 0.78));
-          for (let k = 0; k <= ribs; k++) bline(c, p(u1, v0 + k * r.h / ribs, 0), p(u1, v0 + k * r.h / ribs, zo + 2), "#a0a6ae", 0.4 * zp);
+          for (let k = 0; k <= ribs; k++) bline(c, p(u1, v0 + k * r.h / ribs, 0), p(u1, v0 + k * r.h / ribs, zo + 2), "#7d848d", 0.4 * zp);
+          bpoly(c, [p(u1, v0, zo - 3), p(u1, v1, zo - 3), p(u1, v1, zo - 1), p(u1, v0, zo - 1)], "#2a5f9e");
           bpoly(c, [p(u0 + r.w * 0.5, v0, zo + 3), p(u1 + 1, v0, zo + 4), p(u1 + 1, v1, zo + 4), p(u0 + r.w * 0.5, v1, zo + 3)], roofC, "#b8bec6", 1);
         }
         // 入場口の明かり
