@@ -397,6 +397,7 @@
         if (typeof campusIndoor === "function") res = campusIndoor(this, bIdx, I2, floor, res);
         if (typeof funeralIndoor === "function") res = funeralIndoor(this, bIdx, I2, floor, res);
         if (typeof cremIndoor === "function") res = cremIndoor(this, bIdx, I2, floor, res);
+        if (typeof officeLobbyFlow === "function") res = officeLobbyFlow(this, bIdx, I2, floor, res);
         if (typeof cinemaIndoor === "function") res = cinemaIndoor(this, bIdx, I2, floor, res);
       } catch (e) {
         console.warn("[campus in]", e);
@@ -518,7 +519,8 @@
         return res;
       }
       if (floor === 0 || b.floors > 1) {
-        for (let s = 0; s < w.slots.b.length && res.length < 14; s++) {
+        const offUsed = /* @__PURE__ */ new Set();
+        for (let s = 0; s < w.slots.b.length && res.length < (b.type === "office" ? 40 : 14); s++) {
           if (w.slots.b[s] !== bIdx) continue;
           const i = w.slots.who[s];
           if (i < 0 || i === g.hero.id || p.gone[i]) continue;
@@ -539,8 +541,20 @@
             continue;
           }
           const nfl = isSchoolBig(b) ? schoolFloors(b) : b.floors;
-          const fl = isSchoolBig(b) ? act.s === 2 && m % 60 < 50 && m / 60 >= 8.5 && m / 60 < 15.5 && hash2(i, 6) % 4 ? 1 + hash2(i, 5) % (nfl - 1) : 0 : nfl > 1 ? hash2(i, 5) % nfl : 0;
+          // オフィスビル: 入居企業の階(tenants.js)
+          const ofl = typeof officeFloorOfSlot === "function" && b.type === "office" ? officeFloorOfSlot(w, s) : null;
+          const fl = ofl != null ? ofl : isSchoolBig(b) ? act.s === 2 && m % 60 < 50 && m / 60 >= 8.5 && m / 60 < 15.5 && hash2(i, 6) % 4 ? 1 + hash2(i, 5) % (nfl - 1) : 0 : nfl > 1 ? hash2(i, 5) % nfl : 0;
           if (fl !== floor) continue;
+          // オフィスビル: その企業の机へ(企業ごとの立ち位置。空いていなければ通常の順)
+          if (ofl != null) {
+            const t = bizOfSlot(w, s), bid = t ? t.mgmt ? "mgmt" : t.id : null;
+            const k = spotsS.findIndex((q, k2) => q.biz === bid && !offUsed.has(k2));
+            if (k >= 0) {
+              offUsed.add(k);
+              res.push({ id: i, x: spotsS[k].x + 0.5, y: spotsS[k].y + 0.5, dir: "d", role: "staff", biz: bid });
+              continue;
+            }
+          }
           if (si >= spotsS.length + 2) break;
           const sp = take(spotsS, si++);
           if (!sp) break;

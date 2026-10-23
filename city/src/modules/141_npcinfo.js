@@ -29,7 +29,7 @@
       else if (a.train) now += "(電車)";
       goal = isHome(a.to) ? "自宅" : bn(a.to);
     } else if (a.s === 2) {
-      now = dp && dp.kind === "school" ? `授業中(${bn(a.at)})` : `仕事中(${bn(a.at)})`;
+      now = dp && dp.kind === "school" ? `授業中(${bn(a.at)})` : `仕事中(${(typeof workplaceLabel === "function" ? workplaceLabel(w, id) : null) || bn(a.at)})`;
       const end = dp ? dp.b : null;
       if (end != null) goal = `${Math.floor(end)}:${String(Math.round(end % 1 * 60)).padStart(2, "0")}ごろ${dp.kind === "school" ? "下校" : "退勤"}して自宅へ`;
     } else if (a.s === 3) {
@@ -53,7 +53,7 @@
     let mission = null, ties = null;
     try {
       mission = typeof lifeMission === "function" ? lifeMission(G3.world, id) : null;
-      ties = typeof tiesOf === "function" ? tiesOf(G3.world, G3.hero.id, id).map((t) => t.k === "kin" ? t.rel : { classmate: `${t.name}で同じクラス`, gradeMate: `${t.name}で同じ学年`, senpai: `${t.name}の先輩`, kohai: `${t.name}の後輩`, boss: `${t.name}の上司`, coworker: `${t.name}の同僚`, excoworker: `${t.name}の元同僚` }[t.k]).filter(Boolean) : null;
+      ties = typeof tiesOf === "function" ? tiesOf(G3.world, G3.hero.id, id).map((t) => t.k === "kin" ? t.rel : { classmate: `${t.name}で同じクラス`, gradeMate: `${t.name}で同じ学年`, senpai: `${t.name}の先輩`, kohai: `${t.name}の後輩`, boss: `${t.name}の上司`, coworker: `${t.name}の同僚`, excoworker: `${t.name}の元同僚`, samebldg: `同じビル(${t.name})` }[t.k]).filter(Boolean) : null;
     } catch (e) {
     }
     return { who, age, now, goal, mission, ties };

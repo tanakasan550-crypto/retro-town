@@ -352,8 +352,11 @@
       for (const b of B2) {
         const bt = BTYPES[b.type];
         if (!bt.slots) continue;
-        for (const [job, nBase] of Object.entries(b.salon ? { hairdresser: b.salon.k === "luxury" || b.salon.k === "total" ? 4 : 2, clerk: 1 } : bt.slots)) {
+        // オフィスビル: 入居企業ごとの人数(床面積の定員まで。tenants.js)。乱数は従来どおり1回ずつ使う
+        const offT = typeof isTenantOffice === "function" && isTenantOffice(b) ? officeSlotTable(this, b) : null;
+        for (const [job, nBase] of Object.entries(offT || (b.salon ? { hairdresser: b.salon.k === "luxury" || b.salon.k === "total" ? 4 : 2, clerk: 1 } : bt.slots))) {
           let n2 = Math.max(1, Math.round(nBase * SC * (b.tenant ? TENANT_JOB_SCALE : 1) * (0.75 + rng.next() * 0.5)));
+          if (offT) n2 = nBase;
           if (b.type === "station") n2 = Math.max(2, Math.round(n2 * 0.7));
           for (let i = 0; i < n2; i++) {
             this.slots.b.push(b.idx);
@@ -368,16 +371,16 @@
     }
     // 文化・産業・インフラ職業の勤務枠を追加。冪等(すでに拡張職の枠がある建物は触らない)=古いセーブ読込後も呼べる。
     extendSlots() {
-      const ext = new Set(Object.keys(JOBS_EXT).map((k) => JOB_INDEX[k]));
+      // 建物ごと・職ごとに、その職の枠がまだ無ければ足す(あとから増やした職も、古いセーブに一度だけ足される)
       const have = /* @__PURE__ */ new Set();
       const S2 = this.slots;
-      for (let s = 0; s < S2.b.length; s++) if (ext.has(S2.job[s])) have.add(S2.b[s]);
+      for (let s = 0; s < S2.b.length; s++) have.add(S2.b[s] * 256 + S2.job[s]);
       let n2 = 0;
       for (const b of this.map.buildings) {
-        if (have.has(b.idx) || b.status === "closed") continue;
-        const tbl = b.util ? UTIL_SLOTS[b.util] : SLOTS_EXT[b.type];
+        if (b.status === "closed") continue;
+        const tbl = b.util ? UTIL_SLOTS[b.util] : typeof isTenantOffice === "function" && isTenantOffice(b) ? officeExtTable(this, b) : SLOTS_EXT[b.type];
         if (!tbl) continue;
-        for (const [job, c] of Object.entries(tbl)) for (let i = 0; i < c; i++) {
+        for (const [job, c] of Object.entries(tbl)) for (let i = 0; i < c && !have.has(b.idx * 256 + JOB_INDEX[job]); i++) {
           const s = S2.b.length;
           S2.b.push(b.idx);
           S2.job.push(JOB_INDEX[job]);
@@ -420,6 +423,7 @@
       const p = this.pop, J = JOBS[jobId];
       const age = ageYears(p, id, M);
       if (age < J.minAge || age > 69) return false;
+      if (J.fromY && 1900 + Math.floor(M / 12) < J.fromY) return false;
       if (J.lic || J.exp) {
         if (p.apt[id] < (J.edu >= 5 ? 120 : J.edu >= 4 ? 95 : 70) || age < J.minAge + (J.exp ? 6 : 1)) return false;
       }
@@ -469,7 +473,18 @@
         if (!a) bucket.set(c, a = []);
         a.push(id);
       }
-      const order = [...Array(S2.b.length).keys()].sort((a, b) => (JOBS[JOB_IDS2[S2.job[b]]].qual ? 1 : 0) - (JOBS[JOB_IDS2[S2.job[a]]].qual ? 1 : 0) || a - b);
+      // 同じ職場・同じ職の中での何人目か(ord)を、その枠の数で割った値の小さい順に埋める(枠の多い大きな職場や、
+      // 後から足した拡張職(工場長・電気工事士など)が、街の働き手を使い切ったあとに回されて誰もいない、ということがないように)
+      const ordOf = new Int32Array(S2.b.length), seenBJ = /* @__PURE__ */ new Map();
+      for (let s = 0; s < S2.b.length; s++) {
+        const k = S2.b[s] * 256 + S2.job[s], n2 = seenBJ.get(k) || 0;
+        ordOf[s] = n2;
+        seenBJ.set(k, n2 + 1);
+      }
+      // 並べる値 = 何人目か ÷ その職場のその職の枠の数(どの職場も同じ割合ずつ埋まる。1人だけの職は最初に)
+      const frac = new Float64Array(S2.b.length);
+      for (let s = 0; s < S2.b.length; s++) frac[s] = ordOf[s] / seenBJ.get(S2.b[s] * 256 + S2.job[s]);
+      const order = [...Array(S2.b.length).keys()].sort((a, b) => frac[a] - frac[b] || (JOBS[JOB_IDS2[S2.job[b]]].qual ? 1 : 0) - (JOBS[JOB_IDS2[S2.job[a]]].qual ? 1 : 0) || a - b);
       const vac = [];
       let left = pool.length;
       for (const s of order) {
@@ -482,7 +497,7 @@
           for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
             if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
             const gx = cx + dx, gy = cy + dy;
-            if (gx < 0 || gy < 0 || gx >= 40 || gy >= 30) continue;
+            if (gx < 0 || gy < 0 || gx >= this.map.W >> 5 || gy >= this.map.H + 31 >> 5) continue;
             const c = gx + gy * 64;
             const a2 = bucket.get(c);
             if (!a2) continue;
@@ -546,7 +561,7 @@
         for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           const gx = cx + dx, gy = cy + dy;
-          if (gx < 0 || gy < 0 || gx >= 40 || gy >= 30) continue;
+          if (gx < 0 || gy < 0 || gx >= this.map.W >> 5 || gy >= this.map.H + 31 >> 5) continue;
           const a = ix.cells.get(gx + gy * 64);
           if (!a) continue;
           for (const s of a) {

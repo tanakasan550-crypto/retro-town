@@ -1184,6 +1184,7 @@
       const h = this.hero, J = JOBS[jobId], a = this.age();
       if (!J) return false;
       if (a < J.minAge || a > 69) return false;
+      if (J.fromY && this.year() < J.fromY) return false;
       if (this.isStudentNow() && h.edu.cur >= 2 && h.edu.cur <= 4 && !MINOR_JOBS.has(jobId)) return false;
       if (this.isStudentNow() && a < 18 && !MINOR_JOBS.has(jobId)) return false;
       if (a < 18 && (a < 15 || h.edu.level < 3 && a < 16)) return false;
@@ -1211,7 +1212,9 @@
       const seen = /* @__PURE__ */ new Set();
       const uniq = [];
       for (const o of out) {
-        const k = o.b + ":" + o.jobId;
+        // オフィスビルは入居企業ごとに別の求人(tenants.js)
+        const tb = typeof bizOfSlot === "function" ? bizOfSlot(this.world, o.s) : null;
+        const k = o.b + ":" + o.jobId + (tb ? ":" + tb.id : "");
         if (seen.has(k)) continue;
         seen.add(k);
         uniq.push(o);

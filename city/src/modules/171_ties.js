@@ -60,10 +60,13 @@
   // 職場のつながり: 今の同僚・上司(同じ職場で職位が上)、元同僚(職歴が重なる)
   function workTies(w, a, b) {
     const p = w.pop, out = [];
-    if (p.work[a] >= 0 && p.work[a] === p.work[b]) {
+    // 同じオフィスビルでも別の会社なら同僚ではない(tenants.js)
+    const ta = typeof bizOfPerson === "function" ? bizOfPerson(w, a) : null, tb = typeof bizOfPerson === "function" ? bizOfPerson(w, b) : null;
+    if (p.work[a] >= 0 && p.work[a] === p.work[b] && ta && tb && ta.id !== tb.id) out.push({ k: "samebldg", b: p.work[a], name: `${w.map.buildings[p.work[a]].name}(${tb.name})` });
+    else if (p.work[a] >= 0 && p.work[a] === p.work[b]) {
       const ra = w.prof && w.prof.get(a), rb = w.prof && w.prof.get(b);
       const boss = rb && ra && (rb.rank || 0) > (ra.rank || 0);
-      out.push({ k: boss ? "boss" : "coworker", b: p.work[a], name: w.map.buildings[p.work[a]].name });
+      out.push({ k: boss ? "boss" : "coworker", b: p.work[a], name: ta ? ta.name : w.map.buildings[p.work[a]].name });
     }
     const ha = w.prof && w.prof.get(a), hb = w.prof && w.prof.get(b);
     if (ha && hb && ha.hist && hb.hist) {

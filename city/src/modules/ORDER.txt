@@ -170,4 +170,5 @@
 175_kinout.js
 176_kinvisit.js
 177_fac_public.js
+178_tenants.js
 999_end.js
