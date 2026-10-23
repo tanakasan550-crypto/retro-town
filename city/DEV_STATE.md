@@ -13,6 +13,7 @@
 - 施設監査の一括撮影: `OUT=/tmp/audit node tools/audit_shots.mjs`(`ALL=1` で全5,504施設。既定は種類ごとの代表)。出力: `img/<カテゴリ>/*.jpg`・`audit.csv`・`audit.json`・`index.html`
 
 ## 今回までに入ったもの(新しい順)
+- 火葬場(165_funeral.js): 炉前ホール・待合室・収骨室と火葬の予約。遺族が喪服で移る。学級編成を均等に(kumiAt)。施設監査の撮り直し(B 358)
 - 改築前(元の v11)と改築後の同縮尺比較 docs/compare2(compare2.mjs: IDS_OUT で改築後の建物IDを書き、HTML=original/lifestory_v11_single.html と IDS_IN で同じIDを撮る → tools/compare_join.py)
 - 公共施設の作り直し(177_fac_public.js・pubfac.mjs): 警察・消防・市役所・裁判所・介護・福祉・研究所の複数階の中の作りと敷地。職員の席は職の枠から
 - 学校の中(042_interior_school.js・classroom.mjs): 1学級35席・学級数は在籍者から(schoolClasses)・学年は4月始まりの学年度(gradeOfPerson)・組は kumiOf(id, 段階, 学級数)
@@ -55,9 +56,9 @@
 - 全試験: `bash tools/run_tests.sh`(`HTML=写し` で dist を作り直しながら回せる)。結果は docs/test_results.md
 
 ## 再開地点(次の優先)
-1. 施設監査の撮り直しの結果(OUT=/tmp/.../audit2)を docs/audit_* に反映(作業中に実行)
-2. ドリームパークの中央を作り込む(花壇・パレードの道・来園者の数)・小さな飲食店の中の広さ
-3. 小学校の敷地(住宅地の再編か、新しい住宅地の埋立)・空港と火葬場の縮尺
+1. 小さな飲食店・ゲームセンターの中の広さ(capacity.mjs の残り)・C 判定の多い住宅/店/事務所の中
+2. 小学校の敷地(住宅地の再編か、新しい住宅地の埋立)・空港の縮尺
+3. 四十九日の行事・喪中の暮らし
 4. 地図の生成の高速化(敷地の移設の探索)
 5. 遠くへ移った建物(382件)を近くへ戻す工夫
 ## 守ること
