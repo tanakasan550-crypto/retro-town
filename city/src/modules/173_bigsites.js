@@ -23,6 +23,10 @@
       ride("kart", 22, 142, 72, 30, [96, 160, 4, 12]);
       ride("haunt", W2 - 84, 140, 32, 20, [W2 - 78, 161, 18, 3]);
       s.push(["lake", cx - 66, 66, 44, 32]);
+      // 園の中央: 海賊船(スイング)・花壇・休憩の広場
+      ride("pirate", cx + 10, 118, 26, 14, [cx + 16, 133, 14, 3]);
+      for (const [x, y, w, h] of [[cx - 20, 64, 12, 6], [cx - 20, 80, 12, 6], [cx + 8, 64, 6, 18], [cx - 16, 100, 10, 5], [cx + 6, 140, 10, 5], [cx - 20, 140, 12, 5]]) p.push(["flower", x, y, w, h]);
+      for (let y = 112; y < 150; y += 6) p.push(["bench", cx - 9, y], ["bench", cx + 8, y]);
       // 屋台・ベンチ・木・街灯
       for (let y = 66; y < H4 - 20; y += 10) p.push(["kiosk", cx - 8, y], ["tree", cx + 7, y + 4], ["lamp", cx - 6, y + 6], ["bench", cx + 6, y + 8]);
       for (let x = 18; x < W2 - 18; x += 14) p.push(["tree", x, 18], ["tree", x + 6, H4 - 36], ["lamp", x + 3, 26]);
@@ -131,7 +135,7 @@
     return (d.dow === 0 || d.dow === 6) && h >= 12 && h < 22;
   };
   // 高さ(画面の上下の範囲に使う)
-  var BIG_TOP = { ferris: 64, coaster: 36, drop: 60, castle: 32, merry: 8, cups: 4, kart: 2, haunt: 13, stand: 34, light: 42, chimney: 48, tank: 13, box: 16, kiosk: 4, truck: 4, queue: 2 };
+  var BIG_TOP = { pirate: 18, ferris: 64, coaster: 36, drop: 60, castle: 32, merry: 8, cups: 4, kart: 2, haunt: 13, stand: 34, light: 42, chimney: 48, tank: 13, box: 16, kiosk: 4, truck: 4, queue: 2 };
   var BIG_PROPS = /* @__PURE__ */ new Set(["light", "chimney", "kiosk", "truck", "queue"]);
   // siteOutdoor から: 大きな設備を奥行きの並べ替えに入れる
   function bigPush(R5, push, P2, Z, r, hero, t) {
@@ -217,6 +221,33 @@
       }
       // 乗り場
       bbox(c, P2, cu - 6, r.y + r.h - 6, cu + 6, r.y + r.h - 1, 0, 4, "#7aa7d8");
+    },
+    // 海賊船「ブラックパール号」: 2本の脚のあいだで船が大きく揺れる
+    pirate(c, P2, Z, r, t) {
+      const u = r.x + r.w / 2, v = r.y + r.h / 2, zp = PXM * P2.Z, Hh = 14, piv = bpt(P2, u, v, Hh);
+      for (const du of [-9, 9]) for (const dv of [-4, 4]) bline(c, bpt(P2, u + du, v + dv, 0), bpt(P2, u + du * 0.15, v, Hh), "#7b5a3a", 0.8 * zp);
+      bline(c, bpt(P2, u - 2, v, Hh), bpt(P2, u + 2, v, Hh), "#5a4026", 0.9 * zp);
+      const a = Math.sin(t * 0.9) * 1.05, L3 = 10 * zp, bx = piv[0] + Math.sin(a) * L3, by = piv[1] + Math.cos(a) * L3;
+      bline(c, piv, [bx, by], "#5a4026", 0.6 * zp);
+      c.save();
+      c.translate(bx, by);
+      c.rotate(-a * 0.6);
+      c.fillStyle = "#4a2f1d";
+      c.beginPath();
+      c.moveTo(-9 * zp, -1.5 * zp);
+      c.lineTo(9 * zp, -1.5 * zp);
+      c.lineTo(6 * zp, 2.4 * zp);
+      c.lineTo(-6 * zp, 2.4 * zp);
+      c.closePath();
+      c.fill();
+      c.fillStyle = "#c9a54a";
+      c.fillRect(-9 * zp, -1.9 * zp, 18 * zp, 0.5 * zp);
+      for (let k = -3; k <= 3; k++) {
+        c.fillStyle = ["#e8505b", "#f6d743", "#4aa3df", "#5bc06b"][(k + 3) % 4];
+        c.fillRect(k * 2.2 * zp - 0.4 * zp, -2.8 * zp, 0.8 * zp, 0.9 * zp);
+      }
+      c.restore();
+      bbox(c, P2, u - 3, v + 5, u + 3, v + 7, 0, 1.5, "#9a7b55");
     },
     // フリーフォール「スカイドロップ」(約58m)
     drop(c, P2, Z, r, t) {
@@ -493,6 +524,18 @@
         k ? c.lineTo(...q) : c.moveTo(...q);
       }
       c.stroke();
+      return true;
+    }
+    if (p.kind === "flower") {
+      quad(p.x, p.y, p.x + p.w, p.y + p.h, "#5f9e4a");
+      const cols = ["#e8505b", "#f6d743", "#f4a3c4", "#ffffff", "#9b6ad6"];
+      for (let y = p.y + 0.5; y < p.y + p.h; y += 1) for (let x = p.x + 0.5; x < p.x + p.w; x += 1) {
+        const q = pt(x + (uh(x * 7, y) % 10) / 20, y);
+        c.fillStyle = cols[uh(x * 13 + y, 3) % cols.length];
+        c.beginPath();
+        c.arc(q[0], q[1], Math.max(1, 0.5 * Z * 2), 0, 7);
+        c.fill();
+      }
       return true;
     }
     if (p.kind === "lot") {

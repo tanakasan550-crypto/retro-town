@@ -488,7 +488,7 @@
           c.fill();
           c.strokeStyle = "#fff";
           c.stroke();
-        } else if ((p.kind === "pitch" || p.kind === "lot") && typeof bigGround === "function") {
+        } else if ((p.kind === "pitch" || p.kind === "lot" || p.kind === "flower") && typeof bigGround === "function") {
           bigGround(c, P2, Z, p, quad, pt);
         } else if (p.kind === "tennis") {
           quad(p.x + 0.3, p.y + 0.3, p.x + p.w - 0.3, p.y + p.h - 0.3, "#3f7f5a", "#fff");
@@ -555,7 +555,7 @@
         });
       }
       for (const p of s.props) {
-        if (["track", "diamond", "tennis", "pitch", "lot"].includes(p.kind)) continue;
+        if (["track", "diamond", "tennis", "pitch", "lot", "flower"].includes(p.kind)) continue;
         // 大きな設備(照明塔・煙突・屋台・待ち列など: bigsites.js)
         if (typeof BIG_DRAW !== "undefined" && BIG_DRAW[p.kind]) {
           bigPush(R5, push, P2, Z, p, hero, t);

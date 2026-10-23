@@ -32,6 +32,7 @@ export default async (p, shot) => {
   await go('themepark', 0.5, 0.3, 11 * 60, 'park_center');
   await go('themepark', 0.72, 0.38, 11 * 60, 'park_coaster');
   await go('themepark', 0.22, 0.6, 11 * 60, 'park_west');
+  await go('themepark', 0.56, 0.6, 14 * 60, 'park_mid');
   await go('stadium', 0.5, 0.97, 13 * 60, 'stadium_south');
   await go('stadium', 0.5, 0.36, 20 * 60, 'stadium_night');
   await go('factory', 0.5, 0.55, 10 * 60, 'factory');
